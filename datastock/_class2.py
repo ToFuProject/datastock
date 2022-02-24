@@ -44,8 +44,8 @@ class DataStock2(DataStock1):
 
     def add_mobile(
         self,
-        key=None,
         handle=None,
+        key=None,
         ref=None,
         data=None,
         dtype=None,
@@ -120,8 +120,8 @@ class DataStock2(DataStock1):
 
     def add_axes(
         self,
-        key=None,
         handle=None,
+        key=None,
         type=None,
         refx=None,
         refy=None,

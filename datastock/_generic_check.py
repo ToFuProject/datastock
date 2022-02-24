@@ -49,6 +49,8 @@ def _check_var(
     if var is None:
         var = default
     if var is None and allowed is not None and len(allowed) == 1:
+        if not isinstance(allowed, list):
+            allowed = list(allowed)
         var = allowed[0]
 
     # check type

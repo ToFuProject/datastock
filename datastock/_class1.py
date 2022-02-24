@@ -111,7 +111,7 @@ class DataStock1(DataStock0):
     # Adding ref / quantity one by one
     # ---------------------
 
-    def add_ref(self, key=None, data=None, size=None, **kwdargs):
+    def add_ref(self, size=None, key=None, data=None, **kwdargs):
         dref = {key: {'data': data, 'size': size, **kwdargs}}
         # Check consistency
         self.update(ddata=None, dref=dref, dstatic=None)
@@ -121,7 +121,7 @@ class DataStock1(DataStock0):
         # Check consistency
         self.update(ddata=None, dref=None, dstatic=dstatic)
 
-    def add_data(self, key=None, data=None, ref=None, **kwdargs):
+    def add_data(self, data=None, key=None, ref=None, **kwdargs):
         ddata = {key: {'data': data, 'ref': ref, **kwdargs}}
         # Check consistency
         self.update(ddata=ddata, dref=None, dstatic=None)
