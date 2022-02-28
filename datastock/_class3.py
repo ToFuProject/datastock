@@ -88,6 +88,7 @@ class DataStock3(DataStock2):
         dinc=None,
         lkeys=None,
         bstr_dict=None,
+        inplace=None,
         # figure-specific
         dax=None,
         dmargin=None,
@@ -124,11 +125,11 @@ class DataStock3(DataStock2):
             dinc=dinc,
             lkeys=lkeys,
             bstr_dict=bstr_dict,
+            inplace=inplace,
             # misc
             dcolorbar=dcolorbar,
             dleg=dleg,
             connect=connect,
-            groups=groups,
         )
 
 

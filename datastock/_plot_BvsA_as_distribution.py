@@ -8,6 +8,7 @@
 
 # Common
 import numpy as np
+import scipy.stats as scpstats
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
 import matplotlib as mpl
@@ -24,81 +25,128 @@ from . import _plot_text
 # __all__ = ['plot_as_array']
 
 
+_CONNECT = True
+
+
 # #############################################################################
 # #############################################################################
 #                       generic entry point
 # #############################################################################
 
 
-def plot_AvsB_as_distribution(
+def plot_BvsA_as_distribution(
     # parameters
     coll=None,
-    keyAy=None,
-    keyBx=None,
-    refprof=None,
-    ind=None,
-    vmin=None,
-    vmax=None,
-    cmap=None,
-    ymin=None,
-    ymax=None,
-    aspect=None,
-    nmax=None,
+    keyA=None,
+    keyB=None,
+    # customization of scatter plot
+    dlim=None,
     color_dict=None,
+    color_dict_logic=None,
+    color_map=None,
+    color_map_key=None,
+    color_map_vmin=None,
+    color_map_vmax=None,
+    Amin=None,
+    Amax=None,
+    Bmin=None,
+    Bmax=None,
+    # customization of distribution plot
+    nAbin=None,
+    nBbin=None,
+    dist_cmap=None,
+    dist_min=None,
+    dist_max=None,
+    # customization of interactivity
+    ind0=None,
+    nmax=None,
     dinc=None,
     lkeys=None,
     bstr_dict=None,
+    inplace=None,
     # figure-specific
     dax=None,
     dmargin=None,
     fs=None,
     dcolorbar=None,
     dleg=None,
+    aspect=None,
     connect=None,
-    inplace=None,
 ):
 
 
     # ------------
     #  check inputs
 
+    # keyA, keyB
+    keyA = _generic_check._check_var(
+        keyA, 'keyA',
+        allowed=coll._ddata.keys(),
+    )
+    lkok = [
+        k0 for k0, v0 in coll._ddata.items()
+        if v0['ref'] == coll._ddata[keyA]['ref']
+    ]
+    keyB = _generic_check._check_var(
+        keyB, 'keyB',
+        allowed=lkok,
+    )
+
     # check key, inplace flag and extract sub-collection
     keys, inplace, coll2 = _generic_check._check_inplace(
         coll=coll,
-        keys=[keyAy, keyBx],
+        keys=[keyA, keyB],
         inplace=inplace,
     )
-    keyAy, kayBx = keys
-
-    shapeA = coll._ddata[keyAy]['data'].shape
-    refA = coll._ddata[keyAy]['ref'].shape
-    c0 = (
-        shapeA == coll._ddata[keyBx]['data'].shape
-        and shapeA == coll._ddata[keyAy]['shape']
-        and shapeB == coll._ddata[keyBx]['shape']
-        and refA == coll._ddata[keyBx]['ref']
-    )
-    if not c0:
-        msg = (
-            "Args keyAy and keyBx must refer to data keys with identical:\n"
-            f"\t- keys: {keyAy} and {keyBx}\n"
-            f"\t- shapes: {shapeA} vs {coll._ddata[keyBx]['shape']}\n"
-            f"\t- ref: {refA} vs {coll._ddata[keyBx]['ref']}\n"
-        )
-        raise Exception(msg)
-
-
+    keyA, keyB = keys
+    ndim = coll._ddata[keyA]['data'].ndim
 
     # -------------------------
     #  call appropriate routine
 
-    if len(shapeA) == 1:
+    if ndim == 1:
 
-        return _plot_AvsB_1d(
+        return _plot_BvsA_1d(
+            # parameters
+            coll=coll2,
+            keyA=keyA,
+            keyB=keyB,
+            # customization of scatter plot
+            dlim=dlim,
+            color_dict=color_dict,
+            color_dict_logic=color_dict_logic,
+            color_map=color_map,
+            color_map_key=color_map_key,
+            color_map_vmin=color_map_vmin,
+            color_map_vmax=color_map_vmax,
+            Amin=Amin,
+            Amax=Amax,
+            Bmin=Bmin,
+            Bmax=Bmax,
+            # customization of distribution plot
+            nAbin=nAbin,
+            nBbin=nBbin,
+            dist_cmap=dist_cmap,
+            dist_min=dist_min,
+            dist_max=dist_max,
+            # customization of interactivity
+            ind0=ind0,
+            nmax=nmax,
+            dinc=dinc,
+            lkeys=lkeys,
+            bstr_dict=bstr_dict,
+            # figure-specific
+            dax=dax,
+            dmargin=dmargin,
+            fs=fs,
+            dcolorbar=dcolorbar,
+            dleg=dleg,
+            aspect=aspect,
+            connect=connect,
         )
 
 
-    elif len(shapeA) == 2:
+    elif ndim == 2:
 
         return _plot_AvsB_2d(
         )
@@ -120,6 +168,7 @@ def _plot_BvsA_check(
     # customization of scatter plot
     dlim=None,
     color_dict=None,
+    color_dict_logic=None,
     color_map=None,
     color_map_key=None,
     color_map_vmin=None,
@@ -145,6 +194,7 @@ def _plot_BvsA_check(
     fs=None,
     dcolorbar=None,
     dleg=None,
+    aspect=None,
     connect=None,
     groups=None,
 ):
@@ -169,25 +219,6 @@ def _plot_BvsA_check(
         )
         raise Exception(msg)
 
-    # keyA, keyB
-    lkok = [
-        k0 for k0, v0 in coll._ddata.items()
-        if len(v0['ref']) == ndim
-    ]
-    keyA = _generic_check._check_var(
-        keyA, 'keyA',
-        allowed=coll._ddata.keys(),
-    )
-    lkok = [
-        k0 for k0, v0 in coll._ddata.items()
-        if v0['ref'] == coll._ddata[keyA]['ref']
-    ]
-    keyB = _generic_check._check_var(
-        keyB, 'keyB',
-        allowed=lkok,
-    )
-
-
     # color_dict vs color_cmap
     if color_dict is not None and color_map_key is not None:
         msg = (
@@ -198,11 +229,19 @@ def _plot_BvsA_check(
         raise Exception(msg)
 
     # color_dict
-    if color_dict is not None:
+    if color_map_key is None:
+
+        if color_dict is None:
+            shape = coll._ddata[keyA]['data'].shape
+            color_dict = {'k': {'ind': np.ones(shape, dtype=bool)}}
+
         c0 = (
-            isinstance(color_dict)
-            and mcolors.is_color_like(k0)
-            and isinstance(v0, dict)
+            isinstance(color_dict, dict)
+            and all([
+                mcolors.is_color_like(k0)
+                and isinstance(v0, dict)
+                for k0, v0 in color_dict.items()
+            ])
         )
         if not c0:
             msg = (
@@ -214,14 +253,14 @@ def _plot_BvsA_check(
 
         for k0, v0 in color_dict.items():
             if v0.get('dlim') is None:
-                color_dict[k0] = {
-                    'dlim': dict(v0)
-                }
+                lk1 = [k1 for k1 in v0.keys() if k1 not in ['ind', 'color']]
+                if len(lk1) > 0:
+                    color_dict[k0]['dlim'] = {k1: v0[k1] for k1 in lk1}
             if v0.get('color') is None:
                 color_dict[k0]['color'] = k0
 
-            if color_dict.get('ind') is None:
-                color_dict[k0]['ind'] = _apply_dlim(
+            if v0.get('ind') is None:
+                color_dict[k0]['ind'] = _generic_check._apply_dlim(
                     dlim=color_dict[k0]['dlim'],
                     logic_intervals='all',
                     logic=color_dict_logic,
@@ -239,7 +278,7 @@ def _plot_BvsA_check(
         if not c0:
             msg = (
                 "Arg color_map_key must be a valid coll.ddata key!\n"
-                f"It must have ref = ('{ref}',})\n"
+                f"It must have ref = ('{ref}',)\n"
                 "Provided:\n"
                 f"\t- color_map_key: {color_map_key}\n"
                 f"\t- ref: {coll._ddata[color_map_key]['ref']}\n"
@@ -279,29 +318,29 @@ def _plot_BvsA_check(
     )
 
     # color_dict
-    cdef = {
-        k0: _LCOLOR_DICT[0] for ii, k0 in enumerate(groups)
-    }
-    color_dict = _generic_check._check_var(
-        color_dict, 'color_dict',
-        default=cdef,
-        types=dict,
-    )
-    dout = {
-        k0: str(v0)
-        for k0, v0 in color_dict.items()
-        if not (
-            isinstance(k0, str)
-            and k0 in groups
-            and isinstance(v0, list)
-            and all([mcolors.is_color_like(v1) for v1 in v0])
-        )
-    }
-    if len(dout) > 0:
-        lstr = [f"{k0}: {v0}" for k0, v0 in dout.items()]
-        msg = (
-            "The following entries of color_dict are invalid"
-        )
+    # cdef = {
+        # k0: _LCOLOR_DICT[0] for ii, k0 in enumerate(groups)
+    # }
+    # color_dict = _generic_check._check_var(
+        # color_dict, 'color_dict',
+        # default=cdef,
+        # types=dict,
+    # )
+    # dout = {
+        # k0: str(v0)
+        # for k0, v0 in color_dict.items()
+        # if not (
+            # isinstance(k0, str)
+            # and k0 in groups
+            # and isinstance(v0, list)
+            # and all([mcolors.is_color_like(v1) for v1 in v0])
+        # )
+    # }
+    # if len(dout) > 0:
+        # lstr = [f"{k0}: {v0}" for k0, v0 in dout.items()]
+        # msg = (
+            # "The following entries of color_dict are invalid"
+        # )
 
     # dcolorbar
     defdcolorbar = {
@@ -327,6 +366,14 @@ def _plot_BvsA_check(
         types=(bool, dict),
     )
 
+    # aspect
+    aspect = _generic_check._check_var(
+        aspect, 'aspect',
+        default='equal',
+        types=str,
+        allowed=['equal', 'auto'],
+    )
+
     # connect
     connect = _generic_check._check_var(
         connect, 'connect',
@@ -341,6 +388,7 @@ def _plot_BvsA_check(
         # customization of scatter plot
         dlim,
         color_dict,
+        color_dict_logic,
         color_map,
         color_map_key,
         color_map_vmin,
@@ -367,6 +415,7 @@ def _plot_BvsA_check(
         dcolorbar,
         dleg,
         connect,
+        aspect,
         groups,
     )
 
@@ -397,7 +446,7 @@ def _select_by_dict(coll, dselect=None, ref=None):
                         isinstance(v0.get('dlim'), (list, tuple))
                         or (
                             isinstance(v0.get('ind'), np.narray)
-                            qnd v0['ind'].dtype == bool
+                            and v0['ind'].dtype == bool
                             and v0['ind'].shape == (npts,)
                         )
                     )
@@ -439,7 +488,7 @@ def _select_by_dict(coll, dselect=None, ref=None):
 # #############################################################################
 
 
-def plot_BvsA_1d(
+def _plot_BvsA_1d(
     # parameters
     coll=None,
     keyA=None,
@@ -447,6 +496,7 @@ def plot_BvsA_1d(
     # customization of scatter plot
     dlim=None,
     color_dict=None,
+    color_dict_logic=None,
     color_map=None,
     color_map_key=None,
     color_map_vmin=None,
@@ -473,6 +523,7 @@ def plot_BvsA_1d(
     fs=None,
     dcolorbar=None,
     dleg=None,
+    aspect=None,
     connect=None,
 ):
 
@@ -487,6 +538,7 @@ def plot_BvsA_1d(
         # customization of scatter plot
         dlim,
         color_dict,
+        color_dict_logic,
         color_map,
         color_map_key,
         color_map_vmin,
@@ -512,6 +564,7 @@ def plot_BvsA_1d(
         fs,
         dcolorbar,
         dleg,
+        aspect,
         connect,
         groups,
     ) = _plot_BvsA_check(
@@ -523,6 +576,7 @@ def plot_BvsA_1d(
         # customization of scatter plot
         dlim=dlim,
         color_dict=color_dict,
+        color_dict_logic=color_dict_logic,
         color_map=color_map,
         color_map_key=color_map_key,
         color_map_vmin=color_map_vmin,
@@ -546,6 +600,7 @@ def plot_BvsA_1d(
         # misc
         dcolorbar=dcolorbar,
         dleg=dleg,
+        aspect=aspect,
         connect=connect,
         groups=groups,
     )
@@ -553,8 +608,8 @@ def plot_BvsA_1d(
     # --------------
     #  Prepare data
 
-    dataA = coll.ddata[keyAy]['data']
-    dataB = coll.ddata[keyBx]['data']
+    dataA = coll.ddata[keyA]['data']
+    dataB = coll.ddata[keyB]['data']
     if hasattr(dataA, 'nnz'):
         dataA = dataA.toarray()
     if hasattr(dataB, 'nnz'):
@@ -570,9 +625,9 @@ def plot_BvsA_1d(
         )
         raise Exception(msg)
 
-    ref = coll._ddata[keyAy]['ref'][0]
-    unitsA = coll._ddata[keyAy]['units']
-    unitsB = coll._ddata[keyBx]['units']
+    ref = coll._ddata[keyA]['ref'][0]
+    unitsA = coll._ddata[keyA]['units']
+    unitsB = coll._ddata[keyB]['units']
     laby = f'{keyA} ({unitsA})'
     labx = f'{keyB} ({unitsB})'
 
@@ -605,9 +660,9 @@ def plot_BvsA_1d(
 
     iok = np.isfinite(dataA) & np.isfinite(dataB)
     databin = scpstats.binned_statistic_2d(
-        dataA,
-        dataB,
-        np.ones((iok1.sum(),), dtype=int),
+        dataA[iok],
+        dataB[iok],
+        np.ones((iok.sum(),), dtype=int),
         statistic='sum',
         bins=(Agrid, Bgrid),
     )[0]
@@ -623,21 +678,21 @@ def plot_BvsA_1d(
 
         if dmargin is None:
             dmargin = {
-                'left': 0.05, 'right': 0.95,
-                'bottom': 0.05, 'top': 0.90,
-                'hspace': 0.15, 'wspace': 0.2,
+                'left': 0.08, 'right': 0.95,
+                'bottom': 0.08, 'top': 0.95,
+                'hspace': 0.20, 'wspace': 0.20,
             }
 
         fig = plt.figure(figsize=fs)
-        gs = gridspec.GridSpec(ncols=2, nrows=2, **dmargin)
+        gs = gridspec.GridSpec(ncols=3, nrows=2, **dmargin)
 
-        ax0 = fig.add_subplot(gs[0, 0], aspect='auto')
+        ax0 = fig.add_subplot(gs[0, :2], aspect=aspect)
         ax0.set_xlabel(labx)
         ax0.set_ylabel(laby)
 
-        ax1 = fig.add_subplot(gs[1, 0], sharex=ax0, sharey=ax0)
+        ax1 = fig.add_subplot(gs[1, :2], sharex=ax0, sharey=ax0)
 
-        ax2 = fig.add_subplot(gs[:, 1], frameon=False)
+        ax2 = fig.add_subplot(gs[:, 2], frameon=False)
         ax2.set_xticks([])
         ax2.set_yticks([])
 
@@ -656,14 +711,15 @@ def plot_BvsA_1d(
     if dax.get(kax) is not None:
         ax = dax[kax]['handle']
 
-        if color_dict is not None:
-            ax.scatter(
+        if color_dict is None:
+            im = ax.scatter(
                 dataB,
                 dataA,
                 cmap=cmap,
                 vminAB=vminAB,
                 vmaxAB=vmaxAB,
             )
+            plt.colorbar(im, ax=ax, location='right')
         else:
             for k0, v0 in color_dict.items():
                 ax.plot(
@@ -683,15 +739,18 @@ def plot_BvsA_1d(
     if dax.get(kax) is not None:
         ax = dax[kax]['handle']
 
-        ax.imshow(
+        im = ax.imshow(
             databin,
-            cmap=cmap,
-            vmin=vmin,
-            vmax=vmax,
-            interpoaltion='nearest',
+            cmap=dist_cmap,
+            vmin=dist_min,
+            vmax=dist_max,
+            interpolation='nearest',
             extent=extent,
             origin='lower',
+            aspect=aspect,
         )
+
+        plt.colorbar(im, ax=ax, location='right')
 
     # ----------------
     # define and set dgroup
@@ -722,10 +781,10 @@ def plot_BvsA_1d(
             ax=ax,
             ref=ref,
             group='ref',
-            ind=ind[0],
+            ind=ind0[0],
             lkeys=lkeys,
             nmax=nmax,
-            color_dict=color_dict,
+            color_dict=group_color_dict,
             bstr_dict=bstr_dict,
         )
 

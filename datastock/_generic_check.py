@@ -196,7 +196,7 @@ def _check_inplace(coll=None, keys=None, inplace=None):
     if isinstance(keys, str):
         keys = [keys]
     keys = _check_var_iter(
-        key, 'key',
+        keys, 'keys',
         default=None,
         types=list,
         types_iter=str,
