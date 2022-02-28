@@ -2,6 +2,7 @@
 
 from ._class2 import *
 from . import _plot_as_array
+from . import _plot_BvsA_as_distribution
 
 
 class DataStock3(DataStock2):
