@@ -66,6 +66,18 @@ def propagate_indices_per_ref(
     value=None,
     lparam_data=None,
 ):
+    """ Propagate index of current ref to all other references
+
+    Taking one ref (associated to data), propagate its index / value to all
+        other lref / ldata
+
+    When several references belong the same gorup (ex: time),
+    the propagation can be done via:
+        - index: directly propagating the index
+        - ldata: by finding, for each ref, the index of its associated data
+                that is closest to the reference data
+
+    """
 
     # ------------
     # check inputs
@@ -101,17 +113,20 @@ def propagate_indices_per_ref(
     else:
 
         # check ldata length
-        if len(ldata) != len(lref) + 1:
+        if len(ldata) != len(lref):
             msg = (
                 "Arg ldata must contain one data key for ref + for each lref\n"
-                f"\t- Provided: {ldata}"
+                f"\t- ldata: {ldata}\n"
+                f"\t- lref: {lref}\n"
+                f"\t- ref: {ref}\n"
+                f"\t- ind: {ind}\n"
             )
             raise Exception(msg)
 
         # check content
         dout = {
             rr: (ii, ldata[ii], dref[rr]['ldata_monot'])
-            for ii, rr in enumerate([ref] + lref)
+            for ii, rr in enumerate(lref)
             if not (
                 ldata[ii] in dref[rr]['ldata_monot']
                 or ldata[ii] == 'index'
@@ -158,11 +173,14 @@ def propagate_indices_per_ref(
                     k0 for k0 in dref[rr]['ldata_monot']
                     if ddata[k0][param] == ddata[ref_data][param]
                 ]
-                for rr in [ref] + lref
+                for rr in lref
             }
 
             # Raise exception if not unique
-            dout = {rr: len(drdata[rr]) for rr in lref if len(drdata[rr]) != 1}
+            dout = {
+                rr: len(drdata[rr]) for rr in lref
+                if len(drdata[rr]) != 1
+            }
             if len(dout) > 0:
                 lstr = [
                     f"\t- {rr}: {vv} matching monotonous data"
@@ -174,22 +192,25 @@ def propagate_indices_per_ref(
                     "\n".join(lstr)
                 )
                 raise Exception(msg)
-            ldata = [drdata[rr][0] for rr in [ref] + lref]
+            ldata = [drdata[rr][0] for rr in lref]
 
         # propagate according to data (nearest neighbourg)
-        if ldata[0] == 'index':
-            dataref = None
+        idata = lref.index(ref)
+        if ldata[idata] == 'index':
+            dataref = 'index'
         else:
-            dataref = ddata[ldata[0]]['data']
+            dataref = ddata[ldata[idata]]['data']
             dataref = dataref[dref[ref]['indices']]
         for ii, rr in enumerate(lref):
-            if ldata[ii+1] == 'index':
-                data = dref[rr]['indices']
+            if ii == idata:
+                continue
+            if ldata[ii] == 'index':
+                data_pick = dref[rr]['indices']
             else:
-                data = ddata[ldata[ii+1]]['data']
+                data_pick = ddata[ldata[ii]]['data']
             dref[rr]['indices'] = _get_index_from_data(
                 data=dataref,
-                data_pick=data,
+                data_pick=data_pick,
                 monot=True,
             )
 

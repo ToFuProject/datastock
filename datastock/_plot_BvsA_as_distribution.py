@@ -26,6 +26,14 @@ from . import _plot_text
 
 
 _CONNECT = True
+_LCOLOR_DICT = [
+    [
+        'tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple',
+        'tab:brown', 'tab:pink', 'tab:gray', 'tab:olive', 'tab:cyan',
+    ],
+    ['r', 'g', 'b'],
+    ['m', 'y', 'c'],
+]
 
 
 # #############################################################################
@@ -63,6 +71,7 @@ def plot_BvsA_as_distribution(
     dinc=None,
     lkeys=None,
     bstr_dict=None,
+    group_color_dict=None,
     inplace=None,
     # figure-specific
     dax=None,
@@ -135,6 +144,7 @@ def plot_BvsA_as_distribution(
             dinc=dinc,
             lkeys=lkeys,
             bstr_dict=bstr_dict,
+            group_color_dict=group_color_dict,
             # figure-specific
             dax=dax,
             dmargin=dmargin,
@@ -188,6 +198,7 @@ def _plot_BvsA_check(
     dinc=None,
     lkeys=None,
     bstr_dict=None,
+    group_color_dict=None,
     # figure-specific
     dax=None,
     dmargin=None,
@@ -317,30 +328,32 @@ def _plot_BvsA_check(
         types=int,
     )
 
-    # color_dict
-    # cdef = {
-        # k0: _LCOLOR_DICT[0] for ii, k0 in enumerate(groups)
-    # }
-    # color_dict = _generic_check._check_var(
-        # color_dict, 'color_dict',
-        # default=cdef,
-        # types=dict,
-    # )
-    # dout = {
-        # k0: str(v0)
-        # for k0, v0 in color_dict.items()
-        # if not (
-            # isinstance(k0, str)
-            # and k0 in groups
-            # and isinstance(v0, list)
-            # and all([mcolors.is_color_like(v1) for v1 in v0])
-        # )
-    # }
-    # if len(dout) > 0:
-        # lstr = [f"{k0}: {v0}" for k0, v0 in dout.items()]
-        # msg = (
-            # "The following entries of color_dict are invalid"
-        # )
+    # group_color_dict
+    cdef = {
+        k0: _LCOLOR_DICT[0] for ii, k0 in enumerate(groups)
+    }
+    group_color_dict = _generic_check._check_var(
+        group_color_dict, 'group_color_dict',
+        default=cdef,
+        types=dict,
+    )
+    dout = {
+        k0: str(v0)
+        for k0, v0 in group_color_dict.items()
+        if not (
+            isinstance(k0, str)
+            and k0 in groups
+            and isinstance(v0, list)
+            and all([mcolors.is_color_like(v1) for v1 in v0])
+        )
+    }
+    if len(dout) > 0:
+        lstr = [f"{k0}: {v0}" for k0, v0 in dout.items()]
+        msg = (
+            "The following entries of group_color_dict are invalid:\n"
+            + "\n".join(lstr)
+        )
+        raise Exception(msg)
 
     # dcolorbar
     defdcolorbar = {
@@ -408,14 +421,15 @@ def _plot_BvsA_check(
         dinc,
         lkeys,
         bstr_dict,
+        group_color_dict,
         # figure-specific
         dax,
         dmargin,
         fs,
         dcolorbar,
         dleg,
-        connect,
         aspect,
+        connect,
         groups,
     )
 
@@ -517,6 +531,7 @@ def _plot_BvsA_1d(
     dinc=None,
     lkeys=None,
     bstr_dict=None,
+    group_color_dict=None,
     # figure-specific
     dax=None,
     dmargin=None,
@@ -558,6 +573,7 @@ def _plot_BvsA_1d(
         dinc,
         lkeys,
         bstr_dict,
+        group_color_dict,
         # figure-specific
         dax,
         dmargin,
@@ -597,6 +613,7 @@ def _plot_BvsA_1d(
         dinc=dinc,
         lkeys=lkeys,
         bstr_dict=bstr_dict,
+        group_color_dict=group_color_dict,
         # misc
         dcolorbar=dcolorbar,
         dleg=dleg,
@@ -691,6 +708,8 @@ def _plot_BvsA_1d(
         ax0.set_ylabel(laby)
 
         ax1 = fig.add_subplot(gs[1, :2], sharex=ax0, sharey=ax0)
+        ax1.set_xlabel(labx)
+        ax1.set_ylabel(laby)
 
         ax2 = fig.add_subplot(gs[:, 2], frameon=False)
         ax2.set_xticks([])
@@ -707,34 +726,6 @@ def _plot_BvsA_1d(
     # ---------------
     # plot fixed part
 
-    kax = 'scatter'
-    if dax.get(kax) is not None:
-        ax = dax[kax]['handle']
-
-        if color_dict is None:
-            im = ax.scatter(
-                dataB,
-                dataA,
-                cmap=cmap,
-                vminAB=vminAB,
-                vmaxAB=vmaxAB,
-            )
-            plt.colorbar(im, ax=ax, location='right')
-        else:
-            for k0, v0 in color_dict.items():
-                ax.plot(
-                    dataB[v0['ind']],
-                    dataA[v0['ind']],
-                    color=v0['color'],
-                    marker='.',
-                    ls='None',
-                    ms=4,
-                )
-
-            # plt.colorbar(im, ax=ax, **dcolorbar)
-            if dleg is not False:
-                ax.legend(**dleg)
-
     kax = 'dist'
     if dax.get(kax) is not None:
         ax = dax[kax]['handle']
@@ -750,11 +741,41 @@ def _plot_BvsA_1d(
             aspect=aspect,
         )
 
-        plt.colorbar(im, ax=ax, location='right')
+        plt.colorbar(im, ax=ax)
+
+    kax = 'scatter'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        if color_dict is None:
+            im = ax.scatter(
+                dataB,
+                dataA,
+                s=4,
+                c=coll._ddata[color_map_key]['data'],
+                marker='.',
+                edgecolors='None',
+                cmap=color_map,
+                vminAB=color_map_vmin,
+                vmaxAB=color_map_vmax,
+            )
+            plt.colorbar(im, ax=ax)
+        else:
+            for k0, v0 in color_dict.items():
+                ax.plot(
+                    dataB[v0['ind']],
+                    dataA[v0['ind']],
+                    color=v0['color'],
+                    marker='.',
+                    ls='None',
+                    ms=4,
+                )
 
     # ----------------
     # define and set dgroup
 
+    # only ref / data used for index propagation
+    # list unique ref and a single data per ref
     dgroup = {
         ref: {
             'ref': [ref],
@@ -766,7 +787,39 @@ def _plot_BvsA_1d(
     # ----------------
     # plot mobile part
 
+    kax = 'scatter'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
 
+        # ind0
+        for ii in range(nmax):
+            mi, = ax.plot(
+                dataA[ind0[0]],
+                dataB[ind0[0]],
+                marker='o',
+                markerfacecolor='none',
+                markeredgecolor=group_color_dict['ref'][ii],
+                ls='None',
+            )
+
+            # update coll
+            km = f'm{ii:02.0f}'
+            coll.add_mobile(
+                key=km,
+                handle=mi,
+                ref=[ref, ref],
+                data=[keyA, keyB],
+                dtype=['xdata', 'ydata'],
+                ax=kax,
+                ind=ii,
+            )
+
+        dax[kax].update(
+            refx=[ref],
+            refy=[ref],
+            datax=[keyA],
+            datay=[keyB],
+        )
 
     # ---------
     # add text

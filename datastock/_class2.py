@@ -36,7 +36,6 @@ class DataStock2(DataStock1):
     """ Handles matplotlib interactivity """
 
     _LPAXES = ['ax', 'type']
-    _dinteractivity = dict.fromkeys(['curax_panzoom'])
 
     # ----------------------
     #   Add objects
@@ -73,12 +72,22 @@ class DataStock2(DataStock1):
         # ----------
         # check dtype
 
-        dtype = _generic_check._check_var(
+        if isinstance(dtype, str):
+            dtype = [dtype]
+        dtype = _generic_check._check_var_iter(
             dtype,
             'dtype',
-            types=str,
-            allowed=['xdata', 'ydata', 'data', 'alpha', 'txt']
+            types=list,
+            types_iter=str,
+            allowed=['xdata', 'ydata', 'alpha', 'txt']
         )
+        if len(dtype) != len(ref):
+            msg = (
+                "Arg dtype must be a list, the same length as ref!\n"
+                f"\t- dtype: {dtype}\n"
+                f"\t- ref: {ref}\n"
+            )
+            raise Exception(msg)
 
         # ----------
         # check data
@@ -97,7 +106,7 @@ class DataStock2(DataStock1):
         if not c0:
             msg = (
                 "Arg data must be a tuple of existing data keys!\n"
-                "It should hqve the same length as ref!\n"
+                "It should have the same length as ref!\n"
                 f"\t- Provided ref: {ref}\n"
                 f"\t- Provided data: {data}"
             )
@@ -238,9 +247,7 @@ class DataStock2(DataStock1):
     def show_debug(self):
         """ Display information relevant for live debugging """
         print('\n\n')
-        return self.get_summary(
-            show_which=['ref', 'group', 'interactivity'],
-        )
+        return self.show(show_which=['ref', 'group', 'interactivity'])
 
     # ------------------
     # Setup interactivity
@@ -377,11 +384,6 @@ class DataStock2(DataStock1):
         self.set_param(which='axes', param='groupy', value=daxgroupy)
         self.add_param(which='axes', param='inc', value=dinc)
 
-        # group, ref, nmax
-
-        # cumsum0 = np.r_[0, np.cumsum(nmax[1, :])]
-        # arefind = np.zeros((np.sum(nmax[1, :]),), dtype=int)
-
         # --------------------------
         # update mobile with groups
 
@@ -389,14 +391,15 @@ class DataStock2(DataStock1):
              self._dobj['mobile'][k0]['group'] = tuple([
                  self._dref[rr]['group'] for rr in v0['ref']
              ])
-             (
-                 self._dobj['mobile'][k0]['func']
-             ) = _class2_interactivity.get_fupdate(
-                handle=v0['handle'],
-                dtype=v0['dtype'],
-                norm=None,
-                bstr=v0.get('bstr'),
-            )
+             self._dobj['mobile'][k0]['func'] = [
+                _class2_interactivity.get_fupdate(
+                    handle=v0['handle'],
+                    dtype=typ,
+                    norm=None,
+                    bstr=v0.get('bstr'),
+                )
+                for typ in self._dobj['mobile'][k0]['dtype']
+            ]
 
         # --------------------
         # axes mobile, refs and canvas
@@ -485,6 +488,7 @@ class DataStock2(DataStock1):
 
         dinter = {
             'cur_ax': cur_ax,
+            'cur_ax_panzoom': cur_ax,
             'cur_groupx': None,
             'cur_groupy': None,
             'cur_refx': None,
@@ -655,7 +659,7 @@ class DataStock2(DataStock1):
         self.kinter = kinter
         self._dobj['interactivity'][kinter].update({
             'cur_ax': kax,
-            'ax_panzoom': kax,
+            'cur_ax_panzoom': kax,
             'cur_groupx': cur_groupx,
             'cur_groupy': cur_groupy,
             'cur_refx': cur_refx,
@@ -714,22 +718,18 @@ class DataStock2(DataStock1):
 
         # Propagate indices through refs
         if cur_refx is not None:
-            lref = self._dobj['group'][cur_groupx]['ref']
-            ldata = self._dobj['group'][cur_groupx]['data']
             self.propagate_indices_per_ref(
                 ref=cur_refx,
-                lref=[rr for rr in lref if rr != cur_refx],
-                ldata=[cur_datax] + [dd for dd in ldata if dd != cur_datax],
+                lref=self._dobj['group'][cur_groupx]['ref'],
+                ldata=self._dobj['group'][cur_groupx]['data'],
                 param=None,
             )
 
         if cur_refy is not None:
-            lref = self._dobj['group'][cur_groupy]['ref']
-            ldata = self._dobj['group'][cur_groupy]['data']
             self.propagate_indices_per_ref(
                 ref=cur_refy,
-                lref=[rr for rr in lref if rr != cur_refy],
-                ldata=[cur_datay] + [dd for dd in ldata if dd != cur_datay],
+                lref=self._dobj['group'][cur_groupy]['ref'],
+                ldata=self._dobj['group'][cur_groupy]['data'],
                 param=None,
             )
 
@@ -826,7 +826,7 @@ class DataStock2(DataStock1):
         try:
             self._getset_current_axref(event)
         except Exception as err:
-            if str(err) == 'clic not in axes':
+            if str(err) in ['clic not in axes', "Not usable axes!"]:
                 return
             raise err
             # warnings.warn(str(err))
@@ -834,6 +834,7 @@ class DataStock2(DataStock1):
 
         kinter = self.kinter
         kax = self._dobj['interactivity'][kinter]['cur_ax']
+        ax = self._dobj['axes'][kax]['handle']
 
         refx = self._dobj['axes'][kax]['refx']
         refy = self._dobj['axes'][kax]['refy']
@@ -864,27 +865,38 @@ class DataStock2(DataStock1):
         pass
 
         # Check refx/refy vs datax/datay
-        if cur_refx is not None and cur_refy is not None:
-            c0 = (
-                'index' in [cur_datax, cur_datay]
-                or ((cur_refx == cur_refy) == (cur_datax == cur_datay))
-            )
-            if not c0:
-                msg = (
-                    "Invalid ref / data pairs:\n"
-                    f"\t- cur_refx, cur_refy: {cur_refx}, {cur_refy}\n"
-                    f"\t- cdx, cdy: {cdx}, {cdy}"
-                )
-                raise Exception(msg)
+        # if cur_refx is not None and cur_refy is not None:
+            # c0 = (
+                # 'index' in [cur_datax, cur_datay]
+                # or ((cur_refx == cur_refy) == (cur_datax == cur_datay))
+            # )
+            # if not c0:
+                # msg = (
+                    # "Invalid ref / data pairs:\n"
+                    # f"\t- cur_refx, cur_refy: {cur_refx}, {cur_refy}\n"
+                    # f"\t- cur_datax, cur_datay: {cur_datax}, {cur_datay}"
+                # )
+                # raise Exception(msg)
 
         # update ref indices
         if None not in [cur_refx, cur_refy] and cur_refx == cur_refy:
 
-            raise NotImplementedError()
-            dist = (cdx - event.xdata)**2 + (cdy - event.ydata)**2
-            lind = [
-                np.nanargmin(dist, axis=ii) for ii in range(datax.ndim)
-            ]
+            print(cur_refx, cur_refy)     # DB
+            print(cur_datax, cur_datay)     # DB
+            cdx = self._ddata[cur_datax]['data']
+            cdy = self._ddata[cur_datay]['data']
+            dx = np.diff(ax.get_xlim())
+            dy = np.diff(ax.get_ylim())
+            dist = ((cdx - event.xdata)/dx)**2 + ((cdy - event.ydata)/dy)**2
+            print(dist.shape)     # DB
+            print(dist)     # DB
+            if dist.ndim == 1:
+                ix = np.nanargmin(dist)
+            else:
+                raise NotImplementedError()
+            print(ix)     # DB
+            c0x = True
+            c0y = False
 
         else:
 
@@ -966,7 +978,7 @@ class DataStock2(DataStock1):
         c1 = 'zoom' in mode
 
         if c0 or c1:
-            kax = self._dobj['interactivity']['curax_panzoom']
+            kax = self._dobj['interactivity'][self.kinter]['cur_ax_panzoom']
             if kax is None:
                 msg = (
                     "Make sure you release the mouse button on an axes !"
@@ -977,6 +989,13 @@ class DataStock2(DataStock1):
             lax = ax.get_shared_x_axes().get_siblings(ax)
             lax += ax.get_shared_y_axes().get_siblings(ax)
             lax = list(set(lax))
+            lax = [
+                [
+                    kax for kax in self._dobj['axes'].keys()
+                    if self._dobj['axes'][kax]['handle'] == ax
+                ][0]
+                for ax in lax
+            ]
             _class2_interactivity._set_dbck(
                 lax=lax,
                 daxes=self._dobj['axes'],

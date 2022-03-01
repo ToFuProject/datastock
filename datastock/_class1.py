@@ -707,7 +707,7 @@ class DataStock1(DataStock0):
                     ]
                     lcol.append([k0] + [pp for pp in lk])
                     lar.append([
-                        tuple([k1] + [str(v1[kk]) for kk in lk])
+                        [k1] + [str(v1[kk]) for kk in lk]
                         for k1, v1 in v0.items()
                     ])
 
