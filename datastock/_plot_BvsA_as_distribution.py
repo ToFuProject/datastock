@@ -645,8 +645,8 @@ def _plot_BvsA_1d(
     ref = coll._ddata[keyA]['ref'][0]
     unitsA = coll._ddata[keyA]['units']
     unitsB = coll._ddata[keyB]['units']
-    laby = f'{keyA} ({unitsA})'
-    labx = f'{keyB} ({unitsB})'
+    laby = f'{keyB} ({unitsB})'
+    labx = f'{keyA} ({unitsA})'
 
     # ----------
     # set limits
@@ -673,7 +673,7 @@ def _plot_BvsA_1d(
     Bgrid = np.linspace(Bmin, Bmax, nBbin)
     Bgridplot = 0.5*(Bgrid[1:] + Bgrid[:-1])
     Bgridplot = np.tile(Bgridplot, (nBbin-1, 1))
-    extent = (Bmin, Bmax, Amin, Amax)
+    extent = (Amin, Amax, Bmin, Bmax)
 
     iok = np.isfinite(dataA) & np.isfinite(dataB)
     databin = scpstats.binned_statistic_2d(
@@ -731,7 +731,7 @@ def _plot_BvsA_1d(
         ax = dax[kax]['handle']
 
         im = ax.imshow(
-            databin,
+            databin.T,
             cmap=dist_cmap,
             vmin=dist_min,
             vmax=dist_max,
@@ -749,8 +749,8 @@ def _plot_BvsA_1d(
 
         if color_dict is None:
             im = ax.scatter(
-                dataB,
                 dataA,
+                dataB,
                 s=4,
                 c=coll._ddata[color_map_key]['data'],
                 marker='.',
@@ -763,12 +763,12 @@ def _plot_BvsA_1d(
         else:
             for k0, v0 in color_dict.items():
                 ax.plot(
-                    dataB[v0['ind']],
                     dataA[v0['ind']],
+                    dataB[v0['ind']],
                     color=v0['color'],
                     marker='.',
                     ls='None',
-                    ms=4,
+                    ms=4.,
                 )
 
     # ----------------
@@ -797,9 +797,11 @@ def _plot_BvsA_1d(
                 dataA[ind0[0]],
                 dataB[ind0[0]],
                 marker='o',
+                markeredgewidth=3.,
                 markerfacecolor='none',
                 markeredgecolor=group_color_dict['ref'][ii],
                 ls='None',
+                ms=8.,
             )
 
             # update coll

@@ -576,7 +576,7 @@ class DataStock2(DataStock1):
             keyp = v0['handle'].mpl_connect('key_press_event', self.onkeypress)
             keyr = v0['handle'].mpl_connect('key_release_event', self.onkeypress)
             butp = v0['handle'].mpl_connect('button_press_event', self.mouseclic)
-            # res = v0['handle'].mpl_connect('resize_event', self.resize)
+            res = v0['handle'].mpl_connect('resize_event', self.resize)
             butr = v0['handle'].mpl_connect('button_release_event', self.mouserelease)
             close = v0['handle'].mpl_connect('close_event', self.on_close)
             #if not plt.get_backend() == "agg":
@@ -586,7 +586,7 @@ class DataStock2(DataStock1):
                 'keyp': keyp,
                 'keyr': keyr,
                 'butp': butp,
-                # 'res': res,
+                'res': res,
                 'butr': butr,
                 'close': close,
             }
@@ -852,7 +852,7 @@ class DataStock2(DataStock1):
         ctrl = any([self._dobj['key'][ss]['val'] for ss in ['control', 'ctrl']])
 
         # Update number of indices (for visibility)
-        for gg in [cur_groupx, cur_groupy]:
+        for gg in set([cur_groupx, cur_groupy]):
             if gg is not None:
                 out = _class2_interactivity._update_indices_nb(
                     group=gg,
@@ -861,8 +861,8 @@ class DataStock2(DataStock1):
                     shift=shift,
                 )
 
-        # update indcur x/y vs shift / ctrl ?  TBF
-        pass
+                if out is False:
+                    return
 
         # Check refx/refy vs datax/datay
         # if cur_refx is not None and cur_refy is not None:
@@ -881,20 +881,15 @@ class DataStock2(DataStock1):
         # update ref indices
         if None not in [cur_refx, cur_refy] and cur_refx == cur_refy:
 
-            print(cur_refx, cur_refy)     # DB
-            print(cur_datax, cur_datay)     # DB
             cdx = self._ddata[cur_datax]['data']
             cdy = self._ddata[cur_datay]['data']
             dx = np.diff(ax.get_xlim())
             dy = np.diff(ax.get_ylim())
             dist = ((cdx - event.xdata)/dx)**2 + ((cdy - event.ydata)/dy)**2
-            print(dist.shape)     # DB
-            print(dist)     # DB
             if dist.ndim == 1:
                 ix = np.nanargmin(dist)
             else:
                 raise NotImplementedError()
-            print(ix)     # DB
             c0x = True
             c0y = False
 
