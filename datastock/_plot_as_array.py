@@ -75,34 +75,17 @@ def plot_as_array(
 
 
     # ------------
-    #  ceck inputs
+    #  check inputs
 
-    # key
-    key = _generic_check._check_var(
-        key, 'key',
-        default=None,
-        types=str,
-        allowed=coll.ddata.keys(),
+    # check key, inplace flag and extract sub-collection
+    key, inplace, coll2 = _generic_check._check_inplace(
+        coll=coll,
+        keys=[key],
+        inplace=inplace,
     )
+    key = key[0]
     ndim = coll._ddata[key]['data'].ndim
 
-    inplace = _generic_check._check_var(
-        inplace, 'inplace',
-        types=bool,
-        default=False,
-    )
-
-    if inplace:
-        coll2 = coll
-    else:
-        lk0 = list(itt.chain.from_iterable([
-            [
-                k0 for k0, v0 in coll._ddata.items()
-                if v0['ref'] == (rr,)
-            ]
-            for rr in coll._ddata[key]['ref']
-        ]))
-        coll2 = coll.extract([key] + lk0)
 
     # -------------------------
     #  call appropriate routine

@@ -7,8 +7,17 @@
 # #############################################################################
 
 
-def _set_dbck(lax=None, daxes=None, dcanvas=None, dmobile=None):
+def _set_dbck(
+    lax=None,
+    daxes=None,
+    dcanvas=None,
+    dmobile=None,
+    event=None,
+):
     """ Update background of relevant axes (ex: in case of resizing) """
+
+    # first allow resizing to happen
+    lcan = set([daxes[k0]['canvas'] for k0 in lax])
 
     # Make all invisible
     for k0 in lax:
@@ -35,7 +44,6 @@ def _set_dbck(lax=None, daxes=None, dcanvas=None, dmobile=None):
 
     for k0 in lcan:
         dcanvas[k0]['handle'].draw()
-
 
 
 # #############################################################################
@@ -148,15 +156,13 @@ def _update_mobile(k0=None, dmobile=None, dref=None, ddata=None):
     """ Update mobile objects data """
 
     func = dmobile[k0]['func']
-    dtype = dmobile[k0]['dtype']
-
     kref = dmobile[k0]['ref']
     kdata = dmobile[k0]['data']
     iref = [dref[rr]['indices'][dmobile[k0]['ind']] for rr in kref]
 
     if kref[0] is not None:
         _update_mobile_data(
-            func=func,
+            func=func[0],
             kref=kref[0],
             kdata=kdata[0],
             iref=iref[0],
@@ -165,7 +171,7 @@ def _update_mobile(k0=None, dmobile=None, dref=None, ddata=None):
 
     if len(kref) > 1 and kref[1] is not None:
         _update_mobile_data(
-            func=func,
+            func=func[1],
             kref=kref[1],
             kdata=kdata[1],
             iref=iref[1],

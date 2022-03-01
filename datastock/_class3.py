@@ -2,6 +2,7 @@
 
 from ._class2 import *
 from . import _plot_as_array
+from . import _plot_BvsA_as_distribution
 
 
 class DataStock3(DataStock2):
@@ -58,6 +59,79 @@ class DataStock3(DataStock2):
             connect=connect,
             inplace=inplace,
         )
+
+    def plot_BvsA_as_distribution(
+        self,
+        # parameters
+        keyA=None,
+        keyB=None,
+        # customization of scatter plot
+        dlim=None,
+        color_dict=None,
+        color_map=None,
+        color_map_key=None,
+        color_map_vmin=None,
+        color_map_vmax=None,
+        Amin=None,
+        Amax=None,
+        Bmin=None,
+        Bmax=None,
+        # customization of distribution plot
+        nAbin=None,
+        nBbin=None,
+        dist_cmap=None,
+        dist_min=None,
+        dist_max=None,
+        # customization of interactivity
+        ind0=None,
+        nmax=None,
+        dinc=None,
+        lkeys=None,
+        bstr_dict=None,
+        inplace=None,
+        # figure-specific
+        dax=None,
+        dmargin=None,
+        fs=None,
+        dcolorbar=None,
+        dleg=None,
+        connect=None,
+    ):
+        return _plot_BvsA_as_distribution.plot_BvsA_as_distribution(
+            # parameters
+            coll=self,
+            keyA=keyA,
+            keyB=keyB,
+            # customization of scatter plot
+            dlim=dlim,
+            color_dict=color_dict,
+            color_map=color_map,
+            color_map_key=color_map_key,
+            color_map_vmin=color_map_vmin,
+            color_map_vmax=color_map_vmax,
+            Amin=Amin,
+            Amax=Amax,
+            Bmin=Bmin,
+            Bmax=Bmax,
+            # customization of distribution plot
+            nAbin=nAbin,
+            nBbin=nBbin,
+            dist_cmap=dist_cmap,
+            dist_min=dist_min,
+            dist_max=dist_max,
+            # customization of interactivity
+            ind0=ind0,
+            nmax=nmax,
+            dinc=dinc,
+            lkeys=lkeys,
+            bstr_dict=bstr_dict,
+            inplace=inplace,
+            # misc
+            dcolorbar=dcolorbar,
+            dleg=dleg,
+            connect=connect,
+        )
+
 
     # def _plot_timetraces(self, ntmax=1,
                          # key=None, ind=None, Name=None,

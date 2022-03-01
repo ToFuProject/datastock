@@ -36,7 +36,7 @@ class DataStock2(DataStock1):
     """ Handles matplotlib interactivity """
 
     _LPAXES = ['ax', 'type']
-    _dinteractivity = dict.fromkeys(['curax_panzoom'])
+    __store_rcParams = None
 
     # ----------------------
     #   Add objects
@@ -73,12 +73,22 @@ class DataStock2(DataStock1):
         # ----------
         # check dtype
 
-        dtype = _generic_check._check_var(
+        if isinstance(dtype, str):
+            dtype = [dtype]
+        dtype = _generic_check._check_var_iter(
             dtype,
             'dtype',
-            types=str,
-            allowed=['xdata', 'ydata', 'data', 'alpha', 'txt']
+            types=list,
+            types_iter=str,
+            allowed=['xdata', 'ydata', 'alpha', 'txt']
         )
+        if len(dtype) != len(ref):
+            msg = (
+                "Arg dtype must be a list, the same length as ref!\n"
+                f"\t- dtype: {dtype}\n"
+                f"\t- ref: {ref}\n"
+            )
+            raise Exception(msg)
 
         # ----------
         # check data
@@ -97,7 +107,7 @@ class DataStock2(DataStock1):
         if not c0:
             msg = (
                 "Arg data must be a tuple of existing data keys!\n"
-                "It should hqve the same length as ref!\n"
+                "It should have the same length as ref!\n"
                 f"\t- Provided ref: {ref}\n"
                 f"\t- Provided data: {data}"
             )
@@ -238,9 +248,7 @@ class DataStock2(DataStock1):
     def show_debug(self):
         """ Display information relevant for live debugging """
         print('\n\n')
-        return self.get_summary(
-            show_which=['ref', 'group', 'interactivity'],
-        )
+        return self.show(show_which=['ref', 'group', 'interactivity'])
 
     # ------------------
     # Setup interactivity
@@ -377,11 +385,6 @@ class DataStock2(DataStock1):
         self.set_param(which='axes', param='groupy', value=daxgroupy)
         self.add_param(which='axes', param='inc', value=dinc)
 
-        # group, ref, nmax
-
-        # cumsum0 = np.r_[0, np.cumsum(nmax[1, :])]
-        # arefind = np.zeros((np.sum(nmax[1, :]),), dtype=int)
-
         # --------------------------
         # update mobile with groups
 
@@ -389,14 +392,15 @@ class DataStock2(DataStock1):
              self._dobj['mobile'][k0]['group'] = tuple([
                  self._dref[rr]['group'] for rr in v0['ref']
              ])
-             (
-                 self._dobj['mobile'][k0]['func']
-             ) = _class2_interactivity.get_fupdate(
-                handle=v0['handle'],
-                dtype=v0['dtype'],
-                norm=None,
-                bstr=v0.get('bstr'),
-            )
+             self._dobj['mobile'][k0]['func'] = [
+                _class2_interactivity.get_fupdate(
+                    handle=v0['handle'],
+                    dtype=typ,
+                    norm=None,
+                    bstr=v0.get('bstr'),
+                )
+                for typ in self._dobj['mobile'][k0]['dtype']
+            ]
 
         # --------------------
         # axes mobile, refs and canvas
@@ -485,6 +489,7 @@ class DataStock2(DataStock1):
 
         dinter = {
             'cur_ax': cur_ax,
+            'cur_ax_panzoom': cur_ax,
             'cur_groupx': None,
             'cur_groupy': None,
             'cur_refx': None,
@@ -562,7 +567,7 @@ class DataStock2(DataStock1):
         return warn
 
     # ----------------------
-    # Connect / disconnect
+    # Connect / disconnect datastock keys
     # ----------------------
 
     def connect(self):
@@ -572,17 +577,25 @@ class DataStock2(DataStock1):
             keyp = v0['handle'].mpl_connect('key_press_event', self.onkeypress)
             keyr = v0['handle'].mpl_connect('key_release_event', self.onkeypress)
             butp = v0['handle'].mpl_connect('button_press_event', self.mouseclic)
-            # res = v0['handle'].mpl_connect('resize_event', self.resize)
+            res = v0['handle'].mpl_connect('resize_event', self.resize)
             butr = v0['handle'].mpl_connect('button_release_event', self.mouserelease)
             close = v0['handle'].mpl_connect('close_event', self.on_close)
-            #if not plt.get_backend() == "agg":
-            # v0['handle'].manager.toolbar.release = self.mouserelease
+            draw = v0['handle'].mpl_connect('draw_event', self.on_draw)
+            # Make sure resizing is doen before resize_event
+            # works without re-initializing because not a Qt Action
+            v0['handle'].manager.toolbar.release = self.mouserelease
+
+            # make sure home button triggers background update
+            # requires re-initializing because home is a Qt Action
+            # only created by toolbar.addAction()
+            v0['handle'].manager.toolbar.home = self.new_home
+            v0['handle'].manager.toolbar._init_toolbar()
 
             self._dobj['canvas'][k0]['cid'] = {
                 'keyp': keyp,
                 'keyr': keyr,
                 'butp': butp,
-                # 'res': res,
+                'res': res,
                 'butr': butr,
                 'close': close,
             }
@@ -594,6 +607,46 @@ class DataStock2(DataStock1):
             for k1, v1 in v0['cid'].items():
                 v0['handle'].mpl_disconnect(v1)
             v0['handle'].manager.toolbar.release = lambda event: None
+
+    # ----------------------
+    # Connect / disconnect default keys
+    # ----------------------
+
+    def disconnect_old(self, force=False):
+
+        if self._warn_ifnotInteractive():
+            return
+
+        if force:
+            # disconnect key_press
+            for k0, v0 in self._dobj['canvas'].items():
+                v0['handle'].mpl_disconnect(
+                    v0['handle'].manager.key_press_handler_id
+                )
+        else:
+            lk = [kk for kk in list(plt.rcParams.keys()) if 'keymap' in kk]
+            self.__store_rcParams = {}
+            for kd in self._dobj['key'].keys():
+                self.__store_rcParams[kd] = []
+                for kk in lk:
+                    if kd in plt.rcParams[kk]:
+                        self.__store_rcParams[kd].append(kk)
+                        plt.rcParams[kk].remove(kd)
+
+        # disconnect button pick 
+        for k0, v0 in self._dobj['canvas'].items():
+            v0['handle'].mpl_disconnect(v0['handle'].button_pick_id)
+
+    def reconnect_old(self):
+
+        if self._warn_ifnotInteractive():
+            return
+
+        if self.__store_rcParams is not None:
+            for kd in self.__store_rcParams.keys():
+                for kk in self.__store_rcParams[kd]:
+                    if kd not in plt.rcParams[kk]:
+                        plt.rcParams[kk].append(kd)
 
     # ------------------------------------
     # Interactivity handling - preliminary
@@ -655,7 +708,7 @@ class DataStock2(DataStock1):
         self.kinter = kinter
         self._dobj['interactivity'][kinter].update({
             'cur_ax': kax,
-            'ax_panzoom': kax,
+            'cur_ax_panzoom': kax,
             'cur_groupx': cur_groupx,
             'cur_groupy': cur_groupy,
             'cur_refx': cur_refx,
@@ -714,22 +767,18 @@ class DataStock2(DataStock1):
 
         # Propagate indices through refs
         if cur_refx is not None:
-            lref = self._dobj['group'][cur_groupx]['ref']
-            ldata = self._dobj['group'][cur_groupx]['data']
             self.propagate_indices_per_ref(
                 ref=cur_refx,
-                lref=[rr for rr in lref if rr != cur_refx],
-                ldata=[cur_datax] + [dd for dd in ldata if dd != cur_datax],
+                lref=self._dobj['group'][cur_groupx]['ref'],
+                ldata=self._dobj['group'][cur_groupx]['data'],
                 param=None,
             )
 
         if cur_refy is not None:
-            lref = self._dobj['group'][cur_groupy]['ref']
-            ldata = self._dobj['group'][cur_groupy]['data']
             self.propagate_indices_per_ref(
                 ref=cur_refy,
-                lref=[rr for rr in lref if rr != cur_refy],
-                ldata=[cur_datay] + [dd for dd in ldata if dd != cur_datay],
+                lref=self._dobj['group'][cur_groupy]['ref'],
+                ldata=self._dobj['group'][cur_groupy]['data'],
                 param=None,
             )
 
@@ -803,13 +852,35 @@ class DataStock2(DataStock1):
                 self._dobj['axes'][aa]['canvas']
             ]['handle'].blit(self._dobj['axes'][aa]['handle'].bbox)
 
+    # ----------------------
+    # Interactivity: resize
+    # ----------------------
+
     def resize(self, event):
         _class2_interactivity._set_dbck(
             lax=self._dobj['axes'].keys(),
             daxes=self._dobj['axes'],
             dcanvas=self._dobj['canvas'],
             dmobile=self._dobj['mobile'],
+            event=event,
         )
+
+    def new_home(self, *args):
+        for k0, v0 in self._dobj['canvas'].items():
+            super(
+                v0['handle'].manager.toolbar.__class__,
+                v0['handle'].manager.toolbar,
+            ).home(*args)
+        _class2_interactivity._set_dbck(
+            lax=self._dobj['axes'].keys(),
+            daxes=self._dobj['axes'],
+            dcanvas=self._dobj['canvas'],
+            dmobile=self._dobj['mobile'],
+            event=None,
+        )
+
+    def on_draw(self, event):
+        pass
 
     # ----------------------
     # Interactivity: mouse
@@ -826,7 +897,7 @@ class DataStock2(DataStock1):
         try:
             self._getset_current_axref(event)
         except Exception as err:
-            if str(err) == 'clic not in axes':
+            if str(err) in ['clic not in axes', "Not usable axes!"]:
                 return
             raise err
             # warnings.warn(str(err))
@@ -834,6 +905,7 @@ class DataStock2(DataStock1):
 
         kinter = self.kinter
         kax = self._dobj['interactivity'][kinter]['cur_ax']
+        ax = self._dobj['axes'][kax]['handle']
 
         refx = self._dobj['axes'][kax]['refx']
         refy = self._dobj['axes'][kax]['refy']
@@ -851,7 +923,7 @@ class DataStock2(DataStock1):
         ctrl = any([self._dobj['key'][ss]['val'] for ss in ['control', 'ctrl']])
 
         # Update number of indices (for visibility)
-        for gg in [cur_groupx, cur_groupy]:
+        for gg in set([cur_groupx, cur_groupy]):
             if gg is not None:
                 out = _class2_interactivity._update_indices_nb(
                     group=gg,
@@ -860,31 +932,37 @@ class DataStock2(DataStock1):
                     shift=shift,
                 )
 
-        # update indcur x/y vs shift / ctrl ?  TBF
-        pass
+                if out is False:
+                    return
 
         # Check refx/refy vs datax/datay
-        if cur_refx is not None and cur_refy is not None:
-            c0 = (
-                'index' in [cur_datax, cur_datay]
-                or ((cur_refx == cur_refy) == (cur_datax == cur_datay))
-            )
-            if not c0:
-                msg = (
-                    "Invalid ref / data pairs:\n"
-                    f"\t- cur_refx, cur_refy: {cur_refx}, {cur_refy}\n"
-                    f"\t- cdx, cdy: {cdx}, {cdy}"
-                )
-                raise Exception(msg)
+        # if cur_refx is not None and cur_refy is not None:
+            # c0 = (
+                # 'index' in [cur_datax, cur_datay]
+                # or ((cur_refx == cur_refy) == (cur_datax == cur_datay))
+            # )
+            # if not c0:
+                # msg = (
+                    # "Invalid ref / data pairs:\n"
+                    # f"\t- cur_refx, cur_refy: {cur_refx}, {cur_refy}\n"
+                    # f"\t- cur_datax, cur_datay: {cur_datax}, {cur_datay}"
+                # )
+                # raise Exception(msg)
 
         # update ref indices
         if None not in [cur_refx, cur_refy] and cur_refx == cur_refy:
 
-            raise NotImplementedError()
-            dist = (cdx - event.xdata)**2 + (cdy - event.ydata)**2
-            lind = [
-                np.nanargmin(dist, axis=ii) for ii in range(datax.ndim)
-            ]
+            cdx = self._ddata[cur_datax]['data']
+            cdy = self._ddata[cur_datay]['data']
+            dx = np.diff(ax.get_xlim())
+            dy = np.diff(ax.get_ylim())
+            dist = ((cdx - event.xdata)/dx)**2 + ((cdy - event.ydata)/dy)**2
+            if dist.ndim == 1:
+                ix = np.nanargmin(dist)
+            else:
+                raise NotImplementedError()
+            c0x = True
+            c0y = False
 
         else:
 
@@ -966,7 +1044,7 @@ class DataStock2(DataStock1):
         c1 = 'zoom' in mode
 
         if c0 or c1:
-            kax = self._dobj['interactivity']['curax_panzoom']
+            kax = self._dobj['interactivity'][self.kinter]['cur_ax_panzoom']
             if kax is None:
                 msg = (
                     "Make sure you release the mouse button on an axes !"
@@ -977,6 +1055,13 @@ class DataStock2(DataStock1):
             lax = ax.get_shared_x_axes().get_siblings(ax)
             lax += ax.get_shared_y_axes().get_siblings(ax)
             lax = list(set(lax))
+            lax = [
+                [
+                    kax for kax in self._dobj['axes'].keys()
+                    if self._dobj['axes'][kax]['handle'] == ax
+                ][0]
+                for ax in lax
+            ]
             _class2_interactivity._set_dbck(
                 lax=lax,
                 daxes=self._dobj['axes'],
@@ -987,23 +1072,6 @@ class DataStock2(DataStock1):
     # ----------------------
     # Interactivity: keys
     # ----------------------
-
-    # @classmethod
-    # def _get_dmovkeys(cls, Type, inc, invert=False):
-        # assert Type in cls._ltypesref
-        # if Type[0] == 'x':
-            # dmovkeys = {'left':{False:-inc[0], True:-inc[1]},
-                        # 'right':{False:inc[0], True:inc[1]}}
-        # elif Type[0] == 'y':
-            # dmovkeys = {'down':{False:-inc[0], True:-inc[1]},
-                        # 'up':{False:inc[0], True:inc[1]}}
-        # elif Type == '2d':
-            # sig = -1 if invert else 1
-            # dmovkeys = {'left':{False:-sig*inc[0], True:-sig*inc[1]},
-                        # 'right':{False:sig*inc[0], True:sig*inc[1]},
-                        # 'down':{False:-sig*inc[0], True:-sig*inc[1]},
-                        # 'up':{False:sig*inc[0], True:sig*inc[1]}}
-        # return dmovkeys
 
     def onkeypress(self, event):
         """ Event handler in case of key press / release """

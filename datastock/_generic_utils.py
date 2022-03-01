@@ -79,7 +79,8 @@ def _pretty_print_check(
         msg = (
             "Arg content must be a list of list of list of str\n"
             "Expected form, one of:\n"
-            "\t- [[[c00l0, c01l0, c02l0], [c00l1, c01l1, c02l1]], "
+            "\t- [[[c00l0, c01l0, c02l0], [c00l1, c01l1, c02l1]], ...\n"
+            f"\t- Each with len() = {nhead}\n"
             f"Provided:\n{content}"
         )
         raise Exception(msg)

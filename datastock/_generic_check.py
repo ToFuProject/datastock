@@ -2,6 +2,7 @@
 
 
 # common
+import numpy as np
 import matplotlib.pyplot as plt
 
 
@@ -189,6 +190,43 @@ def _name_key(dd=None, dd_name=None, keyroot='key'):
 # #############################################################################
 
 
+def _check_inplace(coll=None, keys=None, inplace=None):
+    """ Check key to data and inplace """
+
+    # key
+    if isinstance(keys, str):
+        keys = [keys]
+    keys = _check_var_iter(
+        keys, 'keys',
+        default=None,
+        types=list,
+        types_iter=str,
+        allowed=coll.ddata.keys(),
+    )
+
+    # inplace
+    inplace = _check_var(
+        inplace, 'inplace',
+        types=bool,
+        default=False,
+    )
+
+    # extract sub-collection of necessary
+    if inplace:
+        coll2 = coll
+    else:
+        lk0 = list(keys)
+        for key in keys:
+            for rr in coll._ddata[key]['ref']:
+                for k0, v0 in coll._ddata.items():
+                    if v0['ref'] == (rr,):
+                        if k0 not in lk0:
+                            lk0.append(k0)
+        coll2 = coll.extract(lk0)
+
+    return keys, inplace, coll2
+
+
 def _check_dax(dax=None, main=None):
 
     # None
@@ -236,3 +274,237 @@ def _check_dax(dax=None, main=None):
             dax[k0]['type'] = v0.get('type')
 
     return dax
+
+
+# #############################################################################
+# #############################################################################
+#                   Utilities for setting limits
+# #############################################################################
+
+
+def _check_lim(lim):
+
+    # -----------------------------------
+    # if single lim interval => into list
+
+    c0 = (
+        isinstance(lim, tuple)
+        or (
+            isinstance(lim, list)
+            and len(lim) == 2
+            and all([ll is None or np.isscalar(ll) for ll in lim])
+        )
+    )
+    if c0:
+        lim = [lim]
+
+    # ---------------------------------------------------------
+    # check lim is a list of list/tuple intervals of len() == 2
+
+    c0 = (
+        isinstance(lim, list)
+        and all([
+            isinstance(ll, (list, tuple))
+            and len(ll) == 2
+            and all([
+                lll is None or np.isscalar(lll)
+                for lll in ll
+            ])
+            for ll in lim
+        ])
+    )
+    if not c0:
+        msg = (
+            "lim must be a list of list/tuple intervals of len() == 2\n"
+            "\t- Provided: {lim}"
+        )
+        raise Exception(msg)
+
+    # ------------------------------
+    # check each interval is ordered
+
+    dfail = {}
+    for ii, ll in enumerate(lim):
+        if ll[0] is not None and ll[1] is not None:
+            if ll[0] >= ll[1]:
+                dfail[ii] = f"{ll[0]} >= ll[1]"
+
+    if len(dfail) > 0:
+        lstr = [f"\t- lim[{ii}]: {vv}" for ii, vv in dfail.items()]
+        msg = (
+            "The following non-conformities in lim have been identified:\n"*
+            + "\n".join(lstr)
+        )
+        raise Exception(msg)
+
+    return lim
+
+
+def _apply_lim(lim=None, data=None, logic=None):
+
+    # ------------
+    # check inputs
+
+    logic = _check_var(
+        logic, 'logic',
+        types=str,
+        default='all',
+        allowed=['any', 'all', 'raw']
+    )
+
+    # lim
+    lim = _check_lim(lim)
+
+    # -------------
+    # apply limits
+
+    nlim = len(lim)
+    shape = tuple(np.r_[nlim, data.shape])
+    ind = np.ones(shape, dtype=bool)
+    for ii in range(nlim):
+        if isinstance(lim[ii], (list, tuple)):
+
+            if lim[ii][0] is not None:
+                ind[ii, ...] &= (data >= lim[ii][0])
+            if lim[ii][1] is not None:
+                ind[ii, ...] &= (data < lim[ii][1])
+
+            if isinstance(lim[ii], tuple):
+                ind[ii, ...] = ~ind[ii, ...]
+        else:
+            msg = "Unknown lim type!"
+            raise Exception(msg)
+
+    # -------------
+    # apply logic
+
+    if logic == 'all':
+        ind = np.all(ind, axis=0)
+    elif logic == 'any':
+        ind = np.any(ind, axis=0)
+    else:
+        pass
+
+    return ind
+
+
+
+def _apply_dlim(dlim=None, logic_intervals=None, logic=None, ddata=None):
+
+    # ------------
+    # check inputs
+
+    logic = _check_var(
+        logic, 'logic',
+        types=str,
+        default='all',
+        allowed=['any', 'all', 'raw']
+    )
+
+    # raw not accessible in this case
+    logic_intervals = _check_var(
+        logic_intervals, 'logic_intervals',
+        types=str,
+        default='all',
+        allowed=['any', 'all']
+    )
+
+    # dlim
+    c0 = (
+        isinstance(dlim, dict)
+        and all([
+            k0 in ddata.keys()
+            and isinstance(v0, (list, tuple))
+            for k0, v0 in dlim.items()
+        ])
+    )
+    if not c0:
+        msg = (
+            "Arg dlim must be a dict of the form:\n"
+            "\t- {k0: [lim0, lim1], ...}\n"
+            "  or\n"
+            "\t- {k0: [[lim0, lim1], (lim2, lim3)], ...}\n"
+            "  where k0 is a valid key to ddata\n"
+            + f"Provided:\n{dlim}"
+        )
+        raise Exception(msg)
+
+    # data shape
+    datashapes = list(set([ddata[k0]['data'].shape for k0 in dlim.keys()]))
+    if len(datashapes) > 1:
+        lstr = [f"\t- {kk}" for kk in datashapes]
+        msg = (
+            "All data from dlim must have the same shape!\n"
+            + "\n".join(lstr)
+        )
+        raise Exception(msg)
+    datashape = datashapes[0]
+
+    # ------------
+    # compute
+
+    # trivial case
+    if len(dlim) == 0:
+        return np.ones(datashape, dtype=bool)
+
+    # non-trivial
+    nlim = len(dlim)
+    shape = tuple(np.r_[nlim, datashape])
+    ind = np.zeros(shape, dtype=bool)
+    for ii, (k0, v0) in enumerate(dlim.items()):
+        ind[ii, ...] = _apply_lim(
+            lim=v0,
+            data=ddata[k0]['data'],
+            logic=logic_intervals,
+        )
+
+    # -------------
+    # apply logic
+
+    if logic == 'all':
+        ind = np.all(ind, axis=0)
+    elif logic == 'any':
+        ind = np.any(ind, axis=0)
+    else:
+        pass
+
+    return ind
+
+
+# #############################################################################
+# #############################################################################
+#                   check cmap, vmin, vmax
+# #############################################################################
+
+
+def _check_cmap_vminvmax(data=None, cmap=None, vmin=None, vmax=None):
+    # cmap
+    c0 = (
+        cmap is None
+        or vmin is None
+        or vmax is None
+    )
+    if cmap is None or vmin is None or vmax is None:
+        nanmax = np.nanmax(data)
+        nanmin = np.nanmin(data)
+        diverging = nanmin * nanmax < 0
+
+    if cmap is None:
+        if diverging:
+            cmap = 'seismic'
+        else:
+            cmap = 'viridis'
+
+    # vmin, vmax
+    if vmin is None:
+        if diverging:
+            vmin = -max(abs(nanmin), nanmax)
+        else:
+            vmin = nanmin
+    if vmax is None:
+        if diverging:
+            vmax = max(abs(nanmin), nanmax)
+        else:
+            vmax = nanmax
+
+    return cmap, vmin, vmax
