@@ -282,14 +282,15 @@ def _plot_BvsA_check(
     if color_map_key is not None:
 
         # color_map_key
+        refs = coll._ddata[keyA]['ref']
         c0 = (
             color_map_key in coll._ddata.keys()
-            and coll._ddata[color_map_key]['ref'] == (ref,)
+            and coll._ddata[color_map_key]['ref'] == refs
         )
         if not c0:
             msg = (
                 "Arg color_map_key must be a valid coll.ddata key!\n"
-                f"It must have ref = ('{ref}',)\n"
+                f"It must have ref = {refs}\n"
                 "Provided:\n"
                 f"\t- color_map_key: {color_map_key}\n"
                 f"\t- ref: {coll._ddata[color_map_key]['ref']}\n"
@@ -756,8 +757,8 @@ def _plot_BvsA_1d(
                 marker='.',
                 edgecolors='None',
                 cmap=color_map,
-                vminAB=color_map_vmin,
-                vmaxAB=color_map_vmax,
+                vmin=color_map_vmin,
+                vmax=color_map_vmax,
             )
             plt.colorbar(im, ax=ax)
         else:

@@ -2,6 +2,7 @@
 
 
 # common
+import numpy as np
 import matplotlib.pyplot as plt
 
 
@@ -309,6 +310,7 @@ def _check_lim(lim):
                 lll is None or np.isscalar(lll)
                 for lll in ll
             ])
+            for ll in lim
         ])
     )
     if not c0:
@@ -428,7 +430,7 @@ def _apply_dlim(dlim=None, logic_intervals=None, logic=None, ddata=None):
         raise Exception(msg)
 
     # data shape
-    datashapes = set([ddata[k0]['data'].shape for k0 in dlim.keys()])
+    datashapes = list(set([ddata[k0]['data'].shape for k0 in dlim.keys()]))
     if len(datashapes) > 1:
         lstr = [f"\t- {kk}" for kk in datashapes]
         msg = (
@@ -447,7 +449,7 @@ def _apply_dlim(dlim=None, logic_intervals=None, logic=None, ddata=None):
 
     # non-trivial
     nlim = len(dlim)
-    shape = tuple(np.r_[nlim, shapedata])
+    shape = tuple(np.r_[nlim, datashape])
     ind = np.zeros(shape, dtype=bool)
     for ii, (k0, v0) in enumerate(dlim.items()):
         ind[ii, ...] = _apply_lim(
@@ -485,7 +487,7 @@ def _check_cmap_vminvmax(data=None, cmap=None, vmin=None, vmax=None):
     if cmap is None or vmin is None or vmax is None:
         nanmax = np.nanmax(data)
         nanmin = np.nanmin(data)
-        diverging = nanmin * nanmax <= 0
+        diverging = nanmin * nanmax < 0
 
     if cmap is None:
         if diverging:
