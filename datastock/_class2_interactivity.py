@@ -7,8 +7,17 @@
 # #############################################################################
 
 
-def _set_dbck(lax=None, daxes=None, dcanvas=None, dmobile=None):
+def _set_dbck(
+    lax=None,
+    daxes=None,
+    dcanvas=None,
+    dmobile=None,
+    event=None,
+):
     """ Update background of relevant axes (ex: in case of resizing) """
+
+    # first allow resizing to happen
+    lcan = set([daxes[k0]['canvas'] for k0 in lax])
 
     # Make all invisible
     for k0 in lax:
@@ -35,7 +44,6 @@ def _set_dbck(lax=None, daxes=None, dcanvas=None, dmobile=None):
 
     for k0 in lcan:
         dcanvas[k0]['handle'].draw()
-
 
 
 # #############################################################################

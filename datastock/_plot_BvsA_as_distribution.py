@@ -437,68 +437,6 @@ def _plot_BvsA_check(
 
 # #############################################################################
 # #############################################################################
-#                       selection by dict
-# #############################################################################
-
-
-def _select_by_dict(coll, dselect=None, ref=None):
-
-    # ------------
-    # check inputs
-
-    npts = coll._dref[ref]['size']
-
-    c0 = (
-        isinstance(dselect, dict)
-        and all([
-            k0 in coll._ddata.keys()
-            and coll._ddata[k0]['ref'] == (ref,)
-            and isinstance(v0, dict)
-            and (
-                (
-                    mcolors.is_color_like(v0.get('color'))
-                    and (
-                        isinstance(v0.get('dlim'), (list, tuple))
-                        or (
-                            isinstance(v0.get('ind'), np.narray)
-                            and v0['ind'].dtype == bool
-                            and v0['ind'].shape == (npts,)
-                        )
-                    )
-                )
-                or (
-
-                )
-            )
-            for k0, v0 in dselect.items()
-        ])
-    )
-    if not c0:
-        msg = (
-            "Arg dselect must be a dict of the form:\n"
-            "\t- dict(k0={'color': color, 'dlim': {k1: [min, max], ...}})\n"
-            "  or:\n"
-            "\t- dict(k0={'color': color, 'ind': np.ndarray})\n"
-            "\t    with k0 a key in coll.ddata.keys()\n"
-            f"\t- Provided: {dselect}"
-        )
-        raise Exception(msg)
-
-    # -------------------------------------
-    # turn all lim to list of (list, tuple)
-
-    for k0, v0 in dselect.items():
-        if v0.get('ind') is None:
-            dselect[k0]['ind'] = _generic_dheck._apply_dlim(
-                dlim=v0.get('dlim'),
-                logic_intervals=None,
-                logic=None,
-                ddata=coll._ddata,
-            )
-
-
-# #############################################################################
-# #############################################################################
 #                       plot_as_array: 1d
 # #############################################################################
 
@@ -856,6 +794,7 @@ def _plot_BvsA_1d(
 
     # connect
     if connect is True:
+        coll.disconnect_old()
         coll.connect()
 
     return coll

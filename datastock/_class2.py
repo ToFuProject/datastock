@@ -36,6 +36,7 @@ class DataStock2(DataStock1):
     """ Handles matplotlib interactivity """
 
     _LPAXES = ['ax', 'type']
+    __store_rcParams = None
 
     # ----------------------
     #   Add objects
@@ -566,7 +567,7 @@ class DataStock2(DataStock1):
         return warn
 
     # ----------------------
-    # Connect / disconnect
+    # Connect / disconnect datastock keys
     # ----------------------
 
     def connect(self):
@@ -579,8 +580,16 @@ class DataStock2(DataStock1):
             res = v0['handle'].mpl_connect('resize_event', self.resize)
             butr = v0['handle'].mpl_connect('button_release_event', self.mouserelease)
             close = v0['handle'].mpl_connect('close_event', self.on_close)
-            #if not plt.get_backend() == "agg":
-            # v0['handle'].manager.toolbar.release = self.mouserelease
+            draw = v0['handle'].mpl_connect('draw_event', self.on_draw)
+            # Make sure resizing is doen before resize_event
+            # works without re-initializing because not a Qt Action
+            v0['handle'].manager.toolbar.release = self.mouserelease
+
+            # make sure home button triggers background update
+            # requires re-initializing because home is a Qt Action
+            # only created by toolbar.addAction()
+            v0['handle'].manager.toolbar.home = self.new_home
+            v0['handle'].manager.toolbar._init_toolbar()
 
             self._dobj['canvas'][k0]['cid'] = {
                 'keyp': keyp,
@@ -598,6 +607,46 @@ class DataStock2(DataStock1):
             for k1, v1 in v0['cid'].items():
                 v0['handle'].mpl_disconnect(v1)
             v0['handle'].manager.toolbar.release = lambda event: None
+
+    # ----------------------
+    # Connect / disconnect default keys
+    # ----------------------
+
+    def disconnect_old(self, force=False):
+
+        if self._warn_ifnotInteractive():
+            return
+
+        if force:
+            # disconnect key_press
+            for k0, v0 in self._dobj['canvas'].items():
+                v0['handle'].mpl_disconnect(
+                    v0['handle'].manager.key_press_handler_id
+                )
+        else:
+            lk = [kk for kk in list(plt.rcParams.keys()) if 'keymap' in kk]
+            self.__store_rcParams = {}
+            for kd in self._dobj['key'].keys():
+                self.__store_rcParams[kd] = []
+                for kk in lk:
+                    if kd in plt.rcParams[kk]:
+                        self.__store_rcParams[kd].append(kk)
+                        plt.rcParams[kk].remove(kd)
+
+        # disconnect button pick 
+        for k0, v0 in self._dobj['canvas'].items():
+            v0['handle'].mpl_disconnect(v0['handle'].button_pick_id)
+
+    def reconnect_old(self):
+
+        if self._warn_ifnotInteractive():
+            return
+
+        if self.__store_rcParams is not None:
+            for kd in self.__store_rcParams.keys():
+                for kk in self.__store_rcParams[kd]:
+                    if kd not in plt.rcParams[kk]:
+                        plt.rcParams[kk].append(kd)
 
     # ------------------------------------
     # Interactivity handling - preliminary
@@ -803,13 +852,35 @@ class DataStock2(DataStock1):
                 self._dobj['axes'][aa]['canvas']
             ]['handle'].blit(self._dobj['axes'][aa]['handle'].bbox)
 
+    # ----------------------
+    # Interactivity: resize
+    # ----------------------
+
     def resize(self, event):
         _class2_interactivity._set_dbck(
             lax=self._dobj['axes'].keys(),
             daxes=self._dobj['axes'],
             dcanvas=self._dobj['canvas'],
             dmobile=self._dobj['mobile'],
+            event=event,
         )
+
+    def new_home(self, *args):
+        for k0, v0 in self._dobj['canvas'].items():
+            super(
+                v0['handle'].manager.toolbar.__class__,
+                v0['handle'].manager.toolbar,
+            ).home(*args)
+        _class2_interactivity._set_dbck(
+            lax=self._dobj['axes'].keys(),
+            daxes=self._dobj['axes'],
+            dcanvas=self._dobj['canvas'],
+            dmobile=self._dobj['mobile'],
+            event=None,
+        )
+
+    def on_draw(self, event):
+        pass
 
     # ----------------------
     # Interactivity: mouse
@@ -1001,23 +1072,6 @@ class DataStock2(DataStock1):
     # ----------------------
     # Interactivity: keys
     # ----------------------
-
-    # @classmethod
-    # def _get_dmovkeys(cls, Type, inc, invert=False):
-        # assert Type in cls._ltypesref
-        # if Type[0] == 'x':
-            # dmovkeys = {'left':{False:-inc[0], True:-inc[1]},
-                        # 'right':{False:inc[0], True:inc[1]}}
-        # elif Type[0] == 'y':
-            # dmovkeys = {'down':{False:-inc[0], True:-inc[1]},
-                        # 'up':{False:inc[0], True:inc[1]}}
-        # elif Type == '2d':
-            # sig = -1 if invert else 1
-            # dmovkeys = {'left':{False:-sig*inc[0], True:-sig*inc[1]},
-                        # 'right':{False:sig*inc[0], True:sig*inc[1]},
-                        # 'down':{False:-sig*inc[0], True:-sig*inc[1]},
-                        # 'up':{False:sig*inc[0], True:sig*inc[1]}}
-        # return dmovkeys
 
     def onkeypress(self, event):
         """ Event handler in case of key press / release """
