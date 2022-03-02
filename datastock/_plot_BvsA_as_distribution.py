@@ -51,6 +51,7 @@ def plot_BvsA_as_distribution(
     axis=None,
     # customization of scatter plot
     dlim=None,
+    dlim_logic=None,
     color_dict=None,
     color_dict_logic=None,
     color_map=None,
@@ -124,6 +125,7 @@ def plot_BvsA_as_distribution(
             keyB=keyB,
             # customization of scatter plot
             dlim=dlim,
+            dlim_logic=dlim_logic,
             color_dict=color_dict,
             color_dict_logic=color_dict_logic,
             color_map=color_map,
@@ -169,6 +171,7 @@ def plot_BvsA_as_distribution(
             axis=axis,
             # customization of scatter plot
             dlim=dlim,
+            dlim_logic=dlim_logic,
             color_dict=color_dict,
             color_dict_logic=color_dict_logic,
             color_map=color_map,
@@ -537,6 +540,7 @@ def _plot_BvsA_1d(
     keyB=None,
     # customization of scatter plot
     dlim=None,
+    dlim_logic=None,
     color_dict=None,
     color_dict_logic=None,
     color_map=None,
@@ -687,7 +691,7 @@ def _plot_BvsA_1d(
         ind = _generic_check._apply_dlim(
             dlim=dlim,
             logic_intervals='all',
-            logic=logic,
+            logic=dlim_logic,
             ddata=coll._ddata,
         )
 
@@ -907,6 +911,7 @@ def _plot_BvsA_2d(
     axis=None,
     # customization of scatter plot
     dlim=None,
+    dlim_logic=None,
     color_dict=None,
     color_dict_logic=None,
     color_map=None,
@@ -1079,7 +1084,7 @@ def _plot_BvsA_2d(
         ind = _generic_check._apply_dlim(
             dlim=dlim,
             logic_intervals='all',
-            logic=logic,
+            logic=dlim_logic,
             ddata=coll._ddata,
         )
 
