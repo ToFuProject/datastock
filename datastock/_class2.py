@@ -584,12 +584,23 @@ class DataStock2(DataStock1):
             # Make sure resizing is doen before resize_event
             # works without re-initializing because not a Qt Action
             v0['handle'].manager.toolbar.release = self.mouserelease
+            # v0['handle'].manager.toolbar.release_zoom = self.mouserelease
+            # v0['handle'].manager.toolbar.release_pan = self.mouserelease
 
             # make sure home button triggers background update
             # requires re-initializing because home is a Qt Action
             # only created by toolbar.addAction()
             v0['handle'].manager.toolbar.home = self.new_home
-            v0['handle'].manager.toolbar._init_toolbar()
+            try:
+                # if _init_toolbar() implemented (matplotlib > )
+                v0['handle'].manager.toolbar._init_toolbar()
+            except NotImplementedError:
+                v0['handle'].manager.toolbar.__init__(
+                    v0['handle'],
+                    v0['handle'].parent(),
+                )
+            except Exception as err:
+                raise err
 
             self._dobj['canvas'][k0]['cid'] = {
                 'keyp': keyp,
@@ -959,6 +970,9 @@ class DataStock2(DataStock1):
             dist = ((cdx - event.xdata)/dx)**2 + ((cdy - event.ydata)/dy)**2
             if dist.ndim == 1:
                 ix = np.nanargmin(dist)
+            elif dist.ndim == 2:
+                axis = self._ddata[cur_datax]['ref'].index(cur_refx)
+                ix = np.nanargmin(np.nanmin(dist, axis=1-axis))
             else:
                 raise NotImplementedError()
             c0x = True

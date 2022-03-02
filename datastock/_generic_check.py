@@ -217,11 +217,20 @@ def _check_inplace(coll=None, keys=None, inplace=None):
     else:
         lk0 = list(keys)
         for key in keys:
+
+            # Include all data matching any single ref
             for rr in coll._ddata[key]['ref']:
                 for k0, v0 in coll._ddata.items():
                     if v0['ref'] == (rr,):
                         if k0 not in lk0:
                             lk0.append(k0)
+
+            # include all data matching all refs
+            for k0, v0 in coll._ddata.items():
+                if v0['ref'] == coll._ddata[key]['ref']:
+                    if k0 not in lk0:
+                        lk0.append(k0)
+
         coll2 = coll.extract(lk0)
 
     return keys, inplace, coll2

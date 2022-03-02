@@ -65,6 +65,8 @@ class DataStock3(DataStock2):
         # parameters
         keyA=None,
         keyB=None,
+        keyX=None,
+        axis=None,
         # customization of scatter plot
         dlim=None,
         color_dict=None,
@@ -102,6 +104,8 @@ class DataStock3(DataStock2):
             coll=self,
             keyA=keyA,
             keyB=keyB,
+            keyX=keyX,
+            axis=axis,
             # customization of scatter plot
             dlim=dlim,
             color_dict=color_dict,
