@@ -84,6 +84,8 @@ class DataStock3(DataStock2):
         dist_cmap=None,
         dist_min=None,
         dist_max=None,
+        dist_sample_min=None,
+        dist_rel=None,
         # customization of interactivity
         ind0=None,
         nmax=None,
@@ -123,6 +125,8 @@ class DataStock3(DataStock2):
             dist_cmap=dist_cmap,
             dist_min=dist_min,
             dist_max=dist_max,
+            dist_sample_min=dist_sample_min,
+            dist_rel=dist_rel,
             # customization of interactivity
             ind0=ind0,
             nmax=nmax,
