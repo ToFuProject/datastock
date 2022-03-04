@@ -30,6 +30,8 @@ class DataStock3(DataStock2):
         lkeys=None,
         bstr_dict=None,
         rotation=None,
+        inverty=None,
+        bck=None,
         # figure-specific
         dax=None,
         dmargin=None,
@@ -58,6 +60,8 @@ class DataStock3(DataStock2):
             lkeys=lkeys,
             bstr_dict=bstr_dict,
             rotation=rotation,
+            inverty=inverty,
+            bck=bck,
             # figure-specific
             dax=dax,
             dmargin=dmargin,
