@@ -51,6 +51,9 @@ def plot_as_array(
     # parameters
     coll=None,
     key=None,
+    keyX=None,
+    keyY=None,
+    keyZ=None,
     ind=None,
     vmin=None,
     vmax=None,
@@ -63,6 +66,7 @@ def plot_as_array(
     dinc=None,
     lkeys=None,
     bstr_dict=None,
+    rotation=None,
     # figure-specific
     dax=None,
     dmargin=None,
@@ -86,7 +90,6 @@ def plot_as_array(
     key = key[0]
     ndim = coll._ddata[key]['data'].ndim
 
-
     # -------------------------
     #  call appropriate routine
 
@@ -95,6 +98,7 @@ def plot_as_array(
             # parameters
             coll=coll2,
             key=key,
+            keyX=keyX,
             ind=ind,
             vmin=vmin,
             vmax=vmax,
@@ -107,6 +111,7 @@ def plot_as_array(
             dinc=dinc,
             lkeys=lkeys,
             bstr_dict=bstr_dict,
+            rotation=rotation,
             # figure-specific
             dax=dax,
             dmargin=dmargin,
@@ -121,6 +126,8 @@ def plot_as_array(
             # parameters
             coll=coll2,
             key=key,
+            keyX=keyX,
+            keyY=keyY,
             ind=ind,
             vmin=vmin,
             vmax=vmax,
@@ -133,6 +140,7 @@ def plot_as_array(
             dinc=dinc,
             lkeys=lkeys,
             bstr_dict=bstr_dict,
+            rotation=rotation,
             # figure-specific
             dax=dax,
             dmargin=dmargin,
@@ -173,10 +181,35 @@ def plot_as_array(
 # #############################################################################
 
 
+def _check_keyXYZ(coll=None, refs=None, keyX=None):
+    lok = [
+        k0 for k0, v0 in coll._ddata.items()
+        if len( v0['ref']) == 1
+        and v0['ref'][0] in refs
+        and (
+            v0['data'].dtype.type == np.str_
+            or (
+                v0['monot'] == (True,)
+                and np.unique(np.diff(v0['data'])).size == 1
+
+            )
+        )
+    ]
+    keyX = _generic_check._check_var(
+        keyX, 'keyX',
+        allowed=lok,
+    )
+    refX = coll._ddata[keyX]['ref'][0]
+    return keyX, refX
+
+
 def _plot_as_array_check(
     ndim=None,
     coll=None,
     key=None,
+    keyX=None,
+    keyY=None,
+    keyZ=None,
     ind=None,
     cmap=None,
     vmin=None,
@@ -186,12 +219,53 @@ def _plot_as_array_check(
     aspect=None,
     nmax=None,
     color_dict=None,
+    rotation=None,
+    # figure
     dcolorbar=None,
     dleg=None,
     data=None,
     connect=None,
     groups=None,
 ):
+
+    # keyX, keyY, keyZ
+    refX, refY, refZ = None, None, None
+    refs = coll._ddata[key]['ref']
+    if keyX is not None:
+        keyX, refX = _check_keyXYZ(coll=coll, refs=refs, keyX=keyX)
+    else:
+        keyX, refX = 'index', refs[0]
+
+    if ndim >= 2:
+        if keyY is not None:
+            keyY, refY = _check_keyXYZ(coll=coll, refs=refs, keyX=keyY)
+        else:
+            keyX, refY = 'index', refs[1]
+
+        # unciitiy of refX vs refY
+        if ndim == 2 and refX == refY:
+            msg = (
+                "Arg keyX and keyY have the same references!\n"
+                f"\t- keyX, refX: {keyX}, {refX}\n"
+                f"\t- keyY, refY: {keyY}, {refY}\n"
+            )
+            raise Exception(msg)
+
+    if ndim == 3:
+        if keyZ is not None:
+            keyZ, refZ = _check_keyXYZ(coll=coll, refs=refs, keyX=keyZ)
+        else:
+            keyZ, refZ = 'index', refs[2]
+
+        # unciitiy of refX vs refY
+        if ndim == 3 and len(set(refX, refY, refZ)) < 3:
+            msg = (
+                "Arg keyX, keyY, keyZ have the same references!\n"
+                f"\t- keyX, refX: {keyX}, {refX}\n"
+                f"\t- keyY, refY: {keyY}, {refY}\n"
+                f"\t- keyZ, refZ: {keyZ}, {refZ}\n"
+            )
+            raise Exception(msg)
 
     # ind
     ind = _generic_check._check_var(
@@ -313,11 +387,16 @@ def _plot_as_array_check(
     )
 
     return (
-        key, ind,
+        key,
+        keyX, refX,
+        keyY, refY,
+        keyZ, refZ,
+        ind,
         cmap, vmin, vmax,
         ymin, ymax,
         aspect, nmax,
         color_dict,
+        rotation,
         dcolorbar, dleg, connect,
     )
 
@@ -332,6 +411,7 @@ def plot_as_array_1d(
     # parameters
     coll=None,
     key=None,
+    keyX=None,
     ind=None,
     vmin=None,
     vmax=None,
@@ -344,6 +424,7 @@ def plot_as_array_1d(
     dinc=None,
     lkeys=None,
     bstr_dict=None,
+    rotation=None,
     # figure-specific
     dax=None,
     dmargin=None,
@@ -358,16 +439,24 @@ def plot_as_array_1d(
 
     groups = ['ref']
     (
-        key, ind,
+        key,
+        keyX, refX,
+        _, _,
+        _, _,
+        ind,
         cmap, vmin, vmax,
         ymin, ymax,
         aspect, nmax,
         color_dict,
+        rotation,
         dcolorbar, dleg, connect,
     ) = _plot_as_array_check(
         ndim=1,
         coll=coll,
         key=key,
+        keyX=keyX,
+        keyY=None,
+        keyZ=None,
         ind=ind,
         cmap=cmap,
         vmin=vmin,
@@ -377,6 +466,8 @@ def plot_as_array_1d(
         aspect=aspect,
         nmax=nmax,
         color_dict=color_dict,
+        rotation=rotation,
+        # figure-specific
         dcolorbar=dcolorbar,
         dleg=dleg,
         connect=connect,
@@ -391,6 +482,17 @@ def plot_as_array_1d(
         data = data.toarray()
     assert data.ndim == len(coll.ddata[key]['ref']) == 1
     n0, = data.shape
+
+    xstr = keyX != 'index' and coll.ddata[keyX]['data'].dtype.type == np.str_
+    if keyX == 'index':
+        dataX = np.arange(0, n0)
+        lab0 = keyX
+    elif xstr:
+        dataX = np.arange(0, n0)
+        lab0 = ''
+    else:
+        dataX = coll.ddata[keyX]['data']
+        lab0 = f"{keyX} ({coll._ddata[keyX]['units']})"
 
     ref = coll._ddata[key]['ref'][0]
     units = coll._ddata[key]['units']
@@ -408,7 +510,7 @@ def plot_as_array_1d(
         if dmargin is None:
             dmargin = {
                 'left': 0.05, 'right': 0.95,
-                'bottom': 0.05, 'top': 0.90,
+                'bottom': 0.10, 'top': 0.90,
                 'hspace': 0.15, 'wspace': 0.2,
             }
 
@@ -416,9 +518,16 @@ def plot_as_array_1d(
         gs = gridspec.GridSpec(ncols=4, nrows=1, **dmargin)
 
         ax0 = fig.add_subplot(gs[0, :3], aspect='auto')
-        ax0.set_xlabel(lab0)
         ax0.set_ylabel(lab1)
         ax0.set_title(key, size=14, fontweight='bold')
+        if xstr:
+            ax0.set_xticks(dataX)
+            ax0.set_xticklabels(
+                coll.ddata[keyX]['data'],
+                rotation=rotation,
+            )
+        else:
+            ax0.set_xlabel(lab0)
 
         ax1 = fig.add_subplot(gs[0, 3], frameon=False)
         ax1.set_xticks([])
@@ -440,6 +549,7 @@ def plot_as_array_1d(
         ax = dax[kax]['handle']
 
         ax.plot(
+            dataX,
             data,
             color='k',
             marker='.',
@@ -532,6 +642,9 @@ def plot_as_array_2d(
     # parameters
     coll=None,
     key=None,
+    keyX=None,
+    KeyY=None,
+    KeyZ=None,
     ind=None,
     vmin=None,
     vmax=None,
@@ -544,6 +657,7 @@ def plot_as_array_2d(
     dinc=None,
     lkeys=None,
     bstr_dict=None,
+    rotation=None,
     # figure-specific
     dax=None,
     dmargin=None,
@@ -558,16 +672,24 @@ def plot_as_array_2d(
 
     groups = ['hor', 'vert']
     (
-        key, ind,
+        key,
+        keyX, keyY,
+        keyY, refY,
+        _, _,
+        ind,
         cmap, vmin, vmax,
         ymin, ymax,
         aspect, nmax,
         color_dict,
+        rotation,
         dcolorbar, dleg, connect,
     ) = _plot_as_array_check(
         ndim=2,
         coll=coll,
         key=key,
+        keyX=keyX,
+        keyY=keyY,
+        keyZ=None,
         ind=ind,
         cmap=cmap,
         vmin=vmin,
@@ -577,6 +699,8 @@ def plot_as_array_2d(
         aspect=aspect,
         nmax=nmax,
         color_dict=color_dict,
+        rotation=rotation,
+        # figure
         dcolorbar=dcolorbar,
         dleg=dleg,
         connect=connect,

@@ -16,6 +16,9 @@ class DataStock3(DataStock2):
         self,
         # parameters
         key=None,
+        keyX=None,
+        keyY=None,
+        keyZ=None,
         ind=None,
         vmin=None,
         vmax=None,
@@ -26,6 +29,7 @@ class DataStock3(DataStock2):
         dinc=None,
         lkeys=None,
         bstr_dict=None,
+        rotation=None,
         # figure-specific
         dax=None,
         dmargin=None,
@@ -40,6 +44,9 @@ class DataStock3(DataStock2):
             # parameters
             coll=self,
             key=key,
+            keyX=keyX,
+            keyY=keyY,
+            keyZ=keyZ,
             ind=ind,
             vmin=vmin,
             vmax=vmax,
@@ -50,6 +57,7 @@ class DataStock3(DataStock2):
             dinc=dinc,
             lkeys=lkeys,
             bstr_dict=bstr_dict,
+            rotation=rotation,
             # figure-specific
             dax=dax,
             dmargin=dmargin,
