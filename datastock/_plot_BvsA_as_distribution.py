@@ -68,6 +68,8 @@ def plot_BvsA_as_distribution(
     dist_cmap=None,
     dist_min=None,
     dist_max=None,
+    dist_sample_min=None,
+    dist_rel=None,
     # customization of interactivity
     ind0=None,
     nmax=None,
@@ -142,6 +144,8 @@ def plot_BvsA_as_distribution(
             dist_cmap=dist_cmap,
             dist_min=dist_min,
             dist_max=dist_max,
+            dist_sample_min=dist_sample_min,
+            dist_rel=dist_rel,
             # customization of interactivity
             ind0=ind0,
             nmax=nmax,
@@ -188,6 +192,8 @@ def plot_BvsA_as_distribution(
             dist_cmap=dist_cmap,
             dist_min=dist_min,
             dist_max=dist_max,
+            dist_sample_min=dist_sample_min,
+            dist_rel=dist_rel,
             # customization of interactivity
             ind0=ind0,
             nmax=nmax,
@@ -239,6 +245,8 @@ def _plot_BvsA_check(
     dist_cmap=None,
     dist_min=None,
     dist_max=None,
+    dist_sample_min=None,
+    dist_rel=None,
     # customization of interactivity
     nmax=None,
     dinc=None,
@@ -259,45 +267,50 @@ def _plot_BvsA_check(
     # keyX vs axis
     shape = coll._ddata[keyA]['data'].shape
     ref = coll._ddata[keyA]['ref']
-    if keyX is None:
-        if axis is None:
-            axis = 1
-        assert axis in [0, 1], axis
-        keyX = ref[axis]
-        refX = keyX
+    assert ndim == len(shape) == len(ref), ref
 
-    else:
-        c0 = (
-            keyX in ref
-            or (
-                keyX in coll._ddata.keys()
-                and (
-                    coll._ddata[keyX]['ref'] == ref
-                    or (
-                        len(coll._ddata[keyX]['ref']) == 1
-                        and coll._ddata[keyX]['ref'][0] in ref
+    if ndim == 1:
+        refX = None
+    elif ndim == 2:
+        if keyX is None:
+            if axis is None:
+                axis = 1
+            assert axis in [0, 1], axis
+            keyX = ref[axis]
+            refX = keyX
+
+        else:
+            c0 = (
+                keyX in ref
+                or (
+                    keyX in coll._ddata.keys()
+                    and (
+                        coll._ddata[keyX]['ref'] == ref
+                        or (
+                            len(coll._ddata[keyX]['ref']) == 1
+                            and coll._ddata[keyX]['ref'][0] in ref
+                        )
                     )
                 )
             )
-        )
-        if not c0:
-            msg = (
-                "Arg keyX must be a valid ref / data key with same ref as keyA"
-                f"\nProvided: {keyX}"
-            )
-            raise Exception(msg)
+            if not c0:
+                msg = (
+                    "Arg keyX must be a valid ref / data key with same ref as keyA"
+                    f"\nProvided: {keyX}"
+                )
+                raise Exception(msg)
 
-        # Deduce refX and axis
-        refX = keyX if keyX in ref else coll._ddata[keyX]['ref']
-        if isinstance(refX, str):
-            axis = ref.index(keyX)
-        elif len(refX) == 1:
-            refX = refX[0]
-            axis = ref.index(refX)
-        else:
-            if axis is None:
-                axis = 1
-            refX = refX[axis]
+            # Deduce refX and axis
+            refX = keyX if keyX in ref else coll._ddata[keyX]['ref']
+            if isinstance(refX, str):
+                axis = ref.index(keyX)
+            elif len(refX) == 1:
+                refX = refX[0]
+                axis = ref.index(refX)
+            else:
+                if axis is None:
+                    axis = 1
+                refX = refX[axis]
 
     # ind0
     ind0 = _generic_check._check_var(
@@ -411,6 +424,20 @@ def _plot_BvsA_check(
     if nBbin is None:
         nBbin = 100
 
+    # dist_sample_min
+    dist_sample_min = _generic_check._check_var(
+        dist_sample_min, 'dist_sample_min',
+        default=1,
+        types=int,
+    )
+
+    # dist_rel
+    dist_rel = _generic_check._check_var(
+        dist_rel, 'dist_rel',
+        default=False,
+        types=bool,
+    )
+
     # nmax
     nmax = _generic_check._check_var(
         nmax, 'nmax',
@@ -509,6 +536,8 @@ def _plot_BvsA_check(
         dist_cmap,
         dist_min,
         dist_max,
+        dist_sample_min,
+        dist_rel,
         # customization of interactivity
         nmax,
         dinc,
@@ -557,6 +586,8 @@ def _plot_BvsA_1d(
     dist_cmap=None,
     dist_min=None,
     dist_max=None,
+    dist_sample_min=None,
+    dist_rel=None,
     # customization of interactivity
     ind0=None,
     nmax=None,
@@ -603,6 +634,8 @@ def _plot_BvsA_1d(
         dist_cmap,
         dist_min,
         dist_max,
+        dist_sample_min,
+        dist_rel,
         # customization of interactivity
         nmax,
         dinc,
@@ -642,6 +675,8 @@ def _plot_BvsA_1d(
         dist_cmap=dist_cmap,
         dist_min=dist_min,
         dist_max=dist_max,
+        dist_sample_min=dist_sample_min,
+        dist_rel=dist_rel,
         # customization of interactivity
         ind0=ind0,
         nmax=nmax,
@@ -718,7 +753,11 @@ def _plot_BvsA_1d(
         statistic='sum',
         bins=(Agrid, Bgrid),
     )[0]
-    databin[databin == 0] = np.nan
+
+    databin[databin < dist_sample_min] = np.nan
+
+    if dist_rel is True:
+        databin = databin / np.nansum(databin)
 
     # --------------
     # plot - prepare
@@ -928,6 +967,8 @@ def _plot_BvsA_2d(
     dist_cmap=None,
     dist_min=None,
     dist_max=None,
+    dist_sample_min=None,
+    dist_rel=None,
     # customization of interactivity
     ind0=None,
     nmax=None,
@@ -974,6 +1015,8 @@ def _plot_BvsA_2d(
         dist_cmap,
         dist_min,
         dist_max,
+        dist_sample_min,
+        dist_rel,
         # customization of interactivity
         nmax,
         dinc,
@@ -1015,6 +1058,8 @@ def _plot_BvsA_2d(
         dist_cmap=dist_cmap,
         dist_min=dist_min,
         dist_max=dist_max,
+        dist_sample_min=dist_sample_min,
+        dist_rel=dist_rel,
         # customization of interactivity
         ind0=ind0,
         nmax=nmax,
@@ -1111,7 +1156,11 @@ def _plot_BvsA_2d(
         statistic='sum',
         bins=(Agrid, Bgrid),
     )[0]
-    databin[databin == 0] = np.nan
+    databin[databin < dist_sample_min] = np.nan
+
+    if dist_rel is True:
+        databin = databin / np.nansum(databin)
+
 
     # --------------
     # plot - prepare
