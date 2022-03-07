@@ -86,6 +86,7 @@ class DataStock2(DataStock1):
         )
         if len(dtype) != nref:
             msg = (
+                f"For mobile {key}:\n"
                 "Arg dtype must be a list, the same length as ref!\n"
                 f"\t- dtype: {dtype}\n"
                 f"\t- ref: {ref}\n"
@@ -118,27 +119,33 @@ class DataStock2(DataStock1):
         # ------------------
         # check axis vs data
 
-        if axis is None:
-            axis = 0
-        if isinstance(axis, int):
-            axis = [axis]
-        c0 = (
-            isinstance(axis, list)
-            and all([isinstance(aa, int) for aa in axis])
-            and len(axis) == nref
-            and all([
-                (dd == 'index' and axis[0] == 0)
-                or axis[ii] in range(0, self._ddata[dd]['data'].ndim)
-                for ii, dd in enumerate(data)
-            ])
-        )
-        if not c0:
-            msg = (
-                f"Mobile '{key}': axis must be a list of int!\n"
-                f"It should hqve the same length as ref ({nref})\n"
-                f"\t- axis: {axis}"
-            )
-            raise Exception(msg)
+        axis = [
+            0 if dd == 'index'
+            else self._ddata[dd]['ref'].index(ref[ii])
+            for ii, dd in enumerate(data)
+        ]
+
+        # if axis is None:
+            # axis = 0
+        # if isinstance(axis, int):
+            # axis = [axis]
+        # c0 = (
+            # isinstance(axis, list)
+            # and all([isinstance(aa, int) for aa in axis])
+            # and len(axis) == nref
+            # and all([
+                # (dd == 'index' and axis[0] == 0)
+                # or axis[ii] in range(0, self._ddata[dd]['data'].ndim)
+                # for ii, dd in enumerate(data)
+            # ])
+        # )
+        # if not c0:
+            # msg = (
+                # f"Mobile '{key}': axis must be a list of int!\n"
+                # f"It should hqve the same length as ref ({nref})\n"
+                # f"\t- axis: {axis}"
+            # )
+            # raise Exception(msg)
 
         # ---------------------
         # check ndata vs ndtype
@@ -147,7 +154,7 @@ class DataStock2(DataStock1):
             msg = (
                 f"In dmobile['{key}']:\n"
                 "Nb. of different dtypes must match nb of different data!\n"
-                f"\t- dtypes: {dtypes}\n"
+                f"\t- dtype: {dtype}\n"
                 f"\t- data: {data}\n"
             )
             raise Exception(msg)
@@ -453,38 +460,39 @@ class DataStock2(DataStock1):
                  self._dref[rr]['group'] for rr in v0['ref']
              ])
 
-             self._dobj['mobile'][k0]['func'] = [
-                _class2_interactivity.get_fupdate(
-                    handle=v0['handle'],
-                    dtype=typ,
-                    norm=None,
-                    bstr=v0.get('bstr'),
-                )
-                for typ in self._dobj['mobile'][k0]['dtype']
-             ]
-
-
-             # nocc = len(set(self._dobj['mobile'][k0]['dtype']))
-
-             # self._dobj['mobile'][k0]['func_set_data'] = [
+             # self._dobj['mobile'][k0]['func'] = [
                 # _class2_interactivity.get_fupdate(
                     # handle=v0['handle'],
-                    # dtype=self._dobj['mobile'][k0]['dtype'][ii],
+                    # dtype=typ,
                     # norm=None,
                     # bstr=v0.get('bstr'),
                 # )
-                # for ii in range(nocc)
+                # for typ in self._dobj['mobile'][k0]['dtype']
              # ]
 
-             # self._dobj['mobile'][k0]['func_slice'] = \
-                # _class2_interactivity.get_slice(
-                    # nocc=nocc,
-                    # laxis=self._dobj['mobile']['axis'],
-                    # lndim=[
-                        # self._ddata[dd]['data'].ndim
-                        # for dd in self._dobj['mobile'][k0]['data']
-                    # ],
-                # )
+
+             nocc = len(set(self._dobj['mobile'][k0]['dtype']))
+
+             self._dobj['mobile'][k0]['func_set_data'] = [
+                _class2_interactivity.get_fupdate(
+                    handle=v0['handle'],
+                    dtype=self._dobj['mobile'][k0]['dtype'][ii],
+                    norm=None,
+                    bstr=v0.get('bstr'),
+                )
+                for ii in range(nocc)
+             ]
+
+             self._dobj['mobile'][k0]['func_slice'] = \
+                _class2_interactivity.get_slice(
+                    nocc=nocc,
+                    laxis=self._dobj['mobile'][k0]['axis'],
+                    lndim=[
+                        1 if dd == 'index'
+                        else self._ddata[dd]['data'].ndim
+                        for dd in self._dobj['mobile'][k0]['data']
+                    ],
+                )
 
         # --------------------
         # axes mobile, refs and canvas

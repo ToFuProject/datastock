@@ -150,20 +150,20 @@ def _update_mobile_data(
             func(ddata[kdata]['data'][:, :, iref])
 
 
-def _get_slice(lax=None, ndim=None):
+def _get_slice(laxis=None, ndim=None):
 
-    nax = len(lax)
+    nax = len(laxis)
     assert nax in range(1, ndim + 1)
 
     if ndim == nax:
         def fslice(*args):
-            return tuple(*args)
+            return args
 
     else:
-        def fslice(*args, lax=lax):
+        def fslice(*args, laxis=laxis):
             ind = [slice(None) for ii in range(ndim)]
             for ii, aa in enumerate(args):
-                ind[lax[ii]] = aa
+                ind[laxis[ii]] = aa
             return tuple(ind)
 
     return fslice
@@ -176,8 +176,8 @@ def get_slice(nocc=None, laxis=None, lndim=None):
 
     elif nocc == 2:
         return [
-            _get_slice(laxis=laxis[0], ndim=lndim[0]),
-            _get_slice(laxis=laxis[1], ndim=lndim[1]),
+            _get_slice(laxis=[laxis[0]], ndim=lndim[0]),
+            _get_slice(laxis=[laxis[1]], ndim=lndim[1]),
         ]
 
 
@@ -188,48 +188,58 @@ def _update_mobile(k0=None, dmobile=None, dref=None, ddata=None):
     kref = dmobile[k0]['ref']
     kdata = dmobile[k0]['data']
 
-    try:
-        if True:
-            iref = [dref[rr]['indices'][dmobile[k0]['ind']] for rr in kref]
-            if kref[0] is not None:
-                _update_mobile_data(
-                    func=func[0],
-                    kref=kref[0],
-                    kdata=kdata[0],
-                    iref=iref[0],
-                    ddata=ddata,
-                )
+    # try:
+    if False:
+        iref = [dref[rr]['indices'][dmobile[k0]['ind']] for rr in kref]
+        if kref[0] is not None:
+            _update_mobile_data(
+                func=func[0],
+                kref=kref[0],
+                kdata=kdata[0],
+                iref=iref[0],
+                ddata=ddata,
+            )
 
-            if len(kref) > 1 and kref[1] is not None:
-                _update_mobile_data(
-                    func=func[1],
-                    kref=kref[1],
-                    kdata=kdata[1],
-                    iref=iref[1],
-                    ddata=ddata,
-                )
+        if len(kref) > 1 and kref[1] is not None:
+            _update_mobile_data(
+                func=func[1],
+                kref=kref[1],
+                kdata=kdata[1],
+                iref=iref[1],
+                ddata=ddata,
+            )
+
+    else:
+        print(k0, dmobile[k0]['ind'], dmobile[k0]['ref'])   # DB
+        iref = [
+            dref[rr]['indices'][dmobile[k0]['ind']]
+            for rr in dmobile[k0]['ref']
+        ]
+        nocc = len(set(dmobile[k0]['dtype']))
+        if nocc == 1 and dmobile[k0]['data'][0] == 'index':
+            dmobile[k0]['func_set_data'][0](*iref)
+
+        elif nocc == 1:
+            print(k0, dmobile[k0]['func_slice'][0](*iref))  # DB
+            dmobile[k0]['func_set_data'][0](
+                ddata[dmobile[k0]['data'][0]]['data'][
+                    dmobile[k0]['func_slice'][0](*iref)
+                ]
+            )
 
         else:
-            iref = [
-                dref[rr]['indices'][dmobile[k0]['ind']]
-                for rr in dmobile[k0]['ref']
-            ]
-            nocc = len(set(dmobile[k0]['dtype']))
-            if nocc == 1:
-                dmobile[k0]['func_set_data'][0](
-                    dmobile[k0]['func_slice'][0](**iref)
+            for ii in range(nocc):
+                print(k0, ii, dmobile[k0]['func_slice'][0](iref[ii]))  # DB
+                dmobile[k0]['func_set_data'][ii](
+                    ddata[dmobile[k0]['data'][ii]]['data'][
+                        dmobile[k0]['func_slice'][ii](iref[ii])
+                    ]
                 )
 
-            else:
-                for ii in range(len(dmobile[k0]['func_set_data'])):
-                    dmobile[k0]['func_set_data'][ii](
-                        dmobile[k0]['func_slice'][ii](iref[ii])
-                    )
-
-    except Exception as err:
-        msg = (
-            str(err)
-            + f"\nk0 = {k0}\n"
-        )
-        raise Exception(msg)
+    # except Exception as err:
+        # msg = (
+            # str(err)
+            # + f"\nk0 = {k0}\n"
+        # )
+        # raise Exception(msg)
 

@@ -775,8 +775,8 @@ def plot_as_array_2d(
     #  prepare slicing
 
     # here slice X => slice in dim Y and vice-versa
-    sliX = _class2_interactivity._get_slice(lax=[1-axisX], ndim=2)
-    sliY = _class2_interactivity._get_slice(lax=[1-axisY], ndim=2)
+    sliX = _class2_interactivity._get_slice(laxis=[1-axisX], ndim=2)
+    sliY = _class2_interactivity._get_slice(laxis=[1-axisY], ndim=2)
 
     # ----------------------
     #  labels and data
@@ -998,7 +998,6 @@ def plot_as_array_2d(
                 handle=l0,
                 ref=(refX,),
                 data=key,
-                axis=axisX,
                 dtype='xdata',
                 ax=kax,
                 ind=ii,
@@ -1042,7 +1041,6 @@ def plot_as_array_2d(
                 handle=l1,
                 ref=(refY,),
                 data=[key],
-                axis=axisY,
                 dtype='ydata',
                 ax=kax,
                 ind=ii,
@@ -1177,26 +1175,11 @@ def plot_as_array_3d(
     # -----------------
     #  prepare slicing
 
-    def sliZ(ind, axis=axZ):
-        return (slice(None),)*(2-axis) + (ind,) + (slice(None),)*axis
-
-    def sliX2(iy, iz, axY=axY, axZ=axZ):
-        ind = [slice(None) for ii in [0, 1, 2]]
-        ind[axY] = iy
-        ind[axZ] = iz
-        return tuple(ind)
-
-    def sliY2(ix, iz, axX=axX, axZ=axZ):
-        ind = [slice(None) for ii in [0, 1, 2]]
-        ind[axX] = ix
-        ind[axZ] = iz
-        return tuple(ind)
-
-    def sliZ2(ix, iy, axX=axX, axY=axY):
-        ind = [slice(None) for ii in [0, 1, 2]]
-        ind[axX] = ix
-        ind[axY] = iy
-        return tuple(ind)
+    # here slice X => slice in dim Y and vice-versa
+    sliX = _class2_interactivity._get_slice(laxis=[axY, axZ], ndim=3)
+    sliY = _class2_interactivity._get_slice(laxis=[axX, axZ], ndim=3)
+    sliZ = _class2_interactivity._get_slice(laxis=[axX, axY], ndim=3)
+    sliZ2 = _class2_interactivity._get_slice(laxis=[axZ], ndim=3)
 
     # ----------------------
     #  labels and data
@@ -1205,7 +1188,10 @@ def plot_as_array_3d(
     ystr, dataY, dY2, labY = _get_str_datadlab(keyX=keyY, nx=ny, coll=coll)
     zstr, dataZ, dZ2, labZ = _get_str_datadlab(keyX=keyZ, nx=nz, coll=coll)
 
-    extent = (-dX2, nx - dX2, -dY2, ny - dY2)
+    extent = (
+        dataX[0] - dX2, dataX[-1] + dX2,
+        dataY[0] - dY2, dataY[-1] + dY2,
+    )
 
     # --------------
     # plot - prepare
@@ -1413,7 +1399,7 @@ def plot_as_array_3d(
 
         # image
         im = ax.imshow(
-            data[sliZ(ind[2])],
+            data[sliZ2(ind[2])],
             extent=extent,
             interpolation='nearest',
             origin='lower',
@@ -1429,7 +1415,6 @@ def plot_as_array_3d(
             handle=im,
             ref=refZ,
             data=key,
-            axis=0,
             dtype='data',
             ax=kax,
             ind=0,
@@ -1463,8 +1448,7 @@ def plot_as_array_3d(
                 key=kh,
                 handle=lh,
                 ref=refY,
-                data='index',
-                axis=0,
+                data=keyY,
                 dtype='ydata',
                 ax=kax,
                 ind=ii,
@@ -1473,8 +1457,7 @@ def plot_as_array_3d(
                 key=kv,
                 handle=lv,
                 ref=refX,
-                data='index',
-                axis=0,
+                data=keyX,
                 dtype='xdata',
                 ax=kax,
                 ind=ii,
@@ -1485,13 +1468,12 @@ def plot_as_array_3d(
                 handle=mi,
                 ref=[refX, refY],
                 data=[keyX, keyY],
-                axis=[0, 0],
-                dtype=['data', 'data'],
+                dtype=['xdata', 'ydata'],
                 ax=kax,
                 ind=ii,
             )
 
-        dax[kax].update(refx=[refX], refy=[refY])
+        dax[kax].update(refx=[refX], refy=[refY], datax=keyX, datay=keyY)
 
     kax = 'vertical'
     if dax.get(kax) is not None:
@@ -1499,7 +1481,7 @@ def plot_as_array_3d(
 
         for ii in range(nmax):
             l0, = ax.plot(
-                data[sliY2(ind[0], ind[2])],
+                data[sliY(ind[0], ind[2])],
                 dataY,
                 ls='-',
                 marker='.',
@@ -1514,7 +1496,6 @@ def plot_as_array_3d(
                 handle=l0,
                 ref=(refX, refZ),
                 data=[key, key],
-                axis=[axX, axZ],
                 dtype=['xdata', 'xdata'],
                 ax=kax,
                 ind=ii,
@@ -1529,14 +1510,13 @@ def plot_as_array_3d(
                 key=km,
                 handle=l0,
                 ref=(refY,),
-                data='index',
-                axis=0,
+                data=keyY,
                 dtype='ydata',
                 ax=kax,
                 ind=ii,
             )
 
-        dax[kax].update(refy=[refY])
+        dax[kax].update(refy=[refY], datay=keyY)
 
     kax = 'horizontal'
     if dax.get(kax) is not None:
@@ -1545,7 +1525,7 @@ def plot_as_array_3d(
         for ii in range(nmax):
             l1, = ax.plot(
                 dataX,
-                data[sliX2(ind[1], ind[2])],
+                data[sliX(ind[1], ind[2])],
                 ls='-',
                 marker='.',
                 lw=1.,
@@ -1557,9 +1537,9 @@ def plot_as_array_3d(
             coll.add_mobile(
                 key=km,
                 handle=l1,
-                ref=(refY,),
-                data=key,
-                dtype='ydata',
+                ref=(refY, refZ),
+                data=[key, key],
+                dtype=['ydata', 'ydata'],
                 ax=kax,
                 ind=ii,
             )
@@ -1573,14 +1553,13 @@ def plot_as_array_3d(
                 key=km,
                 handle=l0,
                 ref=(refX,),
-                data='index',
-                axis=0,
+                data=keyX,
                 dtype='xdata',
                 ax=kax,
                 ind=ii,
             )
 
-        dax[kax].update(refx=[refX])
+        dax[kax].update(refx=[refX], datax=keyX)
 
     kax = 'traces'
     if dax.get(kax) is not None:
@@ -1589,7 +1568,7 @@ def plot_as_array_3d(
         for ii in range(nmax):
             l1, = ax.plot(
                 dataZ,
-                data[sliZ2(ind[0], ind[1])],
+                data[sliZ(ind[0], ind[1])],
                 ls='-',
                 marker='None',
                 color=color_dict['X'][ii],
@@ -1601,7 +1580,6 @@ def plot_as_array_3d(
                 handle=l1,
                 ref=(refX, refY),
                 data=[key, key],
-                axis=[axX, axY],
                 dtype=['ydata', 'ydata'],
                 ax=kax,
                 ind=ii,
@@ -1616,8 +1594,7 @@ def plot_as_array_3d(
             key=km,
             handle=l0,
             ref=(refZ,),
-            data='index',
-            axis=0,
+            data=keyZ,
             dtype='xdata',
             ax=kax,
             ind=ii,
@@ -1628,24 +1605,7 @@ def plot_as_array_3d(
     # ---------
     # add text
 
-    kax = 'text0'
-    if dax.get(kax) is not None:
-        ax = dax[kax]['handle']
-
-        _plot_text.plot_text(
-            coll=coll,
-            kax=kax,
-            ax=ax,
-            ref=refY,
-            group='hor',
-            ind=ind[0],
-            lkeys=lkeys,
-            nmax=nmax,
-            color_dict=color_dict,
-            bstr_dict=bstr_dict,
-        )
-
-    kax = 'text1'
+    kax = 'textX'
     if dax.get(kax) is not None:
         ax = dax[kax]['handle']
 
@@ -1654,8 +1614,42 @@ def plot_as_array_3d(
             kax=kax,
             ax=ax,
             ref=refX,
-            group='vert',
+            group='X',
+            ind=ind[0],
+            lkeys=lkeys,
+            nmax=nmax,
+            color_dict=color_dict,
+            bstr_dict=bstr_dict,
+        )
+
+    kax = 'textY'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        _plot_text.plot_text(
+            coll=coll,
+            kax=kax,
+            ax=ax,
+            ref=refY,
+            group='Y',
             ind=ind[1],
+            lkeys=lkeys,
+            nmax=nmax,
+            color_dict=color_dict,
+            bstr_dict=bstr_dict,
+        )
+
+    kax = 'textZ'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        _plot_text.plot_text(
+            coll=coll,
+            kax=kax,
+            ax=ax,
+            ref=refZ,
+            group='Z',
+            ind=ind[2],
             lkeys=lkeys,
             nmax=nmax,
             color_dict=color_dict,
