@@ -125,8 +125,6 @@ def _update_mobile_data(
 ):
     """"""
 
-    # if handle.__class__.__name__ == 'Line2D':
-
     if kdata == 'index':
         func(iref)
 
@@ -152,28 +150,86 @@ def _update_mobile_data(
             func(ddata[kdata]['data'][:, :, iref])
 
 
+def _get_slice(lax=None, ndim=None):
+
+    nax = len(lax)
+    assert nax in range(1, ndim + 1)
+
+    if ndim == nax:
+        def fslice(*args):
+            return tuple(*args)
+
+    else:
+        def fslice(*args, lax=lax):
+            ind = [slice(None) for ii in range(ndim)]
+            for ii, aa in enumerate(args):
+                ind[lax[ii]] = aa
+            return tuple(ind)
+
+    return fslice
+
+
+def get_slice(nocc=None, laxis=None, lndim=None):
+
+    if nocc == 1:
+        return [_get_slice(laxis=laxis, ndim=lndim[0])]
+
+    elif nocc == 2:
+        return [
+            _get_slice(laxis=laxis[0], ndim=lndim[0]),
+            _get_slice(laxis=laxis[1], ndim=lndim[1]),
+        ]
+
+
 def _update_mobile(k0=None, dmobile=None, dref=None, ddata=None):
     """ Update mobile objects data """
 
     func = dmobile[k0]['func']
     kref = dmobile[k0]['ref']
     kdata = dmobile[k0]['data']
-    iref = [dref[rr]['indices'][dmobile[k0]['ind']] for rr in kref]
 
-    if kref[0] is not None:
-        _update_mobile_data(
-            func=func[0],
-            kref=kref[0],
-            kdata=kdata[0],
-            iref=iref[0],
-            ddata=ddata,
-        )
+    try:
+        if True:
+            iref = [dref[rr]['indices'][dmobile[k0]['ind']] for rr in kref]
+            if kref[0] is not None:
+                _update_mobile_data(
+                    func=func[0],
+                    kref=kref[0],
+                    kdata=kdata[0],
+                    iref=iref[0],
+                    ddata=ddata,
+                )
 
-    if len(kref) > 1 and kref[1] is not None:
-        _update_mobile_data(
-            func=func[1],
-            kref=kref[1],
-            kdata=kdata[1],
-            iref=iref[1],
-            ddata=ddata,
+            if len(kref) > 1 and kref[1] is not None:
+                _update_mobile_data(
+                    func=func[1],
+                    kref=kref[1],
+                    kdata=kdata[1],
+                    iref=iref[1],
+                    ddata=ddata,
+                )
+
+        else:
+            iref = [
+                dref[rr]['indices'][dmobile[k0]['ind']]
+                for rr in dmobile[k0]['ref']
+            ]
+            nocc = len(set(dmobile[k0]['dtype']))
+            if nocc == 1:
+                dmobile[k0]['func_set_data'][0](
+                    dmobile[k0]['func_slice'][0](**iref)
+                )
+
+            else:
+                for ii in range(len(dmobile[k0]['func_set_data'])):
+                    dmobile[k0]['func_set_data'][ii](
+                        dmobile[k0]['func_slice'][ii](iref[ii])
+                    )
+
+    except Exception as err:
+        msg = (
+            str(err)
+            + f"\nk0 = {k0}\n"
         )
+        raise Exception(msg)
+

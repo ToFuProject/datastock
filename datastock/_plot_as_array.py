@@ -19,6 +19,7 @@ import matplotlib.colors as mcolors
 # library-specific
 from . import _generic_check
 from . import _plot_text
+from . import _class2_interactivity
 
 
 __all__ = ['plot_as_array']
@@ -246,24 +247,35 @@ def _check_keyXYZ(coll=None, refs=None, keyX=None, ndim=None, dimlim=None):
     refX = None
     if ndim >= dimlim:
         if keyX is not None:
-            lok = [
-                k0 for k0, v0 in coll._ddata.items()
-                if len( v0['ref']) == 1
-                and v0['ref'][0] in refs
-                and (
-                    v0['data'].dtype.type == np.str_
-                    or (
-                        v0['monot'] == (True,)
-                        and np.unique(np.diff(v0['data'])).size == 1
-
+            if keyX in coll._ddata.keys():
+                lok = [
+                    k0 for k0, v0 in coll._ddata.items()
+                    if len( v0['ref']) == 1
+                    and v0['ref'][0] in refs
+                    and (
+                        v0['data'].dtype.type == np.str_
+                        or (
+                            v0['monot'] == (True,)
+                            and np.allclose(
+                                np.diff(v0['data']),
+                                v0['data'][1] - v0['data'][0],
+                                equal_nan=False,
+                            )
+                        )
                     )
+                ]
+                keyX = _generic_check._check_var(
+                    keyX, 'keyX',
+                    allowed=lok,
                 )
-            ]
-            keyX = _generic_check._check_var(
-                keyX, 'keyX',
-                allowed=lok,
-            )
-            refX = coll._ddata[keyX]['ref'][0]
+                refX = coll._ddata[keyX]['ref'][0]
+
+            elif keyX in refs:
+                keyX, refX = 'index', keyX
+
+            else:
+                msg = f"Arg keyX refers to unknow data:\n\t- Provided: {keyX}"
+                raise Exception(msg)
         else:
             keyX, refX = 'index', refs[dimlim - 1]
 
@@ -299,11 +311,11 @@ def _plot_as_array_check(
 
     # groups
     if ndim == 1:
-        groups = ['slice']
+        groups = ['X']
     elif ndim == 2:
-        groups = ['hor', 'vert']
+        groups = ['X', 'Y']
     elif ndim == 3:
-        groups = ['hor', 'vert', 'trace']
+        groups = ['X', 'Y', 'Z']
     else:
         msg = "ndim must be in [1, 2, 3]"
         raise Exception(msg)
@@ -632,7 +644,7 @@ def plot_as_array_1d(
     # define and set dgroup
 
     dgroup = {
-        'slice': {
+        'X': {
             'ref': [ref],
             'data': ['index'],
             'nmax': nmax,
@@ -762,19 +774,20 @@ def plot_as_array_2d(
     # -----------------
     #  prepare slicing
 
-    def sliX(ind, axis=axisX):
-        return (slice(None),)*(1-axis) + (ind,) + (slice(None),)*axis
-
-    def sliY(ind, axis=axisY):
-        return (slice(None),)*(1-axis) + (ind,) + (slice(None),)*axis
+    # here slice X => slice in dim Y and vice-versa
+    sliX = _class2_interactivity._get_slice(lax=[1-axisX], ndim=2)
+    sliY = _class2_interactivity._get_slice(lax=[1-axisY], ndim=2)
 
     # ----------------------
     #  labels and data
 
     xstr, dataX, dX2, labX = _get_str_datadlab(keyX=keyX, nx=nx, coll=coll)
-    ystr, dataY, dY2, labY = _get_str_datadlab(keyX=keyX, nx=ny, coll=coll)
+    ystr, dataY, dY2, labY = _get_str_datadlab(keyX=keyY, nx=ny, coll=coll)
 
-    extent = (-dX2, nx - dX2, -dY2, ny - dY2)
+    extent = (
+        dataX[0] - dX2, dataX[-1] + dX2,
+        dataY[0] - dY2, dataY[-1] + dY2,
+    )
 
     # --------------
     # plot - prepare
@@ -912,12 +925,12 @@ def plot_as_array_2d(
     # define and set dgroup
 
     dgroup = {
-        'hor': {
+        'X': {
             'ref': [refX],
             'data': ['index'],
             'nmax': nmax,
         },
-        'vert': {
+        'Y': {
             'ref': [refY],
             'data': ['index'],
             'nmax': nmax,
@@ -934,10 +947,10 @@ def plot_as_array_2d(
         # ind0, ind1
         for ii in range(nmax):
             lh = ax.axhline(
-                dataY[ind[1]], c=color_dict['hor'][ii], lw=1., ls='-',
+                dataY[ind[1]], c=color_dict['X'][ii], lw=1., ls='-',
             )
             lv = ax.axvline(
-                dataX[ind[0]], c=color_dict['vert'][ii], lw=1., ls='-',
+                dataX[ind[0]], c=color_dict['Y'][ii], lw=1., ls='-',
             )
 
             # update coll
@@ -947,7 +960,7 @@ def plot_as_array_2d(
                 key=kh,
                 handle=lh,
                 ref=refY,
-                data='index',
+                data=keyY,
                 dtype='ydata',
                 ax=kax,
                 ind=ii,
@@ -956,13 +969,13 @@ def plot_as_array_2d(
                 key=kv,
                 handle=lv,
                 ref=refX,
-                data='index',
+                data=keyX,
                 dtype='xdata',
                 ax=kax,
                 ind=ii,
             )
 
-        dax[kax].update(refx=[refX], refy=[refY])
+        dax[kax].update(refx=[refX], datax=keyX, refy=[refY], datay=keyY)
 
     kax = 'vertical'
     if dax.get(kax) is not None:
@@ -975,7 +988,7 @@ def plot_as_array_2d(
                 ls='-',
                 marker='.',
                 lw=1.,
-                color=color_dict['vert'][ii],
+                color=color_dict['Y'][ii],
                 label=f'ind0 = {ind[0]}',
             )
 
@@ -985,6 +998,7 @@ def plot_as_array_2d(
                 handle=l0,
                 ref=(refX,),
                 data=key,
+                axis=axisX,
                 dtype='xdata',
                 ax=kax,
                 ind=ii,
@@ -992,20 +1006,20 @@ def plot_as_array_2d(
 
             l0 = ax.axhline(
                 ind[1],
-                c=color_dict['hor'][ii],
+                c=color_dict['X'][ii],
             )
             km = f'lh-v{ii:02.0f}'
             coll.add_mobile(
                 key=km,
                 handle=l0,
                 ref=(refY,),
-                data='index',
+                data=keyY,
                 dtype='ydata',
                 ax=kax,
                 ind=ii,
             )
 
-        dax[kax].update(refy=[refY])
+        dax[kax].update(refy=[refY], datay=keyY)
 
     kax = 'horizontal'
     if dax.get(kax) is not None:
@@ -1018,7 +1032,7 @@ def plot_as_array_2d(
                 ls='-',
                 marker='.',
                 lw=1.,
-                color=color_dict['hor'][ii],
+                color=color_dict['X'][ii],
                 label=f'ind1 = {ind[1]}',
             )
 
@@ -1027,7 +1041,8 @@ def plot_as_array_2d(
                 key=km,
                 handle=l1,
                 ref=(refY,),
-                data=key,
+                data=[key],
+                axis=axisY,
                 dtype='ydata',
                 ax=kax,
                 ind=ii,
@@ -1035,20 +1050,20 @@ def plot_as_array_2d(
 
             l0 = ax.axvline(
                 ind[0],
-                c=color_dict['vert'][ii],
+                c=color_dict['Y'][ii],
             )
             km = f'lv-h{ii:02.0f}'
             coll.add_mobile(
                 key=km,
                 handle=l0,
                 ref=(refX,),
-                data='index',
+                data=keyX,
                 dtype='xdata',
                 ax=kax,
                 ind=ii,
             )
 
-        dax[kax].update(refx=[refX])
+        dax[kax].update(refx=[refX], datax=keyX)
 
     # ---------
     # add text
@@ -1062,7 +1077,7 @@ def plot_as_array_2d(
             kax=kax,
             ax=ax,
             ref=refY,
-            group='hor',
+            group='X',
             ind=ind[0],
             lkeys=lkeys,
             nmax=nmax,
@@ -1079,7 +1094,7 @@ def plot_as_array_2d(
             kax=kax,
             ax=ax,
             ref=refX,
-            group='vert',
+            group='Y',
             ind=ind[1],
             lkeys=lkeys,
             nmax=nmax,
@@ -1162,14 +1177,26 @@ def plot_as_array_3d(
     # -----------------
     #  prepare slicing
 
-    def sliX(ind, axis=axX):
-        return (slice(None),)*(2-axis) + (ind,) + (slice(None),)*axis
-
-    def sliY(ind, axis=axY):
-        return (slice(None),)*(2-axis) + (ind,) + (slice(None),)*axis
-
     def sliZ(ind, axis=axZ):
         return (slice(None),)*(2-axis) + (ind,) + (slice(None),)*axis
+
+    def sliX2(iy, iz, axY=axY, axZ=axZ):
+        ind = [slice(None) for ii in [0, 1, 2]]
+        ind[axY] = iy
+        ind[axZ] = iz
+        return tuple(ind)
+
+    def sliY2(ix, iz, axX=axX, axZ=axZ):
+        ind = [slice(None) for ii in [0, 1, 2]]
+        ind[axX] = ix
+        ind[axZ] = iz
+        return tuple(ind)
+
+    def sliZ2(ix, iy, axX=axX, axY=axY):
+        ind = [slice(None) for ii in [0, 1, 2]]
+        ind[axX] = ix
+        ind[axY] = iy
+        return tuple(ind)
 
     # ----------------------
     #  labels and data
@@ -1325,8 +1352,8 @@ def plot_as_array_3d(
         ax = dax[kax]['handle']
 
         if bck == 'lines':
-            shap = (nx, ny) if axX < axY else (ny, nx)
-            import pdb; pdb.set_trace()     # DB
+            shap = list(data.shape)
+            shap[axZ] = 1
             bckl = np.concatenate((data, np.full(shap, np.nan)), axis=axZ)
             bckl = np.swapaxes(bckl, axZ, -1).ravel()
             zdat = np.tile(np.r_[dataZ, np.nan], nx*ny)
@@ -1340,8 +1367,12 @@ def plot_as_array_3d(
             )
         else:
             bckenv = [
-                np.nanmin(np.nanmin(data, axis=axX), axis=axY),
-                np.nanmax(np.nanmax(data, axis=axX), axis=axY),
+                np.nanmin(
+                    np.nanmin(data, axis=max(axX, axY)), axis=min(axX, axY)
+                ),
+                np.nanmax(
+                    np.nanmax(data, axis=max(axX, axY)), axis=min(axX, axY),
+                )
             ]
             zdat = dataZ
             ax.fill_between(
@@ -1356,15 +1387,20 @@ def plot_as_array_3d(
     # define and set dgroup
 
     dgroup = {
-        'hor': {
+        'X': {
             'ref': [refX],
             'data': ['index'],
             'nmax': nmax,
         },
-        'vert': {
+        'Y': {
             'ref': [refY],
             'data': ['index'],
             'nmax': nmax,
+        },
+        'Z': {
+            'ref': [refZ],
+            'data': ['index'],
+            'nmax': 1,
         },
     }
 
@@ -1377,7 +1413,7 @@ def plot_as_array_3d(
 
         # image
         im = ax.imshow(
-            dataplot,
+            data[sliZ(ind[2])],
             extent=extent,
             interpolation='nearest',
             origin='lower',
@@ -1387,17 +1423,38 @@ def plot_as_array_3d(
             vmax=vmax,
         )
 
+        km = f'im'
+        coll.add_mobile(
+            key=km,
+            handle=im,
+            ref=refZ,
+            data=key,
+            axis=0,
+            dtype='data',
+            ax=kax,
+            ind=0,
+        )
+
         if inverty is True:
             ax.invert_yaxis()
 
         # ind0, ind1
         for ii in range(nmax):
             lh = ax.axhline(
-                dataY[ind[1]], c=color_dict['hor'][ii], lw=1., ls='-',
+                dataY[ind[1]], c=color_dict['X'][ii], lw=1., ls='-',
             )
             lv = ax.axvline(
-                dataX[ind[0]], c=color_dict['vert'][ii], lw=1., ls='-',
+                dataX[ind[0]], c=color_dict['Y'][ii], lw=1., ls='-',
             )
+            mi, = ax.plot(
+                dataX[ind[0]],
+                dataY[ind[1]],
+                marker='s',
+                ms=6,
+                markeredgecolor=color_dict['X'][ii],
+                markerfacecolor='None',
+            )
+
 
             # update coll
             kh = f'h{ii:02.0f}'
@@ -1407,6 +1464,7 @@ def plot_as_array_3d(
                 handle=lh,
                 ref=refY,
                 data='index',
+                axis=0,
                 dtype='ydata',
                 ax=kax,
                 ind=ii,
@@ -1416,7 +1474,19 @@ def plot_as_array_3d(
                 handle=lv,
                 ref=refX,
                 data='index',
+                axis=0,
                 dtype='xdata',
+                ax=kax,
+                ind=ii,
+            )
+            km = f'm{ii:02.0f}'
+            coll.add_mobile(
+                key=km,
+                handle=mi,
+                ref=[refX, refY],
+                data=[keyX, keyY],
+                axis=[0, 0],
+                dtype=['data', 'data'],
                 ax=kax,
                 ind=ii,
             )
@@ -1429,12 +1499,12 @@ def plot_as_array_3d(
 
         for ii in range(nmax):
             l0, = ax.plot(
-                data[sliY(ind[1])],
+                data[sliY2(ind[0], ind[2])],
                 dataY,
                 ls='-',
                 marker='.',
                 lw=1.,
-                color=color_dict['vert'][ii],
+                color=color_dict['Y'][ii],
                 label=f'ind0 = {ind[0]}',
             )
 
@@ -1442,16 +1512,17 @@ def plot_as_array_3d(
             coll.add_mobile(
                 key=km,
                 handle=l0,
-                ref=(refX,),
-                data=key,
-                dtype='xdata',
+                ref=(refX, refZ),
+                data=[key, key],
+                axis=[axX, axZ],
+                dtype=['xdata', 'xdata'],
                 ax=kax,
                 ind=ii,
             )
 
             l0 = ax.axhline(
-                ind[1],
-                c=color_dict['hor'][ii],
+                dataY[ind[1]],
+                c=color_dict['X'][ii],
             )
             km = f'lh-v{ii:02.0f}'
             coll.add_mobile(
@@ -1459,6 +1530,7 @@ def plot_as_array_3d(
                 handle=l0,
                 ref=(refY,),
                 data='index',
+                axis=0,
                 dtype='ydata',
                 ax=kax,
                 ind=ii,
@@ -1473,11 +1545,11 @@ def plot_as_array_3d(
         for ii in range(nmax):
             l1, = ax.plot(
                 dataX,
-                data[sliX(ind[0])],
+                data[sliX2(ind[1], ind[2])],
                 ls='-',
                 marker='.',
                 lw=1.,
-                color=color_dict['hor'][ii],
+                color=color_dict['X'][ii],
                 label=f'ind1 = {ind[1]}',
             )
 
@@ -1493,8 +1565,8 @@ def plot_as_array_3d(
             )
 
             l0 = ax.axvline(
-                ind[0],
-                c=color_dict['vert'][ii],
+                dataX[ind[0]],
+                c=color_dict['Y'][ii],
             )
             km = f'lv-h{ii:02.0f}'
             coll.add_mobile(
@@ -1502,12 +1574,56 @@ def plot_as_array_3d(
                 handle=l0,
                 ref=(refX,),
                 data='index',
+                axis=0,
                 dtype='xdata',
                 ax=kax,
                 ind=ii,
             )
 
         dax[kax].update(refx=[refX])
+
+    kax = 'traces'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        for ii in range(nmax):
+            l1, = ax.plot(
+                dataZ,
+                data[sliZ2(ind[0], ind[1])],
+                ls='-',
+                marker='None',
+                color=color_dict['X'][ii],
+            )
+
+            km = f'trace{ii:02.0f}'
+            coll.add_mobile(
+                key=km,
+                handle=l1,
+                ref=(refX, refY),
+                data=[key, key],
+                axis=[axX, axY],
+                dtype=['ydata', 'ydata'],
+                ax=kax,
+                ind=ii,
+            )
+
+        l0 = ax.axvline(
+            ind[2],
+            c='k',
+        )
+        km = f'lv-z'
+        coll.add_mobile(
+            key=km,
+            handle=l0,
+            ref=(refZ,),
+            data='index',
+            axis=0,
+            dtype='xdata',
+            ax=kax,
+            ind=ii,
+        )
+
+        dax[kax].update(refx=[refZ])
 
     # ---------
     # add text

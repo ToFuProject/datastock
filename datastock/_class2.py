@@ -48,6 +48,7 @@ class DataStock2(DataStock1):
         key=None,
         ref=None,
         data=None,
+        axis=None,
         dtype=None,
         bstr=None,
         visible=None,
@@ -69,6 +70,7 @@ class DataStock2(DataStock1):
                 f"\t- Provided: {ref}"
             )
             raise Exception(msg)
+        nref = len(ref)
 
         # ----------
         # check dtype
@@ -80,9 +82,9 @@ class DataStock2(DataStock1):
             'dtype',
             types=list,
             types_iter=str,
-            allowed=['xdata', 'ydata', 'alpha', 'txt']
+            allowed=['xdata', 'ydata', 'data', 'alpha', 'txt']
         )
-        if len(dtype) != len(ref):
+        if len(dtype) != nref:
             msg = (
                 "Arg dtype must be a list, the same length as ref!\n"
                 f"\t- dtype: {dtype}\n"
@@ -101,7 +103,7 @@ class DataStock2(DataStock1):
             data = ['index' for rr in ref]
 
         c0 = (
-            len(ref) == len(data)
+            nref == len(data)
             and all([rr == 'index' or rr in self._ddata.keys() for rr in data])
         )
         if not c0:
@@ -113,6 +115,43 @@ class DataStock2(DataStock1):
             )
             raise Exception(msg)
 
+        # ------------------
+        # check axis vs data
+
+        if axis is None:
+            axis = 0
+        if isinstance(axis, int):
+            axis = [axis]
+        c0 = (
+            isinstance(axis, list)
+            and all([isinstance(aa, int) for aa in axis])
+            and len(axis) == nref
+            and all([
+                (dd == 'index' and axis[0] == 0)
+                or axis[ii] in range(0, self._ddata[dd]['data'].ndim)
+                for ii, dd in enumerate(data)
+            ])
+        )
+        if not c0:
+            msg = (
+                f"Mobile '{key}': axis must be a list of int!\n"
+                f"It should hqve the same length as ref ({nref})\n"
+                f"\t- axis: {axis}"
+            )
+            raise Exception(msg)
+
+        # ---------------------
+        # check ndata vs ndtype
+
+        if len(set(dtype)) != len(set(data)):
+            msg = (
+                f"In dmobile['{key}']:\n"
+                "Nb. of different dtypes must match nb of different data!\n"
+                f"\t- dtypes: {dtypes}\n"
+                f"\t- data: {data}\n"
+            )
+            raise Exception(msg)
+
         super().add_obj(
             which='mobile',
             key=key,
@@ -120,6 +159,7 @@ class DataStock2(DataStock1):
             group=None,
             ref=ref,
             data=data,
+            axis=axis,
             dtype=dtype,
             visible=visible,
             bstr=bstr,
@@ -171,10 +211,30 @@ class DataStock2(DataStock1):
             raise Exception(msg)
 
         # data
+        if isinstance(datax, str):
+            datax = [datax]
+        if isinstance(datay, str):
+            datay = [datay]
         if datax is None and refx is not None:
             datax = ['index' for rr in refx]
         if datay is None and refy is not None:
             datay = ['index' for rr in refy]
+
+        # ref vs data
+        if refx is not None and len(refx) != len(datax):
+            msg = (
+                "refx and datax must have the same length!\n"
+                f"\t- refx: {refx}"
+                f"\t- datax: {datax}"
+            )
+            raise Exception(msg)
+        if refy is not None and len(refy) != len(datay):
+            msg = (
+                "refy and datay must have the same length!\n"
+                f"\t- refx: {refy}"
+                f"\t- datax: {datay}"
+            )
+            raise Exception(msg)
 
         super().add_obj(
             which='axes',
@@ -386,12 +446,13 @@ class DataStock2(DataStock1):
         self.add_param(which='axes', param='inc', value=dinc)
 
         # --------------------------
-        # update mobile with groups
+        # update mobile with groups and func
 
         for k0, v0 in self._dobj['mobile'].items():
              self._dobj['mobile'][k0]['group'] = tuple([
                  self._dref[rr]['group'] for rr in v0['ref']
              ])
+
              self._dobj['mobile'][k0]['func'] = [
                 _class2_interactivity.get_fupdate(
                     handle=v0['handle'],
@@ -400,7 +461,30 @@ class DataStock2(DataStock1):
                     bstr=v0.get('bstr'),
                 )
                 for typ in self._dobj['mobile'][k0]['dtype']
-            ]
+             ]
+
+
+             # nocc = len(set(self._dobj['mobile'][k0]['dtype']))
+
+             # self._dobj['mobile'][k0]['func_set_data'] = [
+                # _class2_interactivity.get_fupdate(
+                    # handle=v0['handle'],
+                    # dtype=self._dobj['mobile'][k0]['dtype'][ii],
+                    # norm=None,
+                    # bstr=v0.get('bstr'),
+                # )
+                # for ii in range(nocc)
+             # ]
+
+             # self._dobj['mobile'][k0]['func_slice'] = \
+                # _class2_interactivity.get_slice(
+                    # nocc=nocc,
+                    # laxis=self._dobj['mobile']['axis'],
+                    # lndim=[
+                        # self._ddata[dd]['data'].ndim
+                        # for dd in self._dobj['mobile'][k0]['data']
+                    # ],
+                # )
 
         # --------------------
         # axes mobile, refs and canvas
