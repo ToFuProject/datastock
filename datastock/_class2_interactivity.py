@@ -109,10 +109,15 @@ def get_fupdate(handle=None, dtype=None, norm=None, bstr=None):
         func = lambda val, handle=handle: handle.set_ydata(val)
     elif dtype in ['data']:   # Also works for imshow
         func = lambda val, handle=handle: handle.set_data(val)
+    elif dtype in ['data.T']:   # Also works for imshow
+        func = lambda val, handle=handle: handle.set_data(val.T)
     elif dtype in ['alpha']:   # Also works for imshow
         func = lambda val, handle=handle, norm=norm: handle.set_alpha(norm(val))
     elif dtype == 'txt':
         func = lambda val, handle=handle, bstr=bstr: handle.set_text(bstr.format(val))
+    else:
+        msg = f'Unknown mobile dtype: {dtype}'
+        raise Exception(msg)
     return func
 
 
@@ -161,21 +166,26 @@ def _update_mobile(k0=None, dmobile=None, dref=None, ddata=None):
         ]
         for rr in dmobile[k0]['ref']
     ]
-    nocc = len(set(dmobile[k0]['dtype']))
-    if nocc == 1 and dmobile[k0]['data'][0] == 'index':
-        dmobile[k0]['func_set_data'][0](*iref)
 
-    elif nocc == 1:
-        dmobile[k0]['func_set_data'][0](
-            ddata[dmobile[k0]['data'][0]]['data'][
-                dmobile[k0]['func_slice'][0](*iref)
-            ]
-        )
+    nocc = len(set(dmobile[k0]['dtype']))
+    if nocc == 1:
+        if dmobile[k0]['data'][0] == 'index':
+            dmobile[k0]['func_set_data'][0](*iref)
+
+        else:
+            dmobile[k0]['func_set_data'][0](
+                ddata[dmobile[k0]['data'][0]]['data'][
+                    dmobile[k0]['func_slice'][0](*iref)
+                ]
+            )
 
     else:
         for ii in range(nocc):
-            dmobile[k0]['func_set_data'][ii](
-                ddata[dmobile[k0]['data'][ii]]['data'][
-                    dmobile[k0]['func_slice'][ii](iref[ii])
-                ]
-            )
+            if dmobile[k0]['data'][ii] == 'index':
+                dmobile[k0]['func_set_data'][ii](iref[ii])
+            else:
+                dmobile[k0]['func_set_data'][ii](
+                    ddata[dmobile[k0]['data'][ii]]['data'][
+                        dmobile[k0]['func_slice'][ii](iref[ii])
+                    ]
+                )

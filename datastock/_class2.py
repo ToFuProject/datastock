@@ -82,7 +82,7 @@ class DataStock2(DataStock1):
             'dtype',
             types=list,
             types_iter=str,
-            allowed=['xdata', 'ydata', 'data', 'alpha', 'txt']
+            allowed=['xdata', 'ydata', 'data', 'data.T', 'alpha', 'txt']
         )
         if len(dtype) != nref:
             msg = (
@@ -129,13 +129,16 @@ class DataStock2(DataStock1):
         # check ndata vs ndtype
 
         if len(set(dtype)) != len(set(data)):
-            msg = (
-                f"In dmobile['{key}']:\n"
-                "Nb. of different dtypes must match nb of different data!\n"
-                f"\t- dtype: {dtype}\n"
-                f"\t- data: {data}\n"
-            )
-            raise Exception(msg)
+            if all([dd == 'index' for dd in data]):
+                pass
+            else:
+                msg = (
+                    f"In dmobile['{key}']:\n"
+                    "Nb. of different dtypes must match nb of different data!\n"
+                    f"\t- dtype: {dtype}\n"
+                    f"\t- data: {data}\n"
+                )
+                raise Exception(msg)
 
         super().add_obj(
             which='mobile',

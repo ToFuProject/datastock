@@ -1181,6 +1181,13 @@ def plot_as_array_3d(
     sliZ = _class2_interactivity._get_slice(laxis=[axX, axY], ndim=3)
     sliZ2 = _class2_interactivity._get_slice(laxis=[axZ], ndim=3)
 
+    if axX < axY:
+        datatype = 'data.T'
+        dataplot = data[sliZ2(ind[2])].T
+    else:
+        datatype = 'data'
+        dataplot = data[sliZ2(ind[2])]
+
     # ----------------------
     #  labels and data
 
@@ -1262,7 +1269,7 @@ def plot_as_array_3d(
         ax5 = fig.add_subplot(gs[3:, 5], frameon=False)
         ax5.set_xticks([])
         ax5.set_yticks([])
-        ax6 = fig.add_subplot(gs[3:, 1], frameon=False)
+        ax6 = fig.add_subplot(gs[4:, :2], frameon=False)
         ax6.set_xticks([])
         ax6.set_yticks([])
 
@@ -1399,7 +1406,7 @@ def plot_as_array_3d(
 
         # image
         im = ax.imshow(
-            data[sliZ2(ind[2])],
+            dataplot,
             extent=extent,
             interpolation='nearest',
             origin='lower',
@@ -1415,7 +1422,7 @@ def plot_as_array_3d(
             handle=im,
             ref=refZ,
             data=key,
-            dtype='data',
+            dtype=datatype,
             ax=kax,
             ind=0,
         )
