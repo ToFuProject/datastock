@@ -27,7 +27,7 @@ def plot_as_array(data=None):
 
     try:
         data = np.asarray(data)
-        assert data.ndim == 2
+        assert data.ndim in [1, 2, 3]
     except Exception as err:
         msg = (
             str(err)

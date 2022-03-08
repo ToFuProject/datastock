@@ -860,10 +860,16 @@ def _check_data(data=None, key=None, max_ndim=None):
     if not c0_array:
         if isinstance(data, (list, tuple)):
             c0 = (
+                all([isinstance(oo, str) for oo in data])
+            )
+            c1 = (
                 all([hasattr(oo, '__iter__') for oo in data])
                 and len(set([len(oo) for oo in data])) != 1
             )
             if c0:
+                data = np.char.array(data)
+                shape = data.shape
+            elif c1:
                 # non-uniform len of element => object array
                 data = np.array(data, dtype=object)
                 shape = (data.shape[0],)
@@ -896,13 +902,16 @@ def _check_data(data=None, key=None, max_ndim=None):
 
     # Check if valid ref candidate (monotonous = (True,))
     if c0_array:
-        monotonous = tuple([
-            bool(
-                np.all(np.diff(data, axis=aa) > 0.)
-                or np.all(np.diff(data, axis=aa) < 0.)
-            )
-            for aa in range(data.ndim)
-        ])
+        if data.dtype.type == np.str_:
+            monotonous = tuple([False for ii in data.shape])
+        else:
+            monotonous = tuple([
+                bool(
+                    np.all(np.diff(data, axis=aa) > 0.)
+                    or np.all(np.diff(data, axis=aa) < 0.)
+                )
+                for aa in range(data.ndim)
+            ])
     else:
         monotonous = (False,)
     return data, shape, monotonous

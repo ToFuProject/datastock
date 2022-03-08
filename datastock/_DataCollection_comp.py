@@ -32,14 +32,15 @@ def _get_index_from_data(data=None, data_pick=None, monot=None):
             0.5*(data[1:] + data[:-1]),
             data[-1] + 0.5*(data[-1] - data[-2]),
         ]
-        indices = np.digitize(data_pick, bins, right=False)
+        # digitize returns the index of the right edge
+        indices = np.digitize(data_pick, bins, right=False) - 1
 
         # corrections
         if data[1] > data[0]:
             indices[data_pick < bins[0]] = 0
-            indices[data_pick > bins[-1]] = data.size-1
+            indices[data_pick >= bins[-1]] = data.size - 1
         else:
-            indices[data_pick < bins[-1]] = data.size-1
+            indices[data_pick <= bins[-1]] = data.size - 1
             indices[data_pick > bins[0]] = 0
 
     elif data.ndim == 1:

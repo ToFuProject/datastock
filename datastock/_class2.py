@@ -51,6 +51,7 @@ class DataStock2(DataStock1):
         dtype=None,
         bstr=None,
         visible=None,
+        group_vis=None,
         ax=None,
         **kwdargs,
     ):
@@ -69,6 +70,7 @@ class DataStock2(DataStock1):
                 f"\t- Provided: {ref}"
             )
             raise Exception(msg)
+        nref = len(ref)
 
         # ----------
         # check dtype
@@ -80,10 +82,11 @@ class DataStock2(DataStock1):
             'dtype',
             types=list,
             types_iter=str,
-            allowed=['xdata', 'ydata', 'alpha', 'txt']
+            allowed=['xdata', 'ydata', 'data', 'data.T', 'alpha', 'txt']
         )
-        if len(dtype) != len(ref):
+        if len(dtype) != nref:
             msg = (
+                f"For mobile {key}:\n"
                 "Arg dtype must be a list, the same length as ref!\n"
                 f"\t- dtype: {dtype}\n"
                 f"\t- ref: {ref}\n"
@@ -101,7 +104,7 @@ class DataStock2(DataStock1):
             data = ['index' for rr in ref]
 
         c0 = (
-            len(ref) == len(data)
+            nref == len(data)
             and all([rr == 'index' or rr in self._ddata.keys() for rr in data])
         )
         if not c0:
@@ -113,13 +116,39 @@ class DataStock2(DataStock1):
             )
             raise Exception(msg)
 
+        # ------------------
+        # check axis vs data
+
+        axis = [
+            0 if dd == 'index'
+            else self._ddata[dd]['ref'].index(ref[ii])
+            for ii, dd in enumerate(data)
+        ]
+
+        # ---------------------
+        # check ndata vs ndtype
+
+        if len(set(dtype)) != len(set(data)):
+            if all([dd == 'index' for dd in data]):
+                pass
+            else:
+                msg = (
+                    f"In dmobile['{key}']:\n"
+                    "Nb. of different dtypes must match nb of different data!\n"
+                    f"\t- dtype: {dtype}\n"
+                    f"\t- data: {data}\n"
+                )
+                raise Exception(msg)
+
         super().add_obj(
             which='mobile',
             key=key,
             handle=handle,
             group=None,
+            group_vis=group_vis,
             ref=ref,
             data=data,
+            axis=axis,
             dtype=dtype,
             visible=visible,
             bstr=bstr,
@@ -171,10 +200,30 @@ class DataStock2(DataStock1):
             raise Exception(msg)
 
         # data
+        if isinstance(datax, str):
+            datax = [datax]
+        if isinstance(datay, str):
+            datay = [datay]
         if datax is None and refx is not None:
             datax = ['index' for rr in refx]
         if datay is None and refy is not None:
             datay = ['index' for rr in refy]
+
+        # ref vs data
+        if refx is not None and len(refx) != len(datax):
+            msg = (
+                "refx and datax must have the same length!\n"
+                f"\t- refx: {refx}"
+                f"\t- datax: {datax}"
+            )
+            raise Exception(msg)
+        if refy is not None and len(refy) != len(datay):
+            msg = (
+                "refy and datay must have the same length!\n"
+                f"\t- refx: {refy}"
+                f"\t- datax: {datay}"
+            )
+            raise Exception(msg)
 
         super().add_obj(
             which='axes',
@@ -386,21 +435,63 @@ class DataStock2(DataStock1):
         self.add_param(which='axes', param='inc', value=dinc)
 
         # --------------------------
-        # update mobile with groups
+        # update mobile with groups and func
 
         for k0, v0 in self._dobj['mobile'].items():
-             self._dobj['mobile'][k0]['group'] = tuple([
-                 self._dref[rr]['group'] for rr in v0['ref']
-             ])
-             self._dobj['mobile'][k0]['func'] = [
-                _class2_interactivity.get_fupdate(
-                    handle=v0['handle'],
-                    dtype=typ,
-                    norm=None,
-                    bstr=v0.get('bstr'),
+            self._dobj['mobile'][k0]['group'] = tuple([
+                self._dref[rr]['group'] for rr in v0['ref']
+            ])
+
+            # group _vis
+            if self._dobj['mobile'][k0]['group_vis'] is None:
+                self._dobj['mobile'][k0]['group_vis'] = \
+                        self._dobj['mobile'][k0]['group']
+            if isinstance(self._dobj['mobile'][k0]['group_vis'], str):
+               self._dobj['mobile'][k0]['group_vis'] = (
+                   self._dobj['mobile'][k0]['group_vis'],
+               )
+            c0 = (
+                isinstance(self._dobj['mobile'][k0]['group_vis'], tuple)
+                and all([
+                    isinstance(ss, str)
+                    and ss in self._dobj['mobile'][k0]['group']
+                    for ss in self._dobj['mobile'][k0]['group_vis']
+                ])
+            )
+            if not c0:
+                msg = (
+                    f"dmobile['{k0}']['group_vis'] must be:\n"
+                    f"\t- a list of groups in dmobile['{k0}']['group']\n"
+                    "\t- specifies which groups determine visibility\n"
+                    f"If None: set to dmobile['{k0}']['group']"
+                    f" = {self._dobj['mobile'][k0]['group']}\n"
+                    f"Provided: {self._dobj['mobile'][k0]['group_vis']}"
                 )
-                for typ in self._dobj['mobile'][k0]['dtype']
+                raise Exception(msg)
+
+            # functions for updating
+            nocc = len(set(self._dobj['mobile'][k0]['dtype']))
+
+            self._dobj['mobile'][k0]['func_set_data'] = [
+               _class2_interactivity.get_fupdate(
+                   handle=v0['handle'],
+                   dtype=self._dobj['mobile'][k0]['dtype'][ii],
+                   norm=None,
+                   bstr=v0.get('bstr'),
+               )
+               for ii in range(nocc)
             ]
+
+            self._dobj['mobile'][k0]['func_slice'] = \
+               _class2_interactivity.get_slice(
+                   nocc=nocc,
+                   laxis=self._dobj['mobile'][k0]['axis'],
+                   lndim=[
+                       1 if dd == 'index'
+                       else self._ddata[dd]['data'].ndim
+                       for dd in self._dobj['mobile'][k0]['data']
+                   ],
+               )
 
         # --------------------
         # axes mobile, refs and canvas
@@ -822,10 +913,11 @@ class DataStock2(DataStock1):
 
         # Set visibility of mobile objects - TBF/TBC
         for k0 in lmobiles:
+            # all vs any ?
             vis = all([
                 self._dobj['mobile'][k0]['ind']
                 < self._dobj['group'][gg]['nmaxcur']
-                for gg in self._dobj['mobile'][k0]['group']
+                for gg in self._dobj['mobile'][k0]['group_vis']
             ])
             self._dobj['mobile'][k0]['visible'] = vis
 
@@ -934,31 +1026,21 @@ class DataStock2(DataStock1):
         ctrl = any([self._dobj['key'][ss]['val'] for ss in ['control', 'ctrl']])
 
         # Update number of indices (for visibility)
+        gax = []
+        if self._dobj['axes'][kax]['groupx'] is not None:
+            gax += self._dobj['axes'][kax]['groupx']
+        if self._dobj['axes'][kax]['groupy'] is not None:
+            gax += self._dobj['axes'][kax]['groupy']
         for gg in set([cur_groupx, cur_groupy]):
-            if gg is not None:
+            if gg is not None and gg in gax:
                 out = _class2_interactivity._update_indices_nb(
                     group=gg,
                     dgroup=self._dobj['group'],
                     ctrl=ctrl,
                     shift=shift,
                 )
-
                 if out is False:
                     return
-
-        # Check refx/refy vs datax/datay
-        # if cur_refx is not None and cur_refy is not None:
-            # c0 = (
-                # 'index' in [cur_datax, cur_datay]
-                # or ((cur_refx == cur_refy) == (cur_datax == cur_datay))
-            # )
-            # if not c0:
-                # msg = (
-                    # "Invalid ref / data pairs:\n"
-                    # f"\t- cur_refx, cur_refy: {cur_refx}, {cur_refy}\n"
-                    # f"\t- cur_datax, cur_datay: {cur_datax}, {cur_datay}"
-                # )
-                # raise Exception(msg)
 
         # update ref indices
         if None not in [cur_refx, cur_refy] and cur_refx == cur_refy:
@@ -987,7 +1069,11 @@ class DataStock2(DataStock1):
             )
             if c0x:
                 monot = None
-                if cur_datax == 'index':
+                c0 = (
+                    cur_datax == 'index'
+                    or self._ddata[cur_datax]['data'].dtype.type == np.str_
+                )
+                if c0:
                     cdx = 'index'
                 else:
                     monot = self._ddata[cur_datax]['monot'] == (True,)
@@ -1005,7 +1091,11 @@ class DataStock2(DataStock1):
             )
             if c0y:
                 monot = None
-                if cur_datay == 'index':
+                c0 = (
+                    cur_datay == 'index'
+                    or self._ddata[cur_datay]['data'].dtype.type == np.str_
+                )
+                if c0:
                     cdy = 'index'
                 else:
                     monot = self._ddata[cur_datay]['monot'] == (True,)
