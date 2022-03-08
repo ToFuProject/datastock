@@ -20,6 +20,7 @@ import matplotlib.colors as mcolors
 # library-specific
 from . import _generic_check
 from . import _plot_text
+from . import _class2_interactivity
 
 
 # __all__ = ['plot_as_array']
@@ -62,6 +63,7 @@ def plot_BvsA_as_distribution(
     Amax=None,
     Bmin=None,
     Bmax=None,
+    marker_size=None,
     # customization of distribution plot
     nAbin=None,
     nBbin=None,
@@ -138,6 +140,7 @@ def plot_BvsA_as_distribution(
             Amax=Amax,
             Bmin=Bmin,
             Bmax=Bmax,
+            marker_size=marker_size,
             # customization of distribution plot
             nAbin=nAbin,
             nBbin=nBbin,
@@ -186,6 +189,7 @@ def plot_BvsA_as_distribution(
             Amax=Amax,
             Bmin=Bmin,
             Bmax=Bmax,
+            marker_size=marker_size,
             # customization of distribution plot
             nAbin=nAbin,
             nBbin=nBbin,
@@ -239,6 +243,7 @@ def _plot_BvsA_check(
     Amax=None,
     Bmin=None,
     Bmax=None,
+    marker_size=None,
     # customization of distribution plot
     nAbin=None,
     nBbin=None,
@@ -380,6 +385,25 @@ def _plot_BvsA_check(
                     ddata=coll._ddata,
                 )
 
+            if v0['ind'].shape != shape:
+                c0 = (
+                    v0['ind'].shape
+                    == tuple([aa for aa in shape if aa in v0['ind'].shape])
+                )
+                if not c0:
+                    msg = (
+                        f"data used in color_dict['{k0}'] has wrong shape!\n"
+                        f"\t- Provided: {v0['ind'].shape} vs {shape}"
+                    )
+                    raise Exception(msg)
+
+                # reshape
+                shap = tuple([
+                    aa if aa in v0['ind'].shape else 1
+                    for aa in shape
+                ])
+                color_dict[k0]['ind'] = v0['ind'].reshape(shap)
+
     # color_map
     if color_map_key is not None:
 
@@ -423,6 +447,13 @@ def _plot_BvsA_check(
         nAbin = 100
     if nBbin is None:
         nBbin = 100
+
+    # marker_size
+    marker_size = _generic_check._check_var(
+        marker_size, 'markr_size',
+        default=2,
+        types=int,
+    )
 
     # dist_sample_min
     dist_sample_min = _generic_check._check_var(
@@ -530,6 +561,7 @@ def _plot_BvsA_check(
         Amax,
         Bmin,
         Bmax,
+        marker_size,
         # customization of distribution plot
         nAbin,
         nBbin,
@@ -580,6 +612,7 @@ def _plot_BvsA_1d(
     Amax=None,
     Bmin=None,
     Bmax=None,
+    marker_size=None,
     # customization of distribution plot
     nAbin=None,
     nBbin=None,
@@ -628,6 +661,7 @@ def _plot_BvsA_1d(
         Amax,
         Bmin,
         Bmax,
+        marker_size,
         # customization of distribution plot
         nAbin,
         nBbin,
@@ -669,6 +703,7 @@ def _plot_BvsA_1d(
         Amax=Amax,
         Bmin=Bmin,
         Bmax=Bmax,
+        marker_size=marker_size,
         # customization of distribution plot
         nAbin=nAbin,
         nBbin=nBbin,
@@ -825,7 +860,7 @@ def _plot_BvsA_1d(
             im = ax.scatter(
                 dataA,
                 dataB,
-                s=4,
+                s=marker_size,
                 c=coll._ddata[color_map_key]['data'],
                 marker='.',
                 edgecolors='None',
@@ -842,7 +877,7 @@ def _plot_BvsA_1d(
                     color=v0['color'],
                     marker='.',
                     ls='None',
-                    ms=4.,
+                    ms=marker_size,
                 )
 
     # ----------------
@@ -875,7 +910,7 @@ def _plot_BvsA_1d(
                 markerfacecolor='none',
                 markeredgecolor=group_color_dict['ref'][ii],
                 ls='None',
-                ms=8.,
+                ms=marker_size,
             )
 
             # update coll
@@ -961,6 +996,7 @@ def _plot_BvsA_2d(
     Amax=None,
     Bmin=None,
     Bmax=None,
+    marker_size=None,
     # customization of distribution plot
     nAbin=None,
     nBbin=None,
@@ -1009,6 +1045,7 @@ def _plot_BvsA_2d(
         Amax,
         Bmin,
         Bmax,
+        marker_size,
         # customization of distribution plot
         nAbin,
         nBbin,
@@ -1052,6 +1089,7 @@ def _plot_BvsA_2d(
         Amax=Amax,
         Bmin=Bmin,
         Bmax=Bmax,
+        marker_size=marker_size,
         # customization of distribution plot
         nAbin=nAbin,
         nBbin=nBbin,
@@ -1079,8 +1117,6 @@ def _plot_BvsA_2d(
     #  Transpose if axis = 1
 
     sli = _class2_interactivity._get_slice(laxis=[1-axis], ndim=2)
-    # def sli(ind, axis=axis):
-        # return (slice(None),)*(1-axis) + (ind,) + (slice(None),)*axis
 
     # --------------
     #  Prepare data
@@ -1236,7 +1272,7 @@ def _plot_BvsA_2d(
             im = ax.scatter(
                 dataA.ravel(),
                 dataB.ravel(),
-                s=4,
+                s=marker_size,
                 c=coll._ddata[color_map_key]['data'].ravel(),
                 marker='.',
                 edgecolors='None',
@@ -1253,7 +1289,7 @@ def _plot_BvsA_2d(
                     color=v0['color'],
                     marker='.',
                     ls='None',
-                    ms=4.,
+                    ms=marker_size,
                 )
 
     # ----------------
@@ -1286,7 +1322,7 @@ def _plot_BvsA_2d(
                 markerfacecolor='none',
                 markeredgecolor=group_color_dict['ref'][ii],
                 ls='-',
-                ms=4.,
+                ms=marker_size,
             )
 
             # update coll
@@ -1323,7 +1359,7 @@ def _plot_BvsA_2d(
                         dataX,
                         dd[sli(ind0[0])],
                         marker='o',
-                        ms=6,
+                        ms=marker_size,
                         color=group_color_dict['ref'][ii],
                         ls=ls,
                         lw=1.,
@@ -1347,7 +1383,7 @@ def _plot_BvsA_2d(
                         dataX[sli(ind0[0])],
                         dd[sli(ind0[0])],
                         marker='o',
-                        ms=6,
+                        ms=marker_size,
                         color=group_color_dict['ref'][ii],
                         ls=ls,
                         lw=1.,
