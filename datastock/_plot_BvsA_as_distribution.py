@@ -1078,8 +1078,9 @@ def _plot_BvsA_2d(
     # ----------------------
     #  Transpose if axis = 1
 
-    def sli(ind, axis=axis):
-        return (slice(None),)*(1-axis) + (ind,) + (slice(None),)*axis
+    sli = _class2_interactivity._get_slice(laxis=[1-axis], ndim=2)
+    # def sli(ind, axis=axis):
+        # return (slice(None),)*(1-axis) + (ind,) + (slice(None),)*axis
 
     # --------------
     #  Prepare data
@@ -1285,7 +1286,7 @@ def _plot_BvsA_2d(
                 markerfacecolor='none',
                 markeredgecolor=group_color_dict['ref'][ii],
                 ls='-',
-                ms=6.,
+                ms=4.,
             )
 
             # update coll
