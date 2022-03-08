@@ -1,5 +1,7 @@
 
 
+import numpy as np
+
 
 # #############################################################################
 # #############################################################################
@@ -169,7 +171,11 @@ def _update_mobile(k0=None, dmobile=None, dref=None, ddata=None):
 
     nocc = len(set(dmobile[k0]['dtype']))
     if nocc == 1:
-        if dmobile[k0]['data'][0] == 'index':
+        c0 = (
+            dmobile[k0]['data'][0] == 'index'
+            or ddata[dmobile[k0]['data'][0]]['data'].dtype.type == np.str_
+        )
+        if c0:
             dmobile[k0]['func_set_data'][0](*iref)
 
         else:
@@ -181,7 +187,11 @@ def _update_mobile(k0=None, dmobile=None, dref=None, ddata=None):
 
     else:
         for ii in range(nocc):
-            if dmobile[k0]['data'][ii] == 'index':
+            c0 = (
+                dmobile[k0]['data'][0] == 'index'
+                or ddata[dmobile[k0]['data'][0]]['data'].dtype.type == np.str_
+            )
+            if c0:
                 dmobile[k0]['func_set_data'][ii](iref[ii])
             else:
                 dmobile[k0]['func_set_data'][ii](

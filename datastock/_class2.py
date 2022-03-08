@@ -1069,7 +1069,11 @@ class DataStock2(DataStock1):
             )
             if c0x:
                 monot = None
-                if cur_datax == 'index':
+                c0 = (
+                    cur_datax == 'index'
+                    or self._ddata[cur_datax]['data'].dtype.type == np.str_
+                )
+                if c0:
                     cdx = 'index'
                 else:
                     monot = self._ddata[cur_datax]['monot'] == (True,)
@@ -1087,7 +1091,11 @@ class DataStock2(DataStock1):
             )
             if c0y:
                 monot = None
-                if cur_datay == 'index':
+                c0 = (
+                    cur_datay == 'index'
+                    or self._ddata[cur_datay]['data'].dtype.type == np.str_
+                )
+                if c0:
                     cdy = 'index'
                 else:
                     monot = self._ddata[cur_datay]['monot'] == (True,)
