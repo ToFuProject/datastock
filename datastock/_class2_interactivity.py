@@ -116,40 +116,6 @@ def get_fupdate(handle=None, dtype=None, norm=None, bstr=None):
     return func
 
 
-def _update_mobile_data(
-    func=None,
-    kref=None,
-    kdata=None,
-    iref=None,
-    ddata=None,
-):
-    """"""
-
-    if kdata == 'index':
-        func(iref)
-
-    elif ddata[kdata]['data'].ndim == 1:
-        func(ddata[kdata]['data'][iref])
-
-    elif ddata[kdata]['data'].ndim == 2:
-
-        idim = ddata[kdata]['ref'].index(kref)
-        if idim == 0:
-            func(ddata[kdata]['data'][iref, :])
-        else:
-            func(ddata[kdata]['data'][:, iref])
-
-    elif ddata[kdata]['data'].ndim == 3:
-
-        idim = ddata[kdata]['ref'].index(kref)
-        if idim == 0:
-            func(ddata[kdata]['data'][iref, :, :])
-        elif idim == 1:
-            func(ddata[kdata]['data'][:, iref, :])
-        elif idim == 2:
-            func(ddata[kdata]['data'][:, :, iref])
-
-
 def _get_slice(laxis=None, ndim=None):
 
     nax = len(laxis)
@@ -188,58 +154,28 @@ def _update_mobile(k0=None, dmobile=None, dref=None, ddata=None):
     kref = dmobile[k0]['ref']
     kdata = dmobile[k0]['data']
 
-    # try:
-    if False:
-        iref = [dref[rr]['indices'][dmobile[k0]['ind']] for rr in kref]
-        if kref[0] is not None:
-            _update_mobile_data(
-                func=func[0],
-                kref=kref[0],
-                kdata=kdata[0],
-                iref=iref[0],
-                ddata=ddata,
-            )
+    # All ref do not necessarily have the same nb of indices
+    iref = [
+        dref[rr]['indices'][
+            min(dmobile[k0]['ind'], len(dref[rr]['indices']) - 1)
+        ]
+        for rr in dmobile[k0]['ref']
+    ]
+    nocc = len(set(dmobile[k0]['dtype']))
+    if nocc == 1 and dmobile[k0]['data'][0] == 'index':
+        dmobile[k0]['func_set_data'][0](*iref)
 
-        if len(kref) > 1 and kref[1] is not None:
-            _update_mobile_data(
-                func=func[1],
-                kref=kref[1],
-                kdata=kdata[1],
-                iref=iref[1],
-                ddata=ddata,
-            )
+    elif nocc == 1:
+        dmobile[k0]['func_set_data'][0](
+            ddata[dmobile[k0]['data'][0]]['data'][
+                dmobile[k0]['func_slice'][0](*iref)
+            ]
+        )
 
     else:
-        print(k0, dmobile[k0]['ind'], dmobile[k0]['ref'])   # DB
-        iref = [
-            dref[rr]['indices'][dmobile[k0]['ind']]
-            for rr in dmobile[k0]['ref']
-        ]
-        nocc = len(set(dmobile[k0]['dtype']))
-        if nocc == 1 and dmobile[k0]['data'][0] == 'index':
-            dmobile[k0]['func_set_data'][0](*iref)
-
-        elif nocc == 1:
-            print(k0, dmobile[k0]['func_slice'][0](*iref))  # DB
-            dmobile[k0]['func_set_data'][0](
-                ddata[dmobile[k0]['data'][0]]['data'][
-                    dmobile[k0]['func_slice'][0](*iref)
+        for ii in range(nocc):
+            dmobile[k0]['func_set_data'][ii](
+                ddata[dmobile[k0]['data'][ii]]['data'][
+                    dmobile[k0]['func_slice'][ii](iref[ii])
                 ]
             )
-
-        else:
-            for ii in range(nocc):
-                print(k0, ii, dmobile[k0]['func_slice'][0](iref[ii]))  # DB
-                dmobile[k0]['func_set_data'][ii](
-                    ddata[dmobile[k0]['data'][ii]]['data'][
-                        dmobile[k0]['func_slice'][ii](iref[ii])
-                    ]
-                )
-
-    # except Exception as err:
-        # msg = (
-            # str(err)
-            # + f"\nk0 = {k0}\n"
-        # )
-        # raise Exception(msg)
-

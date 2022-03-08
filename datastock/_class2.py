@@ -48,10 +48,10 @@ class DataStock2(DataStock1):
         key=None,
         ref=None,
         data=None,
-        axis=None,
         dtype=None,
         bstr=None,
         visible=None,
+        group_vis=None,
         ax=None,
         **kwdargs,
     ):
@@ -125,28 +125,6 @@ class DataStock2(DataStock1):
             for ii, dd in enumerate(data)
         ]
 
-        # if axis is None:
-            # axis = 0
-        # if isinstance(axis, int):
-            # axis = [axis]
-        # c0 = (
-            # isinstance(axis, list)
-            # and all([isinstance(aa, int) for aa in axis])
-            # and len(axis) == nref
-            # and all([
-                # (dd == 'index' and axis[0] == 0)
-                # or axis[ii] in range(0, self._ddata[dd]['data'].ndim)
-                # for ii, dd in enumerate(data)
-            # ])
-        # )
-        # if not c0:
-            # msg = (
-                # f"Mobile '{key}': axis must be a list of int!\n"
-                # f"It should hqve the same length as ref ({nref})\n"
-                # f"\t- axis: {axis}"
-            # )
-            # raise Exception(msg)
-
         # ---------------------
         # check ndata vs ndtype
 
@@ -164,6 +142,7 @@ class DataStock2(DataStock1):
             key=key,
             handle=handle,
             group=None,
+            group_vis=group_vis,
             ref=ref,
             data=data,
             axis=axis,
@@ -456,43 +435,60 @@ class DataStock2(DataStock1):
         # update mobile with groups and func
 
         for k0, v0 in self._dobj['mobile'].items():
-             self._dobj['mobile'][k0]['group'] = tuple([
-                 self._dref[rr]['group'] for rr in v0['ref']
-             ])
+            self._dobj['mobile'][k0]['group'] = tuple([
+                self._dref[rr]['group'] for rr in v0['ref']
+            ])
 
-             # self._dobj['mobile'][k0]['func'] = [
-                # _class2_interactivity.get_fupdate(
-                    # handle=v0['handle'],
-                    # dtype=typ,
-                    # norm=None,
-                    # bstr=v0.get('bstr'),
-                # )
-                # for typ in self._dobj['mobile'][k0]['dtype']
-             # ]
-
-
-             nocc = len(set(self._dobj['mobile'][k0]['dtype']))
-
-             self._dobj['mobile'][k0]['func_set_data'] = [
-                _class2_interactivity.get_fupdate(
-                    handle=v0['handle'],
-                    dtype=self._dobj['mobile'][k0]['dtype'][ii],
-                    norm=None,
-                    bstr=v0.get('bstr'),
+            # group _vis
+            if self._dobj['mobile'][k0]['group_vis'] is None:
+                self._dobj['mobile'][k0]['group_vis'] = \
+                        self._dobj['mobile'][k0]['group']
+            if isinstance(self._dobj['mobile'][k0]['group_vis'], str):
+               self._dobj['mobile'][k0]['group_vis'] = (
+                   self._dobj['mobile'][k0]['group_vis'],
+               )
+            c0 = (
+                isinstance(self._dobj['mobile'][k0]['group_vis'], tuple)
+                and all([
+                    isinstance(ss, str)
+                    and ss in self._dobj['mobile'][k0]['group']
+                    for ss in self._dobj['mobile'][k0]['group_vis']
+                ])
+            )
+            if not c0:
+                msg = (
+                    f"dmobile['{k0}']['group_vis'] must be:\n"
+                    f"\t- a list of groups in dmobile['{k0}']['group']\n"
+                    "\t- specifies which groups determine visibility\n"
+                    f"If None: set to dmobile['{k0}']['group']"
+                    f" = {self._dobj['mobile'][k0]['group']}\n"
+                    f"Provided: {self._dobj['mobile'][k0]['group_vis']}"
                 )
-                for ii in range(nocc)
-             ]
+                raise Exception(msg)
 
-             self._dobj['mobile'][k0]['func_slice'] = \
-                _class2_interactivity.get_slice(
-                    nocc=nocc,
-                    laxis=self._dobj['mobile'][k0]['axis'],
-                    lndim=[
-                        1 if dd == 'index'
-                        else self._ddata[dd]['data'].ndim
-                        for dd in self._dobj['mobile'][k0]['data']
-                    ],
-                )
+            # functions for updating
+            nocc = len(set(self._dobj['mobile'][k0]['dtype']))
+
+            self._dobj['mobile'][k0]['func_set_data'] = [
+               _class2_interactivity.get_fupdate(
+                   handle=v0['handle'],
+                   dtype=self._dobj['mobile'][k0]['dtype'][ii],
+                   norm=None,
+                   bstr=v0.get('bstr'),
+               )
+               for ii in range(nocc)
+            ]
+
+            self._dobj['mobile'][k0]['func_slice'] = \
+               _class2_interactivity.get_slice(
+                   nocc=nocc,
+                   laxis=self._dobj['mobile'][k0]['axis'],
+                   lndim=[
+                       1 if dd == 'index'
+                       else self._ddata[dd]['data'].ndim
+                       for dd in self._dobj['mobile'][k0]['data']
+                   ],
+               )
 
         # --------------------
         # axes mobile, refs and canvas
@@ -914,10 +910,11 @@ class DataStock2(DataStock1):
 
         # Set visibility of mobile objects - TBF/TBC
         for k0 in lmobiles:
+            # all vs any ?
             vis = all([
                 self._dobj['mobile'][k0]['ind']
                 < self._dobj['group'][gg]['nmaxcur']
-                for gg in self._dobj['mobile'][k0]['group']
+                for gg in self._dobj['mobile'][k0]['group_vis']
             ])
             self._dobj['mobile'][k0]['visible'] = vis
 
@@ -1026,31 +1023,21 @@ class DataStock2(DataStock1):
         ctrl = any([self._dobj['key'][ss]['val'] for ss in ['control', 'ctrl']])
 
         # Update number of indices (for visibility)
+        gax = []
+        if self._dobj['axes'][kax]['groupx'] is not None:
+            gax += self._dobj['axes'][kax]['groupx']
+        if self._dobj['axes'][kax]['groupy'] is not None:
+            gax += self._dobj['axes'][kax]['groupy']
         for gg in set([cur_groupx, cur_groupy]):
-            if gg is not None:
+            if gg is not None and gg in gax:
                 out = _class2_interactivity._update_indices_nb(
                     group=gg,
                     dgroup=self._dobj['group'],
                     ctrl=ctrl,
                     shift=shift,
                 )
-
                 if out is False:
                     return
-
-        # Check refx/refy vs datax/datay
-        # if cur_refx is not None and cur_refy is not None:
-            # c0 = (
-                # 'index' in [cur_datax, cur_datay]
-                # or ((cur_refx == cur_refy) == (cur_datax == cur_datay))
-            # )
-            # if not c0:
-                # msg = (
-                    # "Invalid ref / data pairs:\n"
-                    # f"\t- cur_refx, cur_refy: {cur_refx}, {cur_refy}\n"
-                    # f"\t- cur_datax, cur_datay: {cur_datax}, {cur_datay}"
-                # )
-                # raise Exception(msg)
 
         # update ref indices
         if None not in [cur_refx, cur_refy] and cur_refx == cur_refy:

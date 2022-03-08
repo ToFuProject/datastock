@@ -1199,7 +1199,7 @@ def plot_as_array_3d(
     if dax is None:
 
         if fs is None:
-            fs = (14, 8)
+            fs = (15, 9)
 
         if dmargin is None:
             dmargin = {
@@ -1497,6 +1497,7 @@ def plot_as_array_3d(
                 ref=(refX, refZ),
                 data=[key, key],
                 dtype=['xdata', 'xdata'],
+                group_vis='X',
                 ax=kax,
                 ind=ii,
             )
@@ -1512,6 +1513,7 @@ def plot_as_array_3d(
                 ref=(refY,),
                 data=keyY,
                 dtype='ydata',
+                group_vis='Y',
                 ax=kax,
                 ind=ii,
             )
@@ -1530,7 +1532,6 @@ def plot_as_array_3d(
                 marker='.',
                 lw=1.,
                 color=color_dict['X'][ii],
-                label=f'ind1 = {ind[1]}',
             )
 
             km = f'hprof{ii:02.0f}'
@@ -1540,6 +1541,7 @@ def plot_as_array_3d(
                 ref=(refY, refZ),
                 data=[key, key],
                 dtype=['ydata', 'ydata'],
+                group_vis='Y',
                 ax=kax,
                 ind=ii,
             )
@@ -1555,6 +1557,7 @@ def plot_as_array_3d(
                 ref=(refX,),
                 data=keyX,
                 dtype='xdata',
+                group_vis='X',
                 ax=kax,
                 ind=ii,
             )
@@ -1586,7 +1589,7 @@ def plot_as_array_3d(
             )
 
         l0 = ax.axvline(
-            ind[2],
+            dataZ[ind[2]],
             c='k',
         )
         km = f'lv-z'
@@ -1597,7 +1600,7 @@ def plot_as_array_3d(
             data=keyZ,
             dtype='xdata',
             ax=kax,
-            ind=ii,
+            ind=0,
         )
 
         dax[kax].update(refx=[refZ])
