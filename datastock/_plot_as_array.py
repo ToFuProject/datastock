@@ -573,7 +573,7 @@ def plot_as_array_1d(
     assert data.ndim == len(coll.ddata[key]['ref']) == 1
     n0, = data.shape
 
-    xstr, dataX, dX2, labX = _get_str_datadlab(keyX=keyX, nx=nx, coll=coll)
+    xstr, dataX, dX2, labX = _get_str_datadlab(keyX=keyX, nx=n0, coll=coll)
     ref = coll._ddata[key]['ref'][0]
     units = coll._ddata[key]['units']
     lab0 = f'ind ({ref})'
@@ -661,7 +661,7 @@ def plot_as_array_1d(
 
         # ind0, ind1
         for ii in range(nmax):
-            lv = ax.axvline(ind[0], c=color_dict['ref'][ii], lw=1., ls='-')
+            lv = ax.axvline(ind[0], c=color_dict['X'][ii], lw=1., ls='-')
 
             # update coll
             kv = f'v{ii:02.0f}'
@@ -689,7 +689,7 @@ def plot_as_array_1d(
             kax=kax,
             ax=ax,
             ref=ref,
-            group='ref',
+            group='X',
             ind=ind[0],
             lkeys=lkeys,
             nmax=nmax,
