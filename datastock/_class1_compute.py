@@ -289,7 +289,7 @@ def correlations(
                 )
                 raise Exception(msg)
 
-            ref = tuple([ll[0] for rr in lref])
+            ref = tuple([ll[0] for ll in lref])
 
         else:
             if isinstance(ref, str):
