@@ -565,6 +565,18 @@ class DataStock1(DataStock0):
             self._dstatic[which] = dd
 
     # ---------------------
+    # Methods computing correlations
+    # ---------------------
+
+    def compute_correlations(self, data=None, ref=None):
+       
+        _class1_check._correlation_check()
+
+        for 
+        _class1_compute.correlations()
+
+
+    # ---------------------
     # Methods for showing data
     # ---------------------
 
