@@ -18,8 +18,14 @@ _LCOLOR_DICT = [
 ]
 
 
+# #############################################################################
+# #############################################################################
+#                    check all inputs
+# #############################################################################
+
+
 def _plot_BvsA_check(
-    ndim=None,
+    inplace=None,
     # parameters
     coll=None,
     keyA=None,
@@ -66,54 +72,121 @@ def _plot_BvsA_check(
     groups=None,
 ):
 
-    # keyX vs axis
-    shape = coll._ddata[keyA]['data'].shape
-    ref = coll._ddata[keyA]['ref']
-    assert ndim == len(shape) == len(ref), ref
+    # keyA, keyB
+    lok = [
+        k0 for k0, v0 in coll._ddata.items()
+        if v0['data'].ndim <= 2
+        and v0['data'].dtype in [int, float, bool]
+    ]
+    keyA = _generic_check._check_var(
+        keyA, 'keyA',
+        allowed=lok,
+    )
+    keyB = _generic_check._check_var(
+        keyB, 'keyB',
+        allowed=lok,
+    )
+    refA = coll._ddata[keyA]['ref']
+    refB = coll._ddata[keyB]['ref']
 
+    lc = [
+        refA == refB
+        or refA == tuple([rr for rr in refB if rr in refA])
+        or refB == tuple([rr for rr in refA if rr in refB])
+    ]
+    if not any(lc):
+        msg = (
+            "keyA and keyB must point to data with references in common!\n"
+            f"\t- keyA, refA: {keyA}, {refA}\n"
+            f"\t- keyB, refB: {keyB}, {refB}\n"
+        )
+        raise Exception(msg)
+    elif not lc[0]:
+        msg = "Different references not implemented yet!"
+        raise NotImplementedError(msg)
+
+    # dataA, dataB
+    dataA = coll.ddata[keyA]['data']
+    dataB = coll.ddata[keyB]['data']
+
+    if hasattr(dataA, 'nnz'):
+        dataA = dataA.toarray()
+    if hasattr(dataB, 'nnz'):
+        dataB = dataB.toarray()
+
+    # check key, inplace flag and extract sub-collection
+    keys, inplace, coll2 = _generic_check._check_inplace(
+        coll=coll,
+        keys=[keyA, keyB],
+        inplace=inplace,
+    )
+    keyA, keyB = keys
+    dimA, dimB = dataA.ndim, dataB.ndim
+    if dimA > dimB:
+        ndim, refs, shape = dimA, refA, dataA.shape
+    else:
+        ndim, refs, shape = dimB, refB, dataB.shape
+    groups = ['ref']
+
+    # keyX vs axis
     if ndim == 1:
         refX = None
+        dataX = None
+        ref0 = refs[0]
 
     elif ndim == 2:
         if keyX is None:
             if axis is None:
                 axis = 1
             assert axis in [0, 1], axis
-            keyX = ref[axis]
+            keyX = refs[axis]
             refX = keyX
 
         else:
             c0 = (
-                keyX in ref
+                keyX in refs
                 or (
                     keyX in coll._ddata.keys()
                     and (
-                        coll._ddata[keyX]['ref'] == ref
+                        coll._ddata[keyX]['ref'] == refs
                         or (
                             len(coll._ddata[keyX]['ref']) == 1
-                            and coll._ddata[keyX]['ref'][0] in ref
+                            and coll._ddata[keyX]['ref'][0] in refs
                         )
                     )
                 )
             )
             if not c0:
                 msg = (
-                    "Arg keyX must be a valid ref / data key with same ref as keyA"
-                    f"\nProvided: {keyX}"
+                    "Arg keyX must be a valid data key with same ref as keyA\n"
+                    f"Provided: {keyX}"
                 )
                 raise Exception(msg)
 
             # Deduce refX and axis
-            refX = keyX if keyX in ref else coll._ddata[keyX]['ref']
+            refX = keyX if keyX in refs else coll._ddata[keyX]['ref']
             if isinstance(refX, str):
-                axis = ref.index(keyX)
+                axis = refs.index(keyX)
             elif len(refX) == 1:
                 refX = refX[0]
-                axis = ref.index(refX)
+                axis = refs.index(refX)
             else:
                 if axis is None:
                     axis = 1
                 refX = refX[axis]
+        assert refX == refs[axis], refs
+
+        # ref0
+        ref0 = refs[1-axis]
+
+        # dataX
+        if keyX in refs:
+            dataX = np.arange(0, coll._dref[keyX]['size'])
+        else:
+            dataX = coll.ddata[keyX]['data']
+
+        if hasattr(dataX, 'nnz'):
+            dataX = dataX.toarray()
 
     # ind0
     ind0 = _generic_check._check_var(
@@ -148,7 +221,6 @@ def _plot_BvsA_check(
     if color_map_key is None:
 
         if color_dict is None:
-            shape = coll._ddata[keyA]['data'].shape
             color_dict = {'k': {'ind': np.ones(shape, dtype=bool)}}
 
         c0 = (
@@ -208,7 +280,6 @@ def _plot_BvsA_check(
     if color_map_key is not None:
 
         # color_map_key
-        refs = coll._ddata[keyA]['ref']
         c0 = (
             color_map_key in coll._ddata.keys()
             and (
@@ -378,9 +449,18 @@ def _plot_BvsA_check(
 
     return (
         keyA,
+        refA,
+        dataA,
         keyB,
+        refB,
+        dataB,
+        refs,
+        ref0,
         keyX,
         refX,
+        dataX,
+        ndim,
+        shape,
         axis,
         ind0,
         # customization of scatter plot
@@ -421,5 +501,4 @@ def _plot_BvsA_check(
         dleg,
         aspect,
         connect,
-        groups,
     )

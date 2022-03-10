@@ -77,43 +77,23 @@ def plot_BvsA_as_distribution(
     connect=None,
 ):
 
-
-    # ----------------------------------
-    #  check inputs - keys and dimension
-
-    # keyA, keyB
-    keyA = _generic_check._check_var(
-        keyA, 'keyA',
-        allowed=coll._ddata.keys(),
-    )
-    lkok = [
-        k0 for k0, v0 in coll._ddata.items()
-        if v0['ref'] == coll._ddata[keyA]['ref']
-    ]
-    keyB = _generic_check._check_var(
-        keyB, 'keyB',
-        allowed=lkok,
-    )
-
-    # check key, inplace flag and extract sub-collection
-    keys, inplace, coll2 = _generic_check._check_inplace(
-        coll=coll,
-        keys=[keyA, keyB],
-        inplace=inplace,
-    )
-    keyA, keyB = keys
-    refs = coll._ddata[keyA]['ref']
-    ndim = coll._ddata[keyA]['data'].ndim
-    groups = ['ref']
-
     # ----------------------------------
     #  check inputs - all others
 
     (
         keyA,
+        refA,
+        dataA,
         keyB,
+        refB,
+        dataB,
+        refs,
+        ref0,
         keyX,
         refX,
+        dataX,
+        ndim,
+        shape,
         axis,
         ind0,
         # customization of scatter plot
@@ -154,9 +134,8 @@ def plot_BvsA_as_distribution(
         dleg,
         aspect,
         connect,
-        groups,
     ) = _plot_BvsA_as_distribution_check._plot_BvsA_check(
-        ndim=ndim,
+        inplace=inplace,
         # parameters
         coll=coll,
         keyA=keyA,
@@ -197,7 +176,6 @@ def plot_BvsA_as_distribution(
         dleg=dleg,
         aspect=aspect,
         connect=connect,
-        groups=groups,
     )
 
     # -------------------------
@@ -211,39 +189,6 @@ def plot_BvsA_as_distribution(
     # --------------
     #  Prepare data
 
-    dataA = coll.ddata[keyA]['data']
-    dataB = coll.ddata[keyB]['data']
-
-    if hasattr(dataA, 'nnz'):
-        dataA = dataA.toarray()
-    if hasattr(dataB, 'nnz'):
-        dataB = dataB.toarray()
-
-    if ndim == 2:
-        assert refX == refs[axis], refs
-        refselect = refs[1-axis]
-
-        if keyX in refs:
-            dataX = np.arange(0, coll._dref[keyX]['size'])
-        else:
-            dataX = coll.ddata[keyX]['data']
-
-        if hasattr(dataX, 'nnz'):
-            dataX = dataX.toarray()
-    else:
-        refselect = refs[0]
-
-    # check data type
-    c0 = (
-        dataA.dtype == dataB.dtype
-        and dataA.dtype in [int, float, bool]
-    )
-    if not c0:
-        msg = (
-            "Data type should be in [int, float, bool]\n"
-            f"\t- Provided: {dataA.dtype}"
-        )
-        raise Exception(msg)
 
     unitsA = coll._ddata[keyA]['units']
     unitsB = coll._ddata[keyB]['units']
@@ -350,7 +295,7 @@ def plot_BvsA_as_distribution(
             im = ax.scatter(
                 dataA,
                 dataB,
-                s=marker_size,
+                s=marker_size**2,
                 c=color_map_data,
                 marker='.',
                 edgecolors='None',
@@ -386,8 +331,8 @@ def plot_BvsA_as_distribution(
     # only ref / data used for index propagation
     # list unique ref and a single data per ref
     dgroup = {
-        refselect: {
-            'ref': [refselect],
+        ref0: {
+            'ref': [ref0],
             'data': ['index'],
             'nmax': nmax,
         },
@@ -418,7 +363,7 @@ def plot_BvsA_as_distribution(
             coll.add_mobile(
                 key=km,
                 handle=mi,
-                ref=[refselect, refselect],
+                ref=[ref0, ref0],
                 data=[keyA, keyB],
                 dtype=['xdata', 'ydata'],
                 ax=kax,
@@ -426,8 +371,8 @@ def plot_BvsA_as_distribution(
             )
 
         dax[kax].update(
-            refx=[refselect],
-            refy=[refselect],
+            refx=[ref0],
+            refy=[ref0],
             datax=[keyA],
             datay=[keyB],
         )
@@ -460,7 +405,7 @@ def plot_BvsA_as_distribution(
                         coll.add_mobile(
                             key=km,
                             handle=li,
-                            ref=[refselect],
+                            ref=[ref0],
                             data=[kk],
                             dtype=['ydata'],
                             ax=kax,
@@ -484,7 +429,7 @@ def plot_BvsA_as_distribution(
                         coll.add_mobile(
                             key=km,
                             handle=li,
-                            ref=[refselect, refselect],
+                            ref=[ref0, ref0],
                             data=[keyX, kk],
                             dtype=['xdata', 'ydata'],
                             ax=kax,
@@ -502,7 +447,7 @@ def plot_BvsA_as_distribution(
             coll=coll,
             kax=kax,
             ax=ax,
-            ref=refselect,
+            ref=ref0,
             group='ref',
             ind=ind0[0],
             lkeys=lkeys,
@@ -572,87 +517,6 @@ def _compute_dist(
     if dist_rel is True:
         databin = databin / np.nansum(databin)
     return databin, extent
-
-
-def _plot_fixed_parts(
-    dax=None,
-    # distribution
-    databin=None,
-    dist_cmap=None,
-    dist_min=None,
-    dist_max=None,
-    extent=None,
-    aspect=None,
-    # scatter
-    dataA=None,
-    dataB=None,
-    marker_size=None,
-    color_map_key=None,
-    color_map=None,
-    color_map_vmin=None,
-    color_map_vmax=None,
-    color_map_data=None,
-    color_dict=None,
-    # bisector
-    add_bisector=None,
-    vmin=None,
-    vmax=None,
-):
-
-    kax = 'dist'
-    if dax.get(kax) is not None:
-        ax = dax[kax]['handle']
-
-        im = ax.imshow(
-            databin.T,
-            cmap=dist_cmap,
-            vmin=dist_min,
-            vmax=dist_max,
-            interpolation='nearest',
-            extent=extent,
-            origin='lower',
-            aspect=aspect,
-        )
-
-        plt.colorbar(im, ax=ax)
-
-    kax = 'scatter'
-    if dax.get(kax) is not None:
-        ax = dax[kax]['handle']
-
-        if color_dict is None:
-            im = ax.scatter(
-                dataA,
-                dataB,
-                s=marker_size**2,
-                c=color_map_data,
-                marker='.',
-                edgecolors='None',
-                cmap=color_map,
-                vmin=color_map_vmin,
-                vmax=color_map_vmax,
-            )
-            plt.colorbar(im, ax=ax)
-        else:
-            for k0, v0 in color_dict.items():
-                ax.plot(
-                    dataA[v0['ind']],
-                    dataB[v0['ind']],
-                    color=v0['color'],
-                    marker='.',
-                    ls='None',
-                    ms=marker_size,
-                )
-
-        # Add bisector
-        if add_bisector is True:
-            ax.plot(
-                [vmin, vmax],
-                [vmin, vmax],
-                ls='--',
-                c='k',
-                lw=1.,
-            )
 
 
 def _prepare_dax(
