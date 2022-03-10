@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from . import _generic_check
 from ._class1 import *
 from . import _class2_interactivity
-from . import _DataCollection_comp
+from . import _class1_compute
 
 
 _DKEYS = {
@@ -1078,7 +1078,7 @@ class DataStock2(DataStock1):
                 else:
                     monot = self._ddata[cur_datax]['monot'] == (True,)
                     cdx = self._ddata[cur_datax]['data']
-                ix = _DataCollection_comp._get_index_from_data(
+                ix = _class1_compute._get_index_from_data(
                     data=cdx,
                     data_pick=np.r_[event.xdata],
                     monot=monot,
@@ -1100,7 +1100,7 @@ class DataStock2(DataStock1):
                 else:
                     monot = self._ddata[cur_datay]['monot'] == (True,)
                     cdy = self._ddata[cur_datay]['data']
-                iy = _DataCollection_comp._get_index_from_data(
+                iy = _class1_compute._get_index_from_data(
                     data=cdy,
                     data_pick=np.r_[event.ydata],
                     monot=monot,
