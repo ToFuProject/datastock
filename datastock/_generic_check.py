@@ -443,14 +443,14 @@ def _apply_dlim(dlim=None, logic_intervals=None, logic=None, ddata=None):
     datashapes = list(set([ddata[k0]['data'].shape for k0 in dlim.keys()]))
     if len(datashapes) > 1:
         ndim = [len(dd) for dd in datashapes]
-        datashapemax = datashapes[np.argmax(ndim)[0]]
+        shape = datashapes[np.argmax(ndim)]
         dfail = {
             k0: ddata[k0]['data'].shape
             for k0, v0 in dlim.items()
-            if v0['data'].shape != datashapemax
+            if ddata[k0]['data'].shape != shape
             and not (
-                v0['data'].shape
-                == tuple(aa for aa in datashapemax if aa in v0['data'].shape)
+                ddata[k0]['data'].shape
+                == tuple(aa for aa in shape if aa in ddata[k0]['data'].shape)
             )
         }
         if len(dfail) > 0:
@@ -463,25 +463,25 @@ def _apply_dlim(dlim=None, logic_intervals=None, logic=None, ddata=None):
         # prepare dict of reshape
         dreshape = {
             k0: tuple([
-                aa if aa in v0['data'].shape else 1
-                for ii, aa in enumerate(datashapemax)
+                aa if aa in ddata[k0]['data'].shape else 1
+                for ii, aa in enumerate(shape)
             ])
             for k0, v0 in dlim.items()
-            if v0['data'].shape != datashapemax
+            if ddata[k0]['data'].shape != shape
         }
     else:
-        datashapemax = datashapes[0]
+        shape = datashapes[0]
 
     # ------------
     # compute
 
     # trivial case
     if len(dlim) == 0:
-        return np.ones(datashapemax, dtype=bool)
+        return np.ones(shape, dtype=bool)
 
     # non-trivial
     nlim = len(dlim)
-    shape = tuple(np.r_[nlim, datashapemax])
+    shape = tuple(np.r_[nlim, shape])
     ind = np.zeros(shape, dtype=bool)
     for ii, (k0, v0) in enumerate(dlim.items()):
         if k0 in dreshape.keys():
