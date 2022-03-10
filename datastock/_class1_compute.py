@@ -9,7 +9,8 @@ import numpy as np
 # import scipy.signal as scpsig
 # import scipy.interpolate as scpinterp
 # import scipy.linalg as scplin
-# import scipy.stats as scpstats
+import scipy.stats as scpstats
+import scipy.spatial as scpspace
 
 from . import _generic_check
 
@@ -222,8 +223,193 @@ def propagate_indices_per_ref(
 ###############################################################################
 
 
-def 
+def _get_ldata_ref(ddata=None, tref=None, datakey=None):
+    return [
+        k0 for k0, v0 in ddata.items()
+        if v0['ref'] == tref
+        and (datakey is None or k0 != datakey)
+        and v0['data'].dtype in [int, float, bool]
+    ]
 
+
+def correlations(
+    data=None,
+    ref=None,
+    ddata=None,
+    dref=None,
+    verb=None,
+    returnas=None,
+):
+
+    # ------------
+    # check inputs
+
+    # verb
+    verb = _generic_check._check_var(
+        verb, 'verb',
+        default=True,
+        types=bool,
+    )
+
+    # returnas
+    returnas = _generic_check._check_var(
+        returnas, 'returnas',
+        default=False,
+        allowed=[False, dict],
+    )
+
+    # ------------
+    # check data
+
+    if isinstance(data, str):
+        lok = [
+            k0 for k0, v0 in ddata.items()
+            if v0['data'].dtype in [int, float, bool]
+        ]
+        data = _generic_check._check_var(
+            data, 'data',
+            allowed=ddata.keys(),
+        )
+        datakey = data
+        ref = ddata[datakey]['ref']
+        data = ddata[datakey]['data']
+
+    elif isinstance(data, np.ndarray) and data.dtype in [int, float, bool]:
+
+        if ref is None:
+            lref = [
+                [k0 for k0, v0 in dref.items() if v0['size'] == ss]
+                for ss in data.shape
+            ]
+            if any([len(ll) == 1 for ll in lref]):
+                msg = (
+                    "Arg data has ambiguous shape and ref cannot be infered\n"
+                    f"Possible refs identified: {lref}\n"
+                    "=> Please provide ref explicitly!"
+                )
+                raise Exception(msg)
+
+            ref = tuple([ll[0] for rr in lref])
+
+        else:
+            if isinstance(ref, str):
+                ref = (ref,)
+            c0 = (
+                isinstance(ref, (list, tuple))
+                and len(ref) == data.ndim
+                and all([
+                    isinstance(rr, str)
+                    and rr in dref.keys()
+                    and dref[rr]['size'] == data.shape[ii]
+                    for ii, rr in enumerate(ref)
+                ])
+            )
+            if not c0:
+                msg = (
+                    "Arg ref must a list of ref kay matching data shape!\n"
+                    f"\t- data.shape: {data.shape}\n"
+                    f"\t- ref: {ref}"
+                )
+                raise Exception(msg)
+            ref = tuple(ref)
+            datakey = None
+    else:
+        msg = (
+            "Arg data must be either:\n"
+            "\t- a valid data key\n"
+            "\t- a np.ndarray with known references\n"
+            f"Provided:\n{data}"
+        )
+        raise Exception(msg)
+
+    # --------------------------------------------
+    # get all available data for cross-correlation
+
+    lref = [ref]
+    if len(ref) > 1:
+        lref += [(rr,) for rr in ref]
+
+    dall = {
+        tref: {
+            'key': _get_ldata_ref(ddata=ddata, tref=tref, datakey=datakey)
+        }
+        for tref in lref
+        if len(_get_ldata_ref(ddata=ddata, tref=tref, datakey=datakey)) > 0
+    }
+
+    # reshaping
+    shape = data.shape
+    for k0, v0 in dall.items():
+        if k0 != ref:
+            dall[k0]['reshape'] = tuple([
+                shape[ii] if rr in k0 else 1
+                for ii, rr in enumerate(ref)
+            ])
+
+    # ---------------------
+    # Prepare fields for correlation
+
+    for k0, v0 in dall.items():
+        dall[k0]['spearman'] = np.zeros((len(v0['key']),), dtype=float)
+        dall[k0]['pearson'] = np.zeros((len(v0['key']),), dtype=float)
+        dall[k0]['distance'] = np.zeros((len(v0['key']),), dtype=float)
+        dall[k0]['maxinfo'] = np.zeros((len(v0['key']),), dtype=float)
+
+    # ressources for maximum information coefficient (not yet in scipy)
+    # https://medium.com/@rhondenewint93/on-maximal-information-coefficient-a-modern-approach-for-finding-associations-in-large-data-sets-ba8c36ebb96b
+    # https://github.com/minepy/mictools
+
+    # ---------------------
+    # Compute correlations
+
+    shape = data.shape
+    iok = np.isfinite(data)
+    for k0, v0 in dall.items():
+
+        if k0 != ref:
+            datai = np.full(shape, np.nan)
+
+        for ii, k1 in enumerate(v0['key']):
+
+            if k0 == ref:
+                datai = ddata[k1]['data']
+            else:
+                datai[...] = ddata[k1]['data'].reshape(v0['reshape'])
+
+            ioki = iok & np.isfinite(datai)
+            ind = np.argsort(data[ioki])
+
+            dall[k0]['spearman'][ii] = scpstats.spearmanr(
+                data[ioki][ind],
+                datai[ioki][ind],
+                axis=None,
+                nan_policy='omit',
+                # alternative='two-sided',  # scipy >= ???
+            )[0]
+            dall[k0]['pearson'][ii] = scpstats.pearsonr(
+                data[ioki][ind],
+                datai[ioki][ind],
+            )[0]
+            dall[k0]['distance'][ii] = 1. - scpspace.distance.correlation(
+                data[ioki][ind],
+                datai[ioki][ind],
+                w=None,
+                centered=True,
+            )
+            # Maximum Information coefficient to be done
+
+    # ----
+    # verb
+
+    if verb is True:
+        msg = ""
+        print(msg)
+
+    # ------
+    # return
+
+    if returnas is dict:
+        return dall
 
 
 #############################################

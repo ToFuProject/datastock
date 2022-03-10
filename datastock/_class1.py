@@ -14,7 +14,7 @@ from . import _generic_check
 from . import _generic_utils
 from . import _class1_check
 from ._class0 import *
-from . import _DataCollection_comp
+from . import _class1_compute
 
 
 #############################################
@@ -392,7 +392,7 @@ class DataStock1(DataStock0):
                 - 'index': set matching indices (default)
                 - param: set matching monotonous quantities depending on ref
         """
-        _DataCollection_comp.propagate_indices_per_ref(
+        _class1_compute.propagate_indices_per_ref(
             ref=ref,
             lref=lref,
             ldata=ldata,
@@ -568,12 +568,21 @@ class DataStock1(DataStock0):
     # Methods computing correlations
     # ---------------------
 
-    def compute_correlations(self, data=None, ref=None):
-       
-        _class1_check._correlation_check()
-
-        for 
-        _class1_compute.correlations()
+    def compute_correlations(
+        self,
+        data=None,
+        ref=None,
+        verb=None,
+        returnas=None,
+    ):
+        return _class1_compute.correlations(
+            data=data,
+            ref=ref,
+            ddata=self._ddata,
+            dref=self._dref,
+            verb=verb,
+            returnas=returnas,
+        )
 
 
     # ---------------------
