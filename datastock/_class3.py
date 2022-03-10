@@ -90,6 +90,7 @@ class DataStock3(DataStock2):
         Amax=None,
         Bmin=None,
         Bmax=None,
+        marker_size=None,
         # customization of distribution plot
         nAbin=None,
         nBbin=None,
@@ -131,6 +132,7 @@ class DataStock3(DataStock2):
             Amax=Amax,
             Bmin=Bmin,
             Bmax=Bmax,
+            marker_size=marker_size,
             # customization of distribution plot
             nAbin=nAbin,
             nBbin=nBbin,

@@ -439,33 +439,63 @@ def _apply_dlim(dlim=None, logic_intervals=None, logic=None, ddata=None):
         raise Exception(msg)
 
     # data shape
+    dreshape = {}
     datashapes = list(set([ddata[k0]['data'].shape for k0 in dlim.keys()]))
     if len(datashapes) > 1:
-        lstr = [f"\t- {kk}" for kk in datashapes]
-        msg = (
-            "All data from dlim must have the same shape!\n"
-            + "\n".join(lstr)
-        )
-        raise Exception(msg)
-    datashape = datashapes[0]
+        ndim = [len(dd) for dd in datashapes]
+        shape = datashapes[np.argmax(ndim)]
+        dfail = {
+            k0: ddata[k0]['data'].shape
+            for k0, v0 in dlim.items()
+            if ddata[k0]['data'].shape != shape
+            and not (
+                ddata[k0]['data'].shape
+                == tuple(aa for aa in shape if aa in ddata[k0]['data'].shape)
+            )
+        }
+        if len(dfail) > 0:
+            lstr = [f"\t- {k0}: {v0}" for k0, v0 in dfail.items()]
+            msg = (
+                "The following keys have non-compatible shapes:\n"
+            )
+            raise Exception(msg)
+
+        # prepare dict of reshape
+        dreshape = {
+            k0: tuple([
+                aa if aa in ddata[k0]['data'].shape else 1
+                for ii, aa in enumerate(shape)
+            ])
+            for k0, v0 in dlim.items()
+            if ddata[k0]['data'].shape != shape
+        }
+    else:
+        shape = datashapes[0]
 
     # ------------
     # compute
 
     # trivial case
     if len(dlim) == 0:
-        return np.ones(datashape, dtype=bool)
+        return np.ones(shape, dtype=bool)
 
     # non-trivial
     nlim = len(dlim)
-    shape = tuple(np.r_[nlim, datashape])
+    shape = tuple(np.r_[nlim, shape])
     ind = np.zeros(shape, dtype=bool)
     for ii, (k0, v0) in enumerate(dlim.items()):
-        ind[ii, ...] = _apply_lim(
-            lim=v0,
-            data=ddata[k0]['data'],
-            logic=logic_intervals,
-        )
+        if k0 in dreshape.keys():
+            ind[ii, ...] = _apply_lim(
+                lim=v0,
+                data=ddata[k0]['data'].reshape(dreshape[k0]),
+                logic=logic_intervals,
+            )
+        else:
+            ind[ii, ...] = _apply_lim(
+                lim=v0,
+                data=ddata[k0]['data'],
+                logic=logic_intervals,
+            )
 
     # -------------
     # apply logic
