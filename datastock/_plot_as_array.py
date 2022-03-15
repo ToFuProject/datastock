@@ -749,6 +749,7 @@ def plot_as_array_2d(
     dcolorbar=None,
     dleg=None,
     connect=None,
+    interactive=None,
 ):
 
     # --------------
@@ -941,41 +942,67 @@ def plot_as_array_2d(
     # plot mobile part
 
     kax = 'matrix'
-    for kax in lkax:
+    if dax.get(kax) is not None:
         ax = dax[kax]['handle']
 
         # ind0, ind1
-        for ii in range(nmax):
-            lh = ax.axhline(
-                dataY[ind[1]], c=color_dict['X'][ii], lw=1., ls='-',
-            )
-            lv = ax.axvline(
-                dataX[ind[0]], c=color_dict['Y'][ii], lw=1., ls='-',
-            )
+        if dax.get('vertical') is not None:
+            for ii in range(nmax):
+                lh = ax.axhline(
+                    dataY[ind[1]], c=color_dict['X'][ii], lw=1., ls='-',
+                )
 
-            # update coll
-            kh = f'h{ii:02.0f}'
-            kv = f'v{ii:02.0f}'
-            coll.add_mobile(
-                key=kh,
-                handle=lh,
-                ref=refY,
-                data=keyY,
-                dtype='ydata',
-                ax=kax,
-                ind=ii,
-            )
-            coll.add_mobile(
-                key=kv,
-                handle=lv,
-                ref=refX,
-                data=keyX,
-                dtype='xdata',
-                ax=kax,
-                ind=ii,
-            )
+                # update coll
+                kh = f'h{ii:02.0f}'
+                coll.add_mobile(
+                    key=kh,
+                    handle=lh,
+                    ref=refY,
+                    data=keyY,
+                    dtype='ydata',
+                    ax=kax,
+                    ind=ii,
+                )
 
-        dax[kax].update(refx=[refX], datax=keyX, refy=[refY], datay=keyY)
+            # for ax clic
+            ax_refx = [refX]
+            ax_datax = [keyX]
+        else:
+            # for ax clic
+            ax_refx = None
+            ax_datax = None
+
+        # ind0
+        if dax.get('horizontal') is not None:
+            for ii in range(nmax):
+                lv = ax.axvline(
+                    dataX[ind[0]], c=color_dict['Y'][ii], lw=1., ls='-',
+                )
+
+                # update coll
+                kv = f'v{ii:02.0f}'
+                coll.add_mobile(
+                    key=kv,
+                    handle=lv,
+                    ref=refX,
+                    data=keyX,
+                    dtype='xdata',
+                    ax=kax,
+                    ind=ii,
+                )
+
+            # for ax clic
+            ax_refy = [refY]
+            ax_datay = [keyY]
+        else:
+            # for ax clic
+            ax_refy = None
+            ax_datay = None
+
+
+        dax[kax].update(
+            refx=ax_refx, datax=ax_datax, refy=ax_refy, datay=ax_datay,
+        )
 
     kax = 'vertical'
     if dax.get(kax) is not None:

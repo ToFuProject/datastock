@@ -189,7 +189,6 @@ def plot_BvsA_as_distribution(
     # --------------
     #  Prepare data
 
-
     unitsA = coll._ddata[keyA]['units']
     unitsB = coll._ddata[keyB]['units']
     laby = f'{keyB} ({unitsB})'

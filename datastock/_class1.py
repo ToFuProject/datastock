@@ -572,18 +572,19 @@ class DataStock1(DataStock0):
         self,
         data=None,
         ref=None,
+        correlations=None,
         verb=None,
         returnas=None,
     ):
         return _class1_compute.correlations(
             data=data,
             ref=ref,
+            correlations=correlations,
             ddata=self._ddata,
             dref=self._dref,
             verb=verb,
             returnas=returnas,
         )
-
 
     # ---------------------
     # Methods for showing data

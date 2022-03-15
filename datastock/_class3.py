@@ -2,6 +2,7 @@
 
 from ._class2 import *
 from . import _plot_as_array
+from . import _plot_correlations
 from . import _plot_BvsA_as_distribution
 
 
@@ -70,6 +71,52 @@ class DataStock3(DataStock2):
             dleg=dleg,
             connect=connect,
             inplace=inplace,
+        )
+
+    def plot_correlations(
+        self,
+        # correlations
+        data=None,
+        ref=None,
+        correlations=None,
+        # plotting
+        cmap=None,
+        vmin=None,
+        vmax=None,
+        # figure
+        dax=None,
+        dmargin=None,
+        fs=None,
+        aspect=None,
+        # interactivity
+        connect=None,
+    ):
+
+        # compute
+        dcross = self.compute_correlations(
+            data=data,
+            ref=ref,
+            correlations=correlations,
+            verb=False,
+            returnas=dict,
+        )
+
+        # plot
+        return _plot_correlations.plot_correlations(
+            coll=self,
+            # correlations
+            dcross=dcross,
+            # plot
+            cmap=cmap,
+            vmin=vmin,
+            vmax=vmax,
+            # figure
+            dax=dax,
+            dmargin=dmargin,
+            fs=fs,
+            aspect=aspect,
+            # interactivity
+            connect=connect,
         )
 
     def plot_BvsA_as_distribution(
