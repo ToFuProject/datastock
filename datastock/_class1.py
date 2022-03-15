@@ -584,7 +584,6 @@ class DataStock1(DataStock0):
             returnas=returnas,
         )
 
-
     # ---------------------
     # Methods for showing data
     # ---------------------
