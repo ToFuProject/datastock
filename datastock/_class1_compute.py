@@ -15,6 +15,9 @@ import scipy.spatial as scpspace
 from . import _generic_check
 
 
+_LCROSS_OK = ['spearman', 'pearson', 'distance']
+
+
 #############################################
 #############################################
 #       ref indices propagation
@@ -224,6 +227,7 @@ def propagate_indices_per_ref(
 
 
 def _correlations_check(
+    correlations=None,
     verb=None,
     nverb=None,
     returnas=None,
@@ -235,6 +239,15 @@ def _correlations_check(
 
     # -------------
     # kwdargs
+
+    # lcross
+    correlations = _generic_check._check_var_iter(
+        correlations, 'correlations',
+        default=_LCROSS_OK,
+        allowed=_LCROSS_OK,
+        types=list,
+        types_iter=str,
+    )
 
     # verb
     verb = _generic_check._check_var(
@@ -334,7 +347,7 @@ def _correlations_check(
         )
         raise Exception(msg)
 
-    return verb, nverb, returnas, datakey, data, ref
+    return correlations, verb, nverb, returnas, datakey, data, ref
 
 
 def _get_ldata_ref(ddata=None, tref=None, datakey=None):
@@ -356,7 +369,7 @@ def _prepare_dcross(ref=None, ddata=None, datakey=None, shape=None):
     # initialize dcross
     dcross = {
         tref: {
-            'key': np.array(
+            'keys1': np.array(
                 _get_ldata_ref(ddata=ddata, tref=tref, datakey=datakey)
             )
         }
@@ -369,7 +382,7 @@ def _prepare_dcross(ref=None, ddata=None, datakey=None, shape=None):
         raise Exception(msg)
 
     # reshaping
-    shape = ddata[dcross[ref]['key'][0]]['data'].shape
+    shape = ddata[dcross[ref]['keys1'][0]]['data'].shape
     for k0, v0 in dcross.items():
         if k0 != ref:
             dcross[k0]['reshape'] = tuple([
@@ -391,27 +404,33 @@ def _compute_cross_coefs(
     """ Populate in dict all types of correlations """
 
     # spearman
-    dcross[ref]['spearman'][ii, jj] = scpstats.spearmanr(
-        data,
-        datai,
-        axis=None,
-        nan_policy='omit',
-        # alternative='two-sided',  # scipy >= ???
-    )[0]
+    k1 = 'spearman'
+    if k1 in dcross[ref].keys():
+        dcross[ref][k1][ii, jj] = scpstats.spearmanr(
+            data,
+            datai,
+            axis=None,
+            nan_policy='omit',
+            # alternative='two-sided',  # scipy >= ???
+        )[0]
 
     # pearson
-    dcross[ref]['pearson'][ii, jj] = scpstats.pearsonr(
-        data,
-        datai,
-    )[0]
+    k1 = 'pearson'
+    if k1 in dcross[ref].keys():
+        dcross[ref][k1][ii, jj] = scpstats.pearsonr(
+            data,
+            datai,
+        )[0]
 
     # distance correlation
-    dcross[ref]['distance'][ii, jj] = 1. - scpspace.distance.correlation(
-        data,
-        datai,
-        w=None,
-        centered=True,
-    )
+    k1 = 'distance'
+    if k1 in dcross[ref].keys():
+        dcross[ref][k1][ii, jj] = 1. - scpspace.distance.correlation(
+            data,
+            datai,
+            w=None,
+            centered=True,
+        )
 
     # Maximum Information coefficient to be done
     pass
@@ -420,6 +439,7 @@ def _compute_cross_coefs(
 def correlations(
     data=None,
     ref=None,
+    correlations=None,
     ddata=None,
     dref=None,
     verb=None,
@@ -430,7 +450,10 @@ def correlations(
     # ------------
     # check inputs
 
-    verb, nverb, returnas, datakey, data, ref = _correlations_check(
+    (
+        correlations, verb, nverb, returnas, datakey, data, ref,
+    ) = _correlations_check(
+        correlations=correlations,
         verb=verb,
         nverb=nverb,
         returnas=returnas,
@@ -453,8 +476,8 @@ def correlations(
     # Prepare fields for correlation
 
     if data is None:
-        lkeys = dcross[ref]['key']
-        shape = ddata[dcross[ref]['key'][0]]['data'].shape
+        lkeys = dcross[ref]['keys1']
+        shape = ddata[dcross[ref]['keys1'][0]]['data'].shape
     else:
         if datakey is None:
             lkeys = [None]
@@ -466,11 +489,10 @@ def correlations(
     # prepare correlation matrices
     nkey = len(lkeys)
     for k0, v0 in dcross.items():
-        shapecross = (nkey, len(v0['key']))
-        dcross[k0]['spearman'] = np.full(shapecross, np.nan)
-        dcross[k0]['pearson'] = np.full(shapecross, np.nan)
-        dcross[k0]['distance'] = np.full(shapecross, np.nan)
-        dcross[k0]['maxinfo'] = np.full(shapecross, np.nan)
+        dcross[k0]['keys0'] = lkeys
+        shapecross = (nkey, len(v0['keys1']))
+        for k1 in correlations:
+            dcross[k0][k1] = np.full(shapecross, np.nan)
 
     # ---------------------
     # Compute correlations
@@ -484,7 +506,7 @@ def correlations(
             data0 = data
 
         # same ref
-        for jj, k1 in enumerate(dcross[ref]['key']):
+        for jj, k1 in enumerate(dcross[ref]['keys1']):
 
             if data is None and jj <= ii:
                 continue
@@ -521,7 +543,7 @@ def correlations(
                 continue
 
             datai = np.full(shape, np.nan)
-            for jj, k1 in enumerate(dcross[rr]['key']):
+            for jj, k1 in enumerate(dcross[rr]['keys1']):
 
                 # get relevant data
                 if k0 == ref:
@@ -557,14 +579,13 @@ def correlations(
     if verb is True:
 
         # get highest correlations
-        lcorr = ['spearman', 'pearson', 'distance']
         dhigh = {}
         for k0, v0 in dcross.items():
 
             # broadcast keys
             if data is None:
-                keys0 = np.repeat(dcross[ref]['key'], len(v0['key']))
-            keys1 = np.tile(v0['key'], len(dcross[ref]['key']))
+                keys0 = np.repeat(dcross[ref]['keys0'], len(v0['keys1']))
+            keys1 = np.tile(v0['keys1'], len(dcross[ref]['keys0']))
 
             # populate dhigh
             if data is None:
@@ -576,8 +597,8 @@ def correlations(
                     kk = f"'{datakey}' vs {k0}"
 
             # populate dhigh
-            dhigh[kk] = dict.fromkeys(lcorr)
-            for k1 in lcorr:
+            dhigh[kk] = dict.fromkeys(correlations)
+            for k1 in correlations:
                 ind = np.argsort(v0[k1].ravel())
                 ind = ind[np.isfinite(v0[k1].ravel()[ind])]
                 if data is None:
