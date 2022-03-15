@@ -277,6 +277,7 @@ def _plot_BvsA_check(
                 color_dict[k0]['ind'] = ind
 
     # color_map
+    color_map_data = None
     if color_map_key is not None:
 
         # color_map_key
