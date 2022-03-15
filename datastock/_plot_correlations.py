@@ -20,7 +20,7 @@ from . import _plot_text
 from . import _class2_interactivity
 
 
-__all__ = ['plot_crosscorrelations']
+__all__ = ['plot_correlations']
 
 
 # #############################################################################
