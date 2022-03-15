@@ -72,6 +72,26 @@ class DataStock3(DataStock2):
             inplace=inplace,
         )
 
+    def plot_correlations(
+        self,
+        # correlations
+        data=None,
+        ref=None,
+        verb=None,
+        # figure
+        dax=None,
+    ):
+
+        # compute
+        dcross = self.compute_correlations(data=data, ref=ref, verb=verb)
+
+        # plot
+        return _plot_correlations.plot_correlations(
+            dcross=dcross,
+            dax=dax,
+        )
+
+
     def plot_BvsA_as_distribution(
         self,
         # parameters
