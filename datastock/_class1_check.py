@@ -1102,26 +1102,32 @@ def _harmonize_params(
     # -------------------
     # Check against dobj0
 
-    lkpout = [
-        (k0, (k1, v0[k1]))
+    dkpout = {
+        k0: [
+            (k1, v0[k1]) for k1 in lparams
+            if k1 in v0.keys()
+            and k1 in dobj0.keys()
+            and v0[k1] is not None
+            and v0[k1] not in dobj0[k1].keys()
+        ]
         for k0, v0 in dd.items()
-        if k1 in dobj0.keys()
-        and any([v0[k1] not in dobj0[k1].keys() for k1 in lparams])
-    ]
-    if len(lkpout) > 0:
-        lpu = sorted(set([pp[1][0] for pp in lkpout]))
-        msg0 = '\n'.join([f"\t- {pp[0]}['{pp[1]}']: {pp[2]}" for pp in lkpout])
-        msg1 = '\n'.join([
-            f"\t- dobj['{pp}']: {dobj[pp].keys()}" for pp in lpu
+        if any([
+            v0[k1] not in dobj0[k1].keys() for k1 in lparams
+            if k1 in v0.keys()
+            and k1 in dobj0.keys()
+            and v0[k1] is not None
+            and v0[k1] not in dobj0[k1].keys()
         ])
+    }
+    if len(dkpout) > 0:
+        lstr = [
+            f"\t- {k0}:\n"
+            + "\n".join([f"\t\t- {pp[0]}: {pp[1]}" for pp in v0])
+            for k0, v0 in dkpout.items()
+        ]
         msg = (
-            """
-            The following parameters have non-identified values:
-            {}
-
-            Available values:
-            {}
-            """.format(msg0, msg1)
+            "The following parameters have non-identified values:\n"
+            + "\n".join(lstr)
         )
         raise Exception(msg)
 
