@@ -1102,27 +1102,33 @@ def _harmonize_params(
     # -------------------
     # Check against dobj0
 
-    dkpout = {
-        k0: [
-            (k1, v0[k1]) for k1 in lparams
-            if k1 in v0.keys()
-            and k1 in dobj0.keys()
-            and v0[k1] is not None
-            and v0[k1] not in dobj0[k1].keys()
-        ]
-        for k0, v0 in dd.items()
-        if any([
-            v0[k1] not in dobj0[k1].keys() for k1 in lparams
-            if k1 in v0.keys()
-            and k1 in dobj0.keys()
-            and v0[k1] is not None
-            and v0[k1] not in dobj0[k1].keys()
-        ])
-    }
+    dkpout = {}
+    for k0, v0 in dd.items():
+        for k1 in lparams:
+            out = False
+            if k1 in v0.keys() and k1 in dobj0.keys() and v0[k1] is not None:
+                if isinstance(v0[k1], (tuple, list)):
+                    if any([k2 not in dobj0[k1].keys() for k2 in v0[k1]]):
+                        out = True
+                elif isinstance(v0[k1], str) and v0[k1] not in dobj0[k1]:
+                    out = True
+                else:
+                    msg = (
+                        "Unknow way of refering to another obj:\n"
+                        "{type(v0[k1])}"
+                    )
+                    raise Exception(msg)
+
+            if out is True:
+                if dkpout.get(k0) is None:
+                    dkpout[k0] = {k1: v0[k1]}
+                else:
+                    dkpout[k0][k1] = v0[k1]
+
     if len(dkpout) > 0:
         lstr = [
             f"\t- {k0}:\n"
-            + "\n".join([f"\t\t- {pp[0]}: {pp[1]}" for pp in v0])
+            + "\n".join([f"\t\t- {k1}: {v1}" for k1, v1 in v0.items()])
             for k0, v0 in dkpout.items()
         ]
         msg = (

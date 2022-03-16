@@ -434,6 +434,25 @@ class DataStock2(DataStock1):
         self.set_param(which='axes', param='groupy', value=daxgroupy)
         self.add_param(which='axes', param='inc', value=dinc)
 
+        # -------
+        # dgroup
+
+        # update with axes
+        for k0, v0 in dgroup.items():
+            lkax = [
+                k1 for k1, v1 in self._dobj['axes'].items()
+                if (v1['groupx'] is not None and k0 in v1['groupx'])
+                or (v1['groupy'] is not None and k0 in v1['groupy'])
+            ]
+            dgroup[k0]['axes'] = lkax
+
+        for k0, v0 in dgroup.items():
+            self.add_obj(
+                which='group',
+                key=k0,
+                **v0,
+            )
+
         # --------------------------
         # update mobile with groups and func
 
@@ -518,25 +537,6 @@ class DataStock2(DataStock1):
             ]
             assert len(lcan) == 1
             self._dobj['axes'][k0]['canvas'] = lcan[0]
-
-        # -------
-        # dgroup
-
-        # update with axes
-        for k0, v0 in dgroup.items():
-            lkax = [
-                k1 for k1, v1 in self._dobj['axes'].items()
-                if (v1['groupx'] is not None and k0 in v1['groupx'])
-                or (v1['groupy'] is not None and k0 in v1['groupy'])
-            ]
-            dgroup[k0]['axes'] = lkax
-
-        for k0, v0 in dgroup.items():
-            self.add_obj(
-                which='group',
-                key=k0,
-                **v0,
-            )
 
         # ---------
         # dkeys
