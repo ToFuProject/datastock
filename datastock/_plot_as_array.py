@@ -841,7 +841,6 @@ def plot_as_array_2d(
 
         ax1.set_xlim(ymin, ymax)
         ax2.set_ylim(ymin, ymax)
-        import pdb; pdb.set_trace()     # DB
 
         # axes for text
         ax3 = fig.add_subplot(gs[:3, 3], frameon=False)

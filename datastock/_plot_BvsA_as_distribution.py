@@ -459,8 +459,9 @@ def plot_BvsA_as_distribution(
     # add axes and setup interactivity
 
     # add axes
-    for kax in dax.keys():
-        coll.add_axes(key=kax, **dax[kax])
+    for ii, kax in enumerate(dax.keys()):
+        harmonize = ii == len(dax) - 1
+        coll.add_axes(key=kax, harmonize=harmonize, **dax[kax])
 
     # connect
     if connect is True:
