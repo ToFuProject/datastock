@@ -13,19 +13,6 @@ from . import _class2_interactivity
 from . import _class1_compute
 
 
-_DKEYS = {
-    'control': {'val': False, 'action': 'generic'},
-    'ctrl': {'val': False, 'action': 'generic'},
-    'shift': {'val': False, 'action': 'generic'},
-    'alt': {'val': False, 'action': 'generic'},
-    'left': {'val': False, 'action': 'move'},
-    'right': {'val': False, 'action': 'move'},
-    'up': {'val': False, 'action': 'move'},
-    'down': {'val': False, 'action': 'move'},
-}
-_INCREMENTS = [1, 10]
-
-
 # #################################################################
 # #################################################################
 #               Main class
@@ -35,7 +22,7 @@ _INCREMENTS = [1, 10]
 class DataStock2(DataStock1):
     """ Handles matplotlib interactivity """
 
-    _LPAXES = ['ax', 'type']
+    _LPAXES = ['axes', 'type']
     __store_rcParams = None
 
     # ----------------------
@@ -52,7 +39,7 @@ class DataStock2(DataStock1):
         bstr=None,
         visible=None,
         group_vis=None,
-        ax=None,
+        axes=None,
         **kwdargs,
     ):
 
@@ -152,7 +139,7 @@ class DataStock2(DataStock1):
             dtype=dtype,
             visible=visible,
             bstr=bstr,
-            ax=ax,
+            axes=axes,
             func=None,
             **kwdargs,
         )
@@ -168,6 +155,7 @@ class DataStock2(DataStock1):
         datay=None,
         invertx=None,
         inverty=None,
+        harmonize=None,
         **kwdargs,
     ):
 
@@ -241,21 +229,28 @@ class DataStock2(DataStock1):
             bck=None,
             mobile=None,
             canvas=None,
+            harmonize=harmonize,
             **kwdargs,
         )
 
         # add canvas if not already stored
         if 'canvas' not in self._dobj.keys():
-            self.add_canvas(handle=handle.figure.canvas)
+            self.add_canvas(
+                handle=handle.figure.canvas,
+                harmonize=harmonize,
+            )
         else:
             lisin = [
                 k0 for k0, v0 in self._dobj['canvas'].items()
                 if v0['handle'] == handle.figure.canvas
             ]
             if len(lisin) == 0:
-                self.add_canvas(handle=handle.figure.canvas)
+                self.add_canvas(
+                    handle=handle.figure.canvas,
+                    harmonize=harmonize,
+                )
 
-    def add_canvas(self, key=None, handle=None):
+    def add_canvas(self, key=None, handle=None, harmonize=None):
         """ Add canvas and interactivity obj """
         interactive = (
             hasattr(handle, 'toolbar')
@@ -266,6 +261,7 @@ class DataStock2(DataStock1):
             key=key,
             handle=handle,
             interactive=interactive,
+            harmonize=harmonize,
         )
 
     # ------------------
@@ -326,74 +322,32 @@ class DataStock2(DataStock1):
 
         # ----------
         # Check dgroup
-
-        c0 = (
-            isinstance(dgroup, dict)
-            and all([
-                isinstance(k0, str)
-                and isinstance(v0, dict)
-                and isinstance(v0.get('ref'), list)
-                and isinstance(v0.get('data'), list)
-                and len(v0['ref']) == len(v0['data'])
-                and all([ss in self._dref.keys() for ss in v0['ref']])
-                for k0, v0 in dgroup.items()
-            ])
+        dgroup, newgroup = _class2_interactivity._setup_dgroup(
+            dgroup=dgroup,
+            dobj0=self._dobj,
+            dref0=self._dref,
         )
-        if not c0:
-            msg = "Arg dgroup must be a dict of the form:\n"
-            raise Exception(msg)
-
-        ic = 0
-        for k0, v0 in dgroup.items():
-            if v0.get('nmax') is None:
-                dgroup[k0]['nmax'] = 0
-            dgroup[k0]['nmaxcur'] = 0
-            dgroup[k0]['indcur'] = 0
 
         # ----------
         # Check increment dict
 
-        if dinc is None:
-            dinc = {k0: _INCREMENTS for k0 in self._dref.keys()}
-        elif isinstance(dinc, list) and len(dinc) == 2:
-            dinc = {k0: dinc for k0 in self._dref.keys()}
-        elif isinstance(dinc, dict):
-            c0 = all([
-                ss in self._dref.keys()
-                and isinstance(vv, list)
-                and len(vv) == 2
-                for ss, vv in dinc.items()
-            ])
-            if not c0:
-                msg = (
-                    "Arg dinc must be a dict of type {ref0: [inc0, inc1]}\n"
-                    f"\t- Provided: {dinc}"
-                )
-                raise Exception(msg)
-            for k0 in self._dref.keys():
-                if k0 not in dinc.keys():
-                    dinc[k0] = _INCREMENTS
-        else:
-            msg = (
-                "Arg dinc must be a dict of type {ref0: [inc0, inc1]}\n"
-                f"\t- Provided: {dinc}"
-            )
-            raise Exception(msg)
+        dinc, newinc = _class2_interactivity._setup_dinc(
+            dinc=dinc,
+            lparam_ref=self.get_lparam(which='ref'),
+            dref0=self._dref,
+        )
 
-        # ----------------------------
-        # make sure all refs are known
+        # ----------------------------------------------------------
+        # make sure all refs are known and are associated to a group
 
-        drefgroup = dict.fromkeys(self._dref.keys())
+        drefgroup = _class2_interactivity._setup_drefgroup(
+            dref0=self._dref,
+            dgroup=dgroup,
+        )
+
+        #  add indices to ref
         for k0, v0 in self._dref.items():
             lg = [k1 for k1, v1 in dgroup.items() if k0 in v1['ref']]
-            if len(lg) > 1:
-                msg = f"Ref {k0} has no/several groups!\n\t- found: {lg}"
-                raise Exception(msg)
-            elif len(lg) == 0:
-                lg = [None]
-            drefgroup[k0] = lg[0]
-
-            #  add indices
             if lg[0] is not None:
                 self.add_indices_per_ref(
                     indices=np.zeros((dgroup[lg[0]]['nmax'],), dtype=int),
@@ -401,38 +355,27 @@ class DataStock2(DataStock1):
                     distribute=False,
                 )
 
-        self.add_param(which='ref', param='group', value=drefgroup)
-        self.add_param(which='ref', param='inc', value=dinc)
-
         # --------------------------------------
         # update dax with groupx, groupy and inc
 
         daxgroupx = dict.fromkeys(self._dobj['axes'].keys())
         daxgroupy = dict.fromkeys(self._dobj['axes'].keys())
-        dinc = dict.fromkeys(self._dobj['axes'].keys())
+        dinc_axes = dict.fromkeys(self._dobj['axes'].keys())
         for k0, v0 in self._dobj['axes'].items():
             if v0['refx'] is None:
                 daxgroupx[k0] = None
             else:
-                daxgroupx[k0] = [
-                    self._dref[k1]['group'] for k1 in v0['refx']
-                ]
+                daxgroupx[k0] = [drefgroup[k1] for k1 in v0['refx']]
             if v0['refy'] is None:
                 daxgroupy[k0] = None
             else:
-                daxgroupy[k0] = [
-                    self._dref[k1]['group'] for k1 in v0['refy']
-                ]
+                daxgroupy[k0] = [drefgroup[k1] for k1 in v0['refy']]
 
             # increment
-            dinc[k0] = {
+            dinc_axes[k0] = {
                 'left': -1, 'right': 1,
                 'down': -1, 'up': 1,
             }
-
-        self.set_param(which='axes', param='groupx', value=daxgroupx)
-        self.set_param(which='axes', param='groupy', value=daxgroupy)
-        self.add_param(which='axes', param='inc', value=dinc)
 
         # -------
         # dgroup
@@ -441,8 +384,8 @@ class DataStock2(DataStock1):
         for k0, v0 in dgroup.items():
             lkax = [
                 k1 for k1, v1 in self._dobj['axes'].items()
-                if (v1['groupx'] is not None and k0 in v1['groupx'])
-                or (v1['groupy'] is not None and k0 in v1['groupy'])
+                if (daxgroupx[k1] is not None and k0 in daxgroupx[k1])
+                or (daxgroupy[k1] is not None and k0 in daxgroupy[k1])
             ]
             dgroup[k0]['axes'] = lkax
 
@@ -453,64 +396,24 @@ class DataStock2(DataStock1):
                 **v0,
             )
 
+        # -----------------------
+        # Populate new parameters
+
+        self.set_param(which='axes', param='groupx', value=daxgroupx)
+        self.set_param(which='axes', param='groupy', value=daxgroupy)
+        self.add_param(which='axes', param='inc', value=dinc_axes)
+
+        self.add_param(which='ref', param='group', value=drefgroup)
+        self.add_param(which='ref', param='inc', value=dinc)
+
         # --------------------------
-        # update mobile with groups and func
+        # update mobile with group, group_vis and func
 
-        for k0, v0 in self._dobj['mobile'].items():
-            self._dobj['mobile'][k0]['group'] = tuple([
-                self._dref[rr]['group'] for rr in v0['ref']
-            ])
-
-            # group _vis
-            if self._dobj['mobile'][k0]['group_vis'] is None:
-                self._dobj['mobile'][k0]['group_vis'] = \
-                        self._dobj['mobile'][k0]['group']
-            if isinstance(self._dobj['mobile'][k0]['group_vis'], str):
-               self._dobj['mobile'][k0]['group_vis'] = (
-                   self._dobj['mobile'][k0]['group_vis'],
-               )
-            c0 = (
-                isinstance(self._dobj['mobile'][k0]['group_vis'], tuple)
-                and all([
-                    isinstance(ss, str)
-                    and ss in self._dobj['mobile'][k0]['group']
-                    for ss in self._dobj['mobile'][k0]['group_vis']
-                ])
-            )
-            if not c0:
-                msg = (
-                    f"dmobile['{k0}']['group_vis'] must be:\n"
-                    f"\t- a list of groups in dmobile['{k0}']['group']\n"
-                    "\t- specifies which groups determine visibility\n"
-                    f"If None: set to dmobile['{k0}']['group']"
-                    f" = {self._dobj['mobile'][k0]['group']}\n"
-                    f"Provided: {self._dobj['mobile'][k0]['group_vis']}"
-                )
-                raise Exception(msg)
-
-            # functions for updating
-            nocc = len(set(self._dobj['mobile'][k0]['dtype']))
-
-            self._dobj['mobile'][k0]['func_set_data'] = [
-               _class2_interactivity.get_fupdate(
-                   handle=v0['handle'],
-                   dtype=self._dobj['mobile'][k0]['dtype'][ii],
-                   norm=None,
-                   bstr=v0.get('bstr'),
-               )
-               for ii in range(nocc)
-            ]
-
-            self._dobj['mobile'][k0]['func_slice'] = \
-               _class2_interactivity.get_slice(
-                   nocc=nocc,
-                   laxis=self._dobj['mobile'][k0]['axis'],
-                   lndim=[
-                       1 if dd == 'index'
-                       else self._ddata[dd]['data'].ndim
-                       for dd in self._dobj['mobile'][k0]['data']
-                   ],
-               )
+        _class2_interactivity._setup_mobile(
+            dmobile=self._dobj['mobile'],
+            dref=self._dref,
+            ddata=self._ddata,
+        )
 
         # --------------------
         # axes mobile, refs and canvas
@@ -521,7 +424,7 @@ class DataStock2(DataStock1):
             # Update mobile
             self._dobj['axes'][k0]['mobile'] = [
                 k1 for k1, v1 in self._dobj['mobile'].items()
-                if v1['ax'] == k0
+                if v1['axes'] == k0
             ]
 
             # ref
@@ -541,25 +444,7 @@ class DataStock2(DataStock1):
         # ---------
         # dkeys
 
-        if dkeys is None:
-            dkeys = _DKEYS
-
-        # add key for switching groups
-        dkeys.update({
-            v0.get('key', f'f{ii+1}'): {
-                'group': k0,
-                'val': False,
-                'action': 'group',
-            }
-            for ii, (k0, v0) in enumerate(self._dobj['group'].items())
-        })
-
-        # add keys for switching indices within groups
-        nMax = np.max([v0['nmax'] for v0 in dgroup.values()])
-        dkeys.update({
-            str(ii): {'ind': ii, 'val': False, 'action': 'indices'}
-            for ii in range(0, nMax)
-        })
+        dkeys = _class2_interactivity._setup_keys(dkeys=dkeys, dgroup=dgroup)
 
         # implement dict
         for k0, v0 in dkeys.items():
@@ -590,12 +475,17 @@ class DataStock2(DataStock1):
             'follow': True,
         }
 
+        if kinter is None:
+            if hasattr(self, 'kinter'):
+                kinter = self.kinter
+            else:
+                kinter = 'inter0'
+        self.kinter = kinter
         self.add_obj(
             which='interactivity',
-            key='inter0',
+            key=kinter,
             **dinter,
         )
-        self.kinter = 'inter0'
 
         _class2_interactivity._set_dbck(
             lax=self._dobj['axes'].keys(),
@@ -924,7 +814,7 @@ class DataStock2(DataStock1):
         # get list of axes to update
         lax = [
             k0 for k0, v0 in self._dobj['axes'].items()
-            if any([self._dobj['mobile'][k1]['ax'] == k0 for k1 in lmobiles])
+            if any([self._dobj['mobile'][k1]['axes'] == k0 for k1 in lmobiles])
         ]
 
         # ---- Restore backgrounds ---- 1 ms
@@ -947,7 +837,13 @@ class DataStock2(DataStock1):
         # --- Redraw all objects (due to background restore) --- 25 ms
         for k0, v0 in self._dobj['mobile'].items():
             v0['handle'].set_visible(v0['visible'])
-            self._dobj['axes'][v0['ax']]['handle'].draw_artist(v0['handle'])
+            try:
+                self._dobj['axes'][v0['axes']]['handle'].draw_artist(v0['handle'])
+            except Exception:
+                print(0, k0)        # DB
+                print(1, v0['axes'])    # DB
+                print(2, self._dobj['axes'][v0['axes']]['handle'])  # DB
+                print(3, v0['handle'])  # DB
 
         # ---- blit axes ------ 5 ms
         for aa in lax:
@@ -1422,7 +1318,7 @@ class DataStock2(DataStock1):
                 ]
                 lmob = [
                     k1 for k1, v1 in self._dobj['mobile'].items()
-                    if v1['ax'] in lax
+                    if v1['axes'] in lax
                 ]
                 for k1 in lax:
                     del self._dobj['axes'][k1]
