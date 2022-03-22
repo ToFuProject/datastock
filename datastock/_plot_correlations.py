@@ -263,6 +263,10 @@ def _prepare_dax(
     if dax is None:
 
         nax = len(dcross)
+        if len(lcorr) > 1:
+            nrows = 2*len(lcorr) + 1
+        else:
+            nrows = 2
 
         if fs is None:
             fs = (13, 9)
@@ -277,7 +281,7 @@ def _prepare_dax(
         fig = plt.figure(figsize=fs)
         gs = gridspec.GridSpec(
             ncols=nax + 1,
-            nrows=2*len(lcorr) + 1,
+            nrows=nrows,
             **dmargin,
         )
 
@@ -288,6 +292,8 @@ def _prepare_dax(
         for ii in range(len(lcorr) + 1):
             if ii < len(lcorr):
                 k0 = lcorr[ii]
+            if len(lcorr) == 1 and ii > 0:
+                continue
 
             for jj, (k1, v1) in enumerate(dcross.items()):
 
@@ -336,12 +342,21 @@ def _prepare_dax(
                 elif ii == 0:
                     shape = (len(v1['keys0']), len(v1['keys1']))
                     ax.set_xticks(range(shape[1]))
-                    ax.set_xticklabels(v1['keys1'], rotation=rotation)
+                    ax.set_xticklabels(
+                        v1['keys1'],
+                        rotation=rotation,
+                        horizontalalignment='left',
+                        verticalalignment='bottom',
+                    )
                     ax.xaxis.set_ticks_position('top')
                     ax.set_yticks(range(shape[0]))
-                    ax.set_yticklabels(v1['keys0'], rotation=rotation)
+                    ax.set_yticklabels(v1['keys0'])
+                    ax.yaxis.set_ticks_position('right')
                 else:
                     plt.setp(ax.get_xticklabels(), visible=False)
+
+                if jj > 0 and ii < len(lcorr):
+                    plt.setp(ax.get_yticklabels(), visible=False)
 
                 # set ylabels
                 if jj == 0:

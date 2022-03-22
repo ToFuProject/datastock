@@ -240,7 +240,9 @@ def _correlations_check(
     # -------------
     # kwdargs
 
-    # lcross
+    # correlations
+    if isinstance(correlations, str):
+        correlations = [correlations]
     correlations = _generic_check._check_var_iter(
         correlations, 'correlations',
         default=_LCROSS_OK,
