@@ -396,10 +396,16 @@ def _plot_as_array_check(
             cmap = 'viridis'
 
     # vmin, vmax
-    if vmin is None and diverging:
-        vmin = -max(abs(nanmin), nanmax)
-    if vmax is None and diverging:
-        vmax = max(abs(nanmin), nanmax)
+    if vmin is None:
+        if diverging:
+            vmin = -max(abs(nanmin), nanmax)
+        else:
+            vmin = nanmin
+        if vmax is None:
+            if diverging:
+                vmax = max(abs(nanmin), nanmax)
+            else:
+                vmax = nanmax
 
     # vmin, vmax
     if ymin is None:
@@ -835,6 +841,7 @@ def plot_as_array_2d(
 
         ax1.set_xlim(ymin, ymax)
         ax2.set_ylim(ymin, ymax)
+        import pdb; pdb.set_trace()     # DB
 
         # axes for text
         ax3 = fig.add_subplot(gs[:3, 3], frameon=False)
@@ -1038,7 +1045,6 @@ def plot_as_array_2d(
                 ind=ii,
             )
 
-        ax.set_xlim(vmin, vmax)
         dax[kax].update(refy=[refY], datay=keyY)
 
     kax = 'horizontal'
@@ -1082,7 +1088,6 @@ def plot_as_array_2d(
                 ind=ii,
             )
 
-        ax.set_ylim(vmin, vmax)
         dax[kax].update(refx=[refX], datax=keyX)
 
     # ---------
