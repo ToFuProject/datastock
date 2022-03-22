@@ -365,7 +365,7 @@ def plot_BvsA_as_distribution(
                 ref=[ref0, ref0],
                 data=[keyA, keyB],
                 dtype=['xdata', 'ydata'],
-                ax=kax,
+                axes=kax,
                 ind=ii,
             )
 
@@ -407,7 +407,7 @@ def plot_BvsA_as_distribution(
                             ref=[ref0],
                             data=[kk],
                             dtype=['ydata'],
-                            ax=kax,
+                            axes=kax,
                             ind=ii,
                         )
 
@@ -431,7 +431,7 @@ def plot_BvsA_as_distribution(
                             ref=[ref0, ref0],
                             data=[keyX, kk],
                             dtype=['xdata', 'ydata'],
-                            ax=kax,
+                            axes=kax,
                             ind=ii,
                         )
 
@@ -459,14 +459,13 @@ def plot_BvsA_as_distribution(
     # add axes and setup interactivity
 
     # add axes
-    for kax in dax.keys():
-        coll.add_axes(key=kax, **dax[kax])
-
-    # setup interactivity
-    coll.setup_interactivity(kinter='inter0', dgroup=dgroup, dinc=dinc)
+    for ii, kax in enumerate(dax.keys()):
+        harmonize = ii == len(dax) - 1
+        coll.add_axes(key=kax, harmonize=harmonize, **dax[kax])
 
     # connect
     if connect is True:
+        coll.setup_interactivity(kinter='inter0', dgroup=dgroup, dinc=dinc)
         coll.disconnect_old()
         coll.connect()
 

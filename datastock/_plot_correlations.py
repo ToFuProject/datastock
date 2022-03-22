@@ -147,14 +147,13 @@ def plot_correlations(
     # add axes and setup interactivity
 
     # add axes
-    # for kax in dax.keys():
-        # coll.add_axes(key=kax, **dax[kax])
-
-    # setup interactivity
-    # coll.setup_interactivity(kinter='inter0', dgroup=dgroup, dinc=dinc)
+    # for ii, kax in enumerate(dax.keys()):
+        # harmonize = ii == len(dax) - 1
+        # coll.add_axes(key=kax, harmonize=harmonize, **dax[kax])
 
     # connect
     # if connect is True:
+        # coll.setup_interactivity(kinter='inter0', dgroup=dgroup, dinc=dinc)
         # coll.disconnect_old()
         # coll.connect()
 
@@ -354,6 +353,7 @@ def _prepare_dax(
                     ax.yaxis.set_ticks_position('right')
                 else:
                     plt.setp(ax.get_xticklabels(), visible=False)
+                    ax.yaxis.set_ticks_position('right')
 
                 if jj > 0 and ii < len(lcorr):
                     plt.setp(ax.get_yticklabels(), visible=False)

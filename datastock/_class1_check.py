@@ -15,7 +15,6 @@ from . import _generic_check
 
 _DRESERVED_KEYS = {
     'dref': ['ldata', 'ldata_monot', 'size', 'ind'],
-    'dstatic': [],
     'ddata': ['ref', 'shape', 'data'],
     'dobj': [],
 }
@@ -33,8 +32,6 @@ _DDEF_PARAMS = {
         'units':  (str, 'a.u.'),
     },
     'dobj': {
-    },
-    'dstatic': {
     },
 }
 
@@ -56,11 +53,10 @@ def _check_which(
     dref=None,
     ddata=None,
     dobj=None,
-    dstatic=None,
     which=None,
     return_dict=None,
 ):
-    """ Check which in ['ref', 'data'] + dobj.keys() + dstatic.keys()
+    """ Check which in ['ref', 'data'] + dobj.keys()
 
     Optionally return the dict itself, by reference
 
@@ -77,8 +73,7 @@ def _check_which(
     )
 
     lkobj = list(dobj.keys())
-    lkstatic = list(dstatic.keys())
-    lkok = ['ref', 'data'] + lkobj + lkstatic
+    lkok = ['ref', 'data'] + lkobj
     which = _generic_check._check_var(
         which,
         'which',
@@ -97,8 +92,6 @@ def _check_which(
             dd = ddata
         elif which in lkobj:
             dd = dobj[which]
-        else:
-            dd = dstatic[which]
         return which, dd
     else:
         return which
@@ -301,14 +294,12 @@ def _remove_ref(
     # dict
     dref0=None,
     ddata0=None,
-    dstatic0=None,
     dobj0=None,
     # parameters
     propagate=None,
     reserved_keys=None,
     ddefparams_data=None,
     ddefparams_obj=None,
-    ddefparams_static=None,
     data_none=None,
     max_ndim=None,
 ):
@@ -316,7 +307,7 @@ def _remove_ref(
 
     # trivial case
     if key is None:
-        return dref0, dstatic0, ddata0, dobj0
+        return dref0, ddata0, dobj0
 
     # check input
     key = _check_remove(
@@ -333,109 +324,14 @@ def _remove_ref(
     return _consistency(
         ddata=None, ddata0=ddata0,
         dref=None, dref0=dref0,
-        dstatic=None, dstatic0=dstatic0,
         dobj=None, dobj0=dobj0,
         reserved_keys=reserved_keys,
         ddefparams_data=ddefparams_data,
         ddefparams_obj=ddefparams_obj,
-        ddefparams_static=ddefparams_static,
         data_none=data_none,
         max_ndim=max_ndim,
+        harmonize=True,
     )
-
-
-def _remove_static(
-    # key to remove
-    key=None,
-    which=None,
-    # dict
-    dstatic0=None,
-    ddata0=None,
-    dobj0=None,
-    # parameters
-    propagate=None,
-):
-    """ Remove a static ref (or list) or a whole category
-
-    key os provided:
-        => remove only the desired key(s)
-            works only if key is not used in ddata and dobj
-
-    which is provided:
-        => treated as param, the whole category of ref_static is removed
-            if propagate, the parameter is removed from ddata and dobj
-    """
-
-    # ------------
-    # check inputs
-
-    key, which = _get_whichorkey(
-        key=key,
-        which=which,
-        din=dstatic0,
-        dname='dstatic',
-    )
-
-    # --------------------------------
-    # key is None => delete whole dict
-
-    if key is None:
-
-        # Propagate (delete as param in ddata and dobj)
-        if propagate is None:
-            propagate = True
-
-        if propagate is True:
-            # ddata
-            if which in list(ddata0.values())[0].keys():
-                _remove_param(dd=ddata0, dd_name='ddata', param=which)
-
-            # dobj0
-            for k0 in dobj0.keys():
-                if which in list(dobj0[k0].values())[0].keys():
-                    _remove_param(
-                        dd=dobj0[k0],
-                        dd_name="ddobj['{}']".format(k0),
-                        param=which,
-                    )
-
-        # remove 
-        del dstatic0[which]
-
-    # -------------
-    # key and which
-
-    else:
-
-        key = _check_remove(
-            key=key,
-            dkey=dstatic0[which],
-            name=f'static[{k0}]',
-        )
-
-        # Make sure key is not used (condition for removing)
-        for kk in key:
-            lk1 = [
-                k1 for k1, v1 in ddata0.items()
-                if kk == v1.get(which)
-            ]
-            lk2 = [
-                k1 for k1, v1 in dobj0.items()
-                if any([kk == v2.get(which) for v2 in v1.values()])
-            ]
-            if len(lk1) > 0 or len(lk2) > 0:
-                msg = (
-                    f"Provided static key ({kk}) is used in:\n"
-                    + "\n".join(
-                        [f"\t- self.ddata['{k1}']" for k1 in lk1]
-                        + [
-                            f"\t- self.dobj['{k2}']['{which}']"
-                            for k2 in lk2
-                        ]
-                    )
-                )
-                raise Exception(msg)
-            del dstatic0[k0][kk]
 
 
 def _remove_data(
@@ -444,14 +340,12 @@ def _remove_data(
     # dict
     dref0=None,
     ddata0=None,
-    dstatic0=None,
     dobj0=None,
     # parameters
     propagate=None,
     reserved_keys=None,
     ddefparams_data=None,
     ddefparams_obj=None,
-    ddefparams_static=None,
     data_none=None,
     max_ndim=None,
 ):
@@ -461,7 +355,7 @@ def _remove_data(
     # trivial case
 
     if key is None:
-        return dref0, dstatic0, ddata0, dobj0
+        return dref0, ddata0, dobj0
 
     # ------------
     # check inputs
@@ -493,14 +387,13 @@ def _remove_data(
     return _consistency(
         ddata=None, ddata0=ddata0,
         dref=None, dref0=dref0,
-        dstatic=None, dstatic0=dstatic0,
         dobj=None, dobj0=dobj0,
         reserved_keys=reserved_keys,
         ddefparams_data=ddefparams_data,
         ddefparams_obj=ddefparams_obj,
-        ddefparams_static=ddefparams_static,
         data_none=data_none,
         max_ndim=max_ndim,
+        harmonize=True,
     )
 
 
@@ -512,12 +405,10 @@ def _remove_obj(
     dobj0=None,
     ddata0=None,
     dref0=None,
-    dstatic0=None,
     # parameters
     reserved_keys=None,
     ddefparams_data=None,
     ddefparams_obj=None,
-    ddefparams_static=None,
     data_none=None,
     max_ndim=None,
 ):
@@ -538,7 +429,7 @@ def _remove_obj(
     if key is None:
 
         # remove 
-        del dstatic0[which]
+        del dobj0[which]
 
     # ------------
     # Check inputs
@@ -555,133 +446,14 @@ def _remove_obj(
     return _consistency(
         ddata=None, ddata0=ddata0,
         dref=None, dref0=dref0,
-        dstatic=None, dstatic0=dstatic0,
         dobj=None, dobj0=dobj0,
         reserved_keys=reserved_keys,
         ddefparams_data=ddefparams_data,
         ddefparams_obj=ddefparams_obj,
-        ddefparams_static=ddefparams_static,
         data_none=data_none,
         max_ndim=max_ndim,
+        harmonize=True,
     )
-
-
-# #############################################################################
-# #############################################################################
-#                           dstatic
-# #############################################################################
-
-
-def _check_dstatic(
-    dstatic=None, dstatic0=None,
-):
-    """ Check and format dstatic
-
-    dstatic can be:
-        - dict
-
-    """
-
-    # ----------------
-    # Trivial case
-    if dstatic in [None, {}]:
-        return {}
-
-    # ----------------
-    # Check conformity
-
-    c0 = (
-        isinstance(dstatic, dict)
-        and all([
-            isinstance(k0, str)
-            and isinstance(v0, dict)
-            and all([
-                isinstance(k1, str)
-                and isinstance(v1, dict)
-                for k1, v1 in v0.items()
-            ])
-            for k0, v0 in dstatic.items()
-        ])
-    )
-
-    # Raise exception if non-conformity
-    if not c0:
-        msg = (
-            "Arg dstatic must be a dict of the form:\n"
-            "\t dict(\n"
-            "\t     'type0': {\n"
-            "\t         'k0': {...},\n"
-            "\t         'k1': {...}\n"
-            "\t     },\n"
-            "\t     'type1': {\n"
-            "\t         'k2': {...},\n"
-            "\t         'k3': {...}\n"
-            "\t     },\n"
-            "\t )\n"
-            f"\nProvided:\n{dstatic}"
-        )
-        raise Exception(msg)
-
-    # ----------------------------
-    # Identify conflicts / updates
-
-    # raise except if conflict with existing entry
-    dupdate = {}
-    dconflict = {}
-    for k0, v0 in dstatic.items():
-
-        # lkout = ['nb. data']
-        # if k0 == 'ion':
-            # lkout += ['ION', 'charge', 'element']
-
-        if k0 not in dstatic0.keys():
-            continue
-
-        dconflict0, dupdate0 = _check_conflicts(
-            dd=dstatic[k0],
-            dd0=dstatic0[k0],
-            dd_name=f"dstatic['{k0}']",
-            returnas=True,
-        )
-
-        if len(dconflict0) > 0:
-            dconflict[k0] = {k1: list(v1) for k1, v1 in dconflict0.items()}
-
-        if len(dupdate0) > 0:
-            dupdate[k0] = {k1: list(v1) for k1, v1 in dupdate0.items()}
-
-    # Conflicts => Exception
-    if len(dconflict) > 0:
-        msg = (
-            "The following dstatic keys are conflicting existing values:\n"
-            + "\n".join([
-                "\t- dstatic['{}']['{}']: {}".format(k0, v0[0], v0[1])
-                for k0, v0 in dconflict.items()
-            ])
-        )
-        raise Exception(msg)
-
-    # Updates => Warning
-    if len(dupdate) > 0:
-        lstr = list(itt.chain.from_iterable([
-            [
-                f"\t- dstatic['{k0}']['{k1}']: {v1}"
-                for k1, v1 in v0.items()
-            ]
-            for k0, v0 in dupdate.items()
-        ]))
-        msg = (
-            "\nThe following keys will be added to dstatic:\n"
-            + "\n".join(lstr)
-        )
-        warnings.warn(msg)
-
-    # ------------------
-    # Check element / ion / charge
-
-    # _check_elementioncharge_dict(dstatic=dstatic)
-
-    return dstatic
 
 
 # #############################################################################
@@ -1269,13 +1041,15 @@ def _harmonize_params(
     dd=None,
     dd_name=None,
     dd_name2=None,
-    dstatic=None,
+    dobj0=None,
     lkeys=None,
     reserved_keys=None,
     ddefparams=None,
 ):
 
+    # ------------------
     # Check inputs
+
     if dd_name2 is None:
         dd_name2 = dd_name
     if reserved_keys is None:
@@ -1296,17 +1070,16 @@ def _harmonize_params(
     if lkeys is not None:
         if isinstance(lkeys, str):
             lkeys = [lkeys]
-        c0 = (
-            isinstance(lkeys, list)
-            and all([isinstance(ss, str) for ss in lkeys])
+        lkeys = _generic_check._check_var_iter(
+            lkeys, 'lkeys',
+            types=list,
+            types_iter=str,
         )
-        if not c0:
-            msg = "lkeys must be a list of str!"
-            raise Exception(msg)
         lparams = set(lparams).intersection(lkeys)
 
-    # ------------------
-    # dparam
+    # ----------------------------------------
+    # check param types and set default values
+
     for k0, v0 in ddefparams.items():
         for k1, v1 in dd.items():
             if k0 not in v1.keys():
@@ -1329,41 +1102,52 @@ def _harmonize_params(
         for k1, v1 in dd.items():
             dd[k1][k0] = dd[k1].get(k0)
 
-    # ------------------
-    # Check against dstatic0
-    lkpout = [
-        (k0, (k1, v0[k1]))
-        for k0, v0 in dd.items()
-        if k1 in dstatic.keys()
-        and any([v0[k1] not in dstatic[k1].keys() for k1 in lparams])
-    ]
-    if len(lkpout) > 0:
-        lpu = sorted(set([pp[1][0] for pp in lkpout]))
-        msg0 = '\n'.join([
-            '\t- {}[{}]: {}'.format(pp[0], pp[1], pp[2]) for pp in lkpout
-        ])
-        msg1 = '\n'.join([
-            '\t- dstatic[{}]: {}'.format(pp, dstatic[pp].keys())
-            for pp in lpu
-        ])
-        msg = (
-            """
-            The following parameter have non-identified values in ref_static:
-            {}
+    # -------------------
+    # Check against dobj0
 
-            Available values:
-            {}
-            """.format(msg0, msg1)
+    dkpout = {}
+    for k0, v0 in dd.items():
+        for k1 in lparams:
+            out = False
+            if k1 in v0.keys() and k1 in dobj0.keys() and v0[k1] is not None:
+                if isinstance(v0[k1], (tuple, list)):
+                    if any([k2 not in dobj0[k1].keys() for k2 in v0[k1]]):
+                        out = True
+                elif isinstance(v0[k1], str):
+                    if v0[k1] not in dobj0[k1]:
+                        out = True
+                else:
+                    msg = (
+                        "Unknown way of refering to another obj:\n"
+                        f"{dd_name}['{k0}']['{k1}']: {type(v0[k1])}"
+                    )
+                    raise Exception(msg)
+
+            if out is True:
+                if dkpout.get(k0) is None:
+                    dkpout[k0] = {k1: v0[k1]}
+                else:
+                    dkpout[k0][k1] = v0[k1]
+
+    if len(dkpout) > 0:
+        lstr = [
+            f"\t- {k0}:\n"
+            + "\n".join([f"\t\t- {k1}: {v1}" for k1, v1 in v0.items()])
+            for k0, v0 in dkpout.items()
+        ]
+        msg = (
+            "The following parameters have non-identified values:\n"
+            + "\n".join(lstr)
         )
         raise Exception(msg)
 
     return dd
 
 
-def _update_dstatic0(dstatic0=None, ddata0=None, dobj0=None):
-    """ Count nb. of matching ref_static in ddata and dobj """
+def _update_dobj0(ddata0=None, dobj0=None):
+    """ Count nb. of matching in ddata and dobj """
 
-    for k0, v0 in dstatic0.items():
+    for k0, v0 in dobj0.items():
 
         # ddata
         dd = {
@@ -1374,7 +1158,7 @@ def _update_dstatic0(dstatic0=None, ddata0=None, dobj0=None):
         if len(dd) > 0:
             ss = 'nb. data'
             for k2, v2 in v0.items():
-                dstatic0[k0][k2][ss] = int(dd.get(k2, 0))
+                dobj0[k0][k2][ss] = int(dd.get(k2, 0))
 
         # dobj
         for k1, v1 in dobj0.items():
@@ -1384,9 +1168,33 @@ def _update_dstatic0(dstatic0=None, ddata0=None, dobj0=None):
                 if any([v1[k3].get(k0) == k2 for k3 in v1.keys()])
             }
             if len(dd) > 0:
-                ss = 'nb. {}'.format(k1)
+                ss = f'nb. {k1}'
                 for k2, v2 in v0.items():
-                    dstatic0[k0][k2][ss] = int(dd.get(k2, 0))
+                    dobj0[k0][k2][ss] = int(dd.get(k2, 0))
+
+
+# #############################################################################
+# #############################################################################
+#                               dlink
+# #############################################################################
+
+
+def _get_dlink(dref=None, ddata=None, dobj=None):
+
+    lcat = ['ref', 'data'] + list(dobj.keys())
+    ldd = [dref, ddata] + [dobj[k0] for k0 in lcat[2:]]
+
+    dlink = dict.fromkeys(lcat)
+
+    for ii, dd in enumerate(ldd):
+        for k0, v0 in dd.items():
+            lc = [
+                cc for cc in lcat if cc in v0.keys()
+                if not (lcat[ii] == 'data' and cc == 'data')
+            ]
+            if len(lc) > 0:
+                dlink[lcat[ii]] = lc
+    return dlink
 
 
 # #############################################################################
@@ -1399,17 +1207,26 @@ def _consistency(
     dobj=None, dobj0=None,
     ddata=None, ddata0=None,
     dref=None, dref0=None,
-    dstatic=None, dstatic0=None,
     reserved_keys=None,
     ddefparams_data=None,
     ddefparams_obj=None,
-    ddefparams_static=None,
     data_none=None,
     max_ndim=None,
+    harmonize=None,
 ):
 
     # --------------
+    # check inputs
+
+    harmonize = _generic_check._check_var(
+        harmonize, 'harmonize',
+        types=bool,
+        default=True,
+    )
+
+    # --------------
     # dref
+
     dref, ddata_add = _check_dref(
         dref=dref, dref0=dref0, ddata0=ddata0,
     )
@@ -1421,18 +1238,8 @@ def _consistency(
     dref0.update(dref)
 
     # --------------
-    # dstatic
-    dstatic = _check_dstatic(
-        dstatic=dstatic, dstatic0=dstatic0,
-    )
-    for k0, v0 in dstatic.items():
-        if k0 not in dstatic0.keys():
-            dstatic0[k0] = v0
-        else:
-            dstatic0[k0].update(v0)
-
-    # --------------
     # ddata
+
     ddata, dref_add = _check_ddata(
         ddata=ddata, ddata0=ddata0,
         dref0=dref0,
@@ -1446,6 +1253,7 @@ def _consistency(
 
     # -----------------
     # dobj
+
     dobj = _check_dobj(
         dobj=dobj, dobj0=dobj0,
     )
@@ -1456,46 +1264,33 @@ def _consistency(
             dobj0[k0].update(v0)
 
     # --------------
-    # params harmonization - ddata
-    ddata0 = _harmonize_params(
-        dd=ddata0,
-        dd_name='ddata',
-        dstatic=dstatic0,
-        ddefparams=ddefparams_data,
-        reserved_keys=reserved_keys,
-    )
+    # params harmonization
 
-    # --------------
-    # params harmonization - dstatic
-    for k0, v0 in dstatic0.items():
-        if ddefparams_static is None:
-            ddefparams = None
-        else:
-            ddefparams = ddefparams_static.get(k0)
-        dstatic0[k0] = _harmonize_params(
-            dd=v0,
-            dd_name='dstatic',
-            dd_name2=f'dstatic[{k0}]',
-            dstatic=dstatic0,
-            ddefparams=ddefparams,
+    if harmonize is True:
+
+        # data
+        ddata0 = _harmonize_params(
+            dd=ddata0,
+            dd_name='ddata',
+            dobj0=dobj0,
+            ddefparams=ddefparams_data,
             reserved_keys=reserved_keys,
         )
 
-    # --------------
-    # params harmonization - dobj
-    for k0, v0 in dobj0.items():
-        if ddefparams_obj is None:
-            ddefparams = None
-        else:
-            ddefparams = ddefparams_obj.get(k0)
-        dobj0[k0] = _harmonize_params(
-            dd=v0,
-            dd_name='dobj',
-            dd_name2='dobj[{}]'.format(k0),
-            dstatic=dstatic0,
-            ddefparams=ddefparams,
-            reserved_keys=reserved_keys,
-        )
+        # dobj
+        for k0, v0 in dobj0.items():
+            if ddefparams_obj is None:
+                ddefparams = None
+            else:
+                ddefparams = ddefparams_obj.get(k0)
+            dobj0[k0] = _harmonize_params(
+                dd=v0,
+                dd_name='dobj',
+                dd_name2=f'dobj[{k0}]',
+                dobj0=dobj0,
+                ddefparams=ddefparams,
+                reserved_keys=reserved_keys,
+            )
 
     # --------------
     # Complement
@@ -1517,8 +1312,13 @@ def _consistency(
             and ddata0[k1]['monot'][0] == True
         ]
 
-    # dstatic0
-    _update_dstatic0(dstatic0=dstatic0, ddata0=ddata0, dobj0=dobj0)
+    # dobj0
+    _update_dobj0(dobj0=dobj0, ddata0=ddata0)
+
+    # --------------
+    # dlinks
+
+    dlink = _get_dlink(dref=dref0, ddata=ddata0, dobj=dobj0)
 
     # --------------
     # Check conventions
@@ -1527,7 +1327,7 @@ def _consistency(
         if v0.get('data') is None:
             continue
 
-    return dref0, dstatic0, ddata0, dobj0
+    return dref0, ddata0, dobj0, dlink
 
 
 """
@@ -1547,59 +1347,57 @@ def _consistency(
 # #############################################################################
 
 
-def switch_ref(
-    new_ref=None,
-    ddata=None,
-    dref=None,
-    dobj0=None,
-    dstatic0=None,
-    reserved_keys=None,
-    ddefparams_data=None,
-    data_none=None,
-    max_ndim=None,
-):
-    """Use the provided key as ref (if valid) """
+# DEPRECATED ?
+# def switch_ref(
+    # new_ref=None,
+    # ddata=None,
+    # dref=None,
+    # dobj0=None,
+    # reserved_keys=None,
+    # ddefparams_data=None,
+    # data_none=None,
+    # max_ndim=None,
+# ):
+    # """Use the provided key as ref (if valid) """
 
-    # Check input
-    c0 = (
-        new_ref in ddata.keys()
-        and ddata[new_ref].get('monot') == (True,)
-    )
-    if not c0:
-        msg = (
-            "\nArg new_ref must be a key to a valid ref (monotonous)!\n"
-            + "\t- Provided: {}\n\n".format(new_ref)
-            + "Available valid ref candidates:\n"
-            + "\t- {}".format('\n\t- '.join(list(dref.keys())))
-        )
-        raise Exception(msg)
+    # # Check input
+    # c0 = (
+        # new_ref in ddata.keys()
+        # and ddata[new_ref].get('monot') == (True,)
+    # )
+    # if not c0:
+        # msg = (
+            # "\nArg new_ref must be a key to a valid ref (monotonous)!\n"
+            # + "\t- Provided: {}\n\n".format(new_ref)
+            # + "Available valid ref candidates:\n"
+            # + "\t- {}".format('\n\t- '.join(list(dref.keys())))
+        # )
+        # raise Exception(msg)
 
-    # Substitute in dref
-    old_ref = ddata[new_ref]['ref'][0]
-    dref[new_ref] = dict(dref[old_ref])
-    del dref[old_ref]
+    # # Substitute in dref
+    # old_ref = ddata[new_ref]['ref'][0]
+    # dref[new_ref] = dict(dref[old_ref])
+    # del dref[old_ref]
 
-    # substitute in ddata['ref']
-    for k0, v0 in ddata.items():
-        if v0.get('ref') is not None and old_ref in v0['ref']:
-            new = tuple([rr for rr in v0['ref']])
-            ddata[k0]['ref'] = tuple([
-                new_ref if rr == old_ref else rr
-                for rr in v0['ref']
-            ])
+    # # substitute in ddata['ref']
+    # for k0, v0 in ddata.items():
+        # if v0.get('ref') is not None and old_ref in v0['ref']:
+            # new = tuple([rr for rr in v0['ref']])
+            # ddata[k0]['ref'] = tuple([
+                # new_ref if rr == old_ref else rr
+                # for rr in v0['ref']
+            # ])
 
-    return _consistency(
-        ddata=ddata, ddata0={},
-        dref=dref, dref0={},
-        dobj=None, dobj0=dobj0,
-        dstatic=None, dstatic0=dstatic0,
-        reserved_keys=None,
-        ddefparams_data=ddefparams_data,
-        ddefparams_obj=None,
-        ddefparams_static=None,
-        data_none=None,
-        max_ndim=None,
-    )
+    # return _consistency(
+        # ddata=ddata, ddata0={},
+        # dref=dref, dref0={},
+        # dobj=None, dobj0=dobj0,
+        # reserved_keys=None,
+        # ddefparams_data=ddefparams_data,
+        # ddefparams_obj=None,
+        # data_none=None,
+        # max_ndim=None,
+    # )
 
 
 # #############################################################################

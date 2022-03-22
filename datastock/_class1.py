@@ -56,7 +56,6 @@ class DataStock1(DataStock0):
     def __init__(
         self,
         dref=None,
-        dstatic=None,
         ddata=None,
         dobj=None,
     ):
@@ -64,14 +63,12 @@ class DataStock1(DataStock0):
         self._reset()
         self.update(
             dref=dref,
-            dstatic=dstatic,
             ddata=ddata,
             dobj=dobj,
         )
 
     def _reset(self):
         self._dref = {}
-        self._dstatic = {}
         self._ddata = {}
         self._dobj = {}
         self.__dlinks = {}
@@ -85,7 +82,7 @@ class DataStock1(DataStock0):
         dobj=None,
         ddata=None,
         dref=None,
-        dstatic=None,
+        harmonize=None,
     ):
         """ Can be used to set/add data/ref
 
@@ -93,18 +90,17 @@ class DataStock1(DataStock0):
         """
         # Check consistency
         (
-            self._dref, self._dstatic, self._ddata, self._dobj,
+            self._dref, self._ddata, self._dobj, self.__dlinks,
         ) = _class1_check._consistency(
             dobj=dobj, dobj0=self._dobj,
             ddata=ddata, ddata0=self._ddata,
             dref=dref, dref0=self._dref,
-            dstatic=dstatic, dstatic0=self._dstatic,
             reserved_keys=self._reserved_keys,
             ddefparams_data=self._ddef['params'].get('ddata'),
             ddefparams_obj=self._ddef['params'].get('dobj'),
-            ddefparams_static=self._ddef['params'].get('dstatic'),
             data_none=self._data_none,
             max_ndim=self._max_ndim,
+            harmonize=harmonize,
         )
 
     # ---------------------
@@ -114,22 +110,17 @@ class DataStock1(DataStock0):
     def add_ref(self, size=None, key=None, data=None, **kwdargs):
         dref = {key: {'data': data, 'size': size, **kwdargs}}
         # Check consistency
-        self.update(ddata=None, dref=dref, dstatic=None)
-
-    def add_static(self, key=None, which=None, **kwdargs):
-        dstatic = {which: {key: kwdargs}}
-        # Check consistency
-        self.update(ddata=None, dref=None, dstatic=dstatic)
+        self.update(ddata=None, dref=dref, harmonize=True)
 
     def add_data(self, data=None, key=None, ref=None, **kwdargs):
         ddata = {key: {'data': data, 'ref': ref, **kwdargs}}
         # Check consistency
-        self.update(ddata=ddata, dref=None, dstatic=None)
+        self.update(ddata=ddata, dref=None, harmonize=True)
 
-    def add_obj(self, which=None, key=None, **kwdargs):
+    def add_obj(self, which=None, key=None, harmonize=None, **kwdargs):
         dobj = {which: {key: kwdargs}}
         # Check consistency
-        self.update(dobj=dobj, dref=None, dstatic=None)
+        self.update(dobj=dobj, dref=None, harmonize=harmonize)
 
     # ---------------------
     # Removing ref / quantities
@@ -138,11 +129,10 @@ class DataStock1(DataStock0):
     def remove_ref(self, key=None, propagate=None):
         """ Remove a ref (or list of refs) and all associated data """
         (
-            self._dref, self._dstatic, self._ddata, self._dobj,
+            self._dref, self._ddata, self._dobj, self.__dlinks,
         ) = _class1_check._remove_ref(
             key=key,
             dref0=self._dref, ddata0=self._ddata,
-            dstatic0=self._dstatic,
             dobj0=self._dobj,
             propagate=propagate,
             reserved_keys=self._reserved_keys,
@@ -152,34 +142,13 @@ class DataStock1(DataStock0):
             max_ndim=self._max_ndim,
         )
 
-    def remove_static(self, key=None, which=None, propagate=None):
-        """ Remove a static ref (or list) or a whole category
-
-        key is provided:
-            => remove only the desired key(s)
-                works only if key is not used in ddata and dobj
-
-        which is provided:
-            => treated as param, the whole category of ref_static is removed
-                if propagate, the parameter is removed from ddata and dobj
-        """
-        _class1_check._remove_static(
-            key=key,
-            which=which,
-            propagate=propagate,
-            dstatic0=self._dstatic,
-            ddata0=self._ddata,
-            dobj0=self._dobj,
-        )
-
     def remove_data(self, key=None, propagate=True):
         """ Remove a data (or list of data) """
         (
-            self._dref, self._dstatic, self._ddata, self._dobj,
+            self._dref, self._ddata, self._dobj, self.__dlinks,
         ) = _class1_check._remove_data(
             key=key,
             dref0=self._dref, ddata0=self._ddata,
-            dstatic0=self._dstatic,
             dobj0=self._dobj,
             propagate=propagate,
             reserved_keys=self._reserved_keys,
@@ -192,14 +161,13 @@ class DataStock1(DataStock0):
     def remove_obj(self, key=None, which=None, propagate=True):
         """ Remove a data (or list of data) """
         (
-            self._dref, self._dstatic, self._ddata, self._dobj,
+            self._dref, self._ddata, self._dobj, self.__dlinks,
         ) = _class1_check._remove_obj(
             key=key,
             which=which,
             dobj0=self._dobj,
             ddata0=self._ddata,
             dref0=self._dref,
-            dstatic0=self._dstatic,
             reserved_keys=self._reserved_keys,
             ddefparams_data=self._ddef['params']['ddata'],
             ddefparams_obj=self._ddef['params']['dobj'],
@@ -217,7 +185,6 @@ class DataStock1(DataStock0):
             dref=self._dref,
             ddata=self._ddata,
             dobj=self._dobj,
-            dstatic=self._dstatic,
             which=which,
             return_dict=return_dict,
         )
@@ -229,7 +196,6 @@ class DataStock1(DataStock0):
             - 'ref'
             - 'data'
             - dobj[<which>]
-            - dstatic[<which>]
         """
         which, dd = self.__check_which(which, return_dict=True)
         return list(list(dd.values())[0].keys())
@@ -248,7 +214,6 @@ class DataStock1(DataStock0):
             - 'ref'
             - 'data'
             - dobj[<which>]
-            - dstatic[<which>]
 
         param cen be a str or a list of str
 
@@ -278,7 +243,6 @@ class DataStock1(DataStock0):
             - 'ref'
             - 'data'
             - dobj[<which>]
-            - dstatic[<which>]
 
         value can be:
             - None
@@ -342,11 +306,6 @@ class DataStock1(DataStock0):
     def dref(self):
         """ the dict of references """
         return self._dref
-
-    @property
-    def dstatic(self):
-        """ the dict of references """
-        return self._dstatic
 
     @property
     def ddata(self):
@@ -561,8 +520,6 @@ class DataStock1(DataStock0):
             self.dref = dd
         elif which in self._dobj.keys():
             self._dobj[which] = dd
-        elif which in self._dstatic.keys():
-            self._dstatic[which] = dd
 
     # ---------------------
     # Methods computing correlations
@@ -608,7 +565,7 @@ class DataStock1(DataStock0):
         # check inputs
 
         if show_which is None:
-            show_which = ['ref', 'data', 'static', 'obj']
+            show_which = ['ref', 'data', 'obj']
 
         lcol, lar = [], []
 
@@ -681,28 +638,6 @@ class DataStock1(DataStock0):
             lar.append(ar2)
 
         # -----------------------
-        # Build for dstatic
-
-        anystatic = (
-            len(self._dstatic) > 0
-            and any([
-                ss in show_which
-                for ss in ['static'] + list(self._dstatic.keys())
-            ])
-        )
-        if anystatic:
-            for k0, v0 in self._dstatic.items():
-                if 'static' in show_which or k0 in show_which:
-                    lk = list(list(v0.values())[0].keys())
-                    col = [k0] + [pp for pp in lk]
-                    ar = [
-                        tuple([k1] + [str(v1[kk]) for kk in lk])
-                        for k1, v1 in v0.items()
-                    ]
-                    lcol.append(col)
-                    lar.append(ar)
-
-        # -----------------------
         # Build for dobj
 
         anyobj = (
@@ -757,6 +692,23 @@ class DataStock1(DataStock0):
             return self.show(returnas=str, verb=False)
         except Exception:
             return self.__class__.__name__
+
+    # ------
+    # links
+
+    def show_links(self):
+
+        lcol = [['category', 'depends on']]
+        lar = [[[k0, str(v0)] for k0, v0 in self.__dlinks.items()]]
+        return _generic_utils.pretty_print(
+            headers=lcol,
+            content=lar,
+            sep=None,
+            line=None,
+            table_sep=None,
+            verb=True,
+            returnas=False,
+        )
 
 
 # #############################################################################
