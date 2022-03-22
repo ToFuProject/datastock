@@ -354,6 +354,7 @@ def _prepare_dax(
                     ax.yaxis.set_ticks_position('right')
                 else:
                     plt.setp(ax.get_xticklabels(), visible=False)
+                    ax.yaxis.set_ticks_position('right')
 
                 if jj > 0 and ii < len(lcorr):
                     plt.setp(ax.get_yticklabels(), visible=False)
