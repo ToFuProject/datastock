@@ -347,10 +347,9 @@ class DataStock2(DataStock1):
 
         #  add indices to ref
         for k0, v0 in self._dref.items():
-            lg = [k1 for k1, v1 in dgroup.items() if k0 in v1['ref']]
-            if lg[0] is not None:
+            if drefgroup[k0] is not None:
                 self.add_indices_per_ref(
-                    indices=np.zeros((dgroup[lg[0]]['nmax'],), dtype=int),
+                    indices=np.zeros((dgroup[drefgroup[k0]]['nmax'],), dtype=int),
                     ref=k0,
                     distribute=False,
                 )
