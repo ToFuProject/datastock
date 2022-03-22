@@ -82,6 +82,7 @@ class DataStock1(DataStock0):
         dobj=None,
         ddata=None,
         dref=None,
+        harmonize=None,
     ):
         """ Can be used to set/add data/ref
 
@@ -99,6 +100,7 @@ class DataStock1(DataStock0):
             ddefparams_obj=self._ddef['params'].get('dobj'),
             data_none=self._data_none,
             max_ndim=self._max_ndim,
+            harmonize=harmonize,
         )
 
     # ---------------------
@@ -108,17 +110,17 @@ class DataStock1(DataStock0):
     def add_ref(self, size=None, key=None, data=None, **kwdargs):
         dref = {key: {'data': data, 'size': size, **kwdargs}}
         # Check consistency
-        self.update(ddata=None, dref=dref)
+        self.update(ddata=None, dref=dref, harmonize=True)
 
     def add_data(self, data=None, key=None, ref=None, **kwdargs):
         ddata = {key: {'data': data, 'ref': ref, **kwdargs}}
         # Check consistency
-        self.update(ddata=ddata, dref=None)
+        self.update(ddata=ddata, dref=None, harmonize=True)
 
-    def add_obj(self, which=None, key=None, **kwdargs):
+    def add_obj(self, which=None, key=None, harmonize=None, **kwdargs):
         dobj = {which: {key: kwdargs}}
         # Check consistency
-        self.update(dobj=dobj, dref=None)
+        self.update(dobj=dobj, dref=None, harmonize=harmonize)
 
     # ---------------------
     # Removing ref / quantities

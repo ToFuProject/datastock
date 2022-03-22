@@ -330,6 +330,7 @@ def _remove_ref(
         ddefparams_obj=ddefparams_obj,
         data_none=data_none,
         max_ndim=max_ndim,
+        harmonize=True,
     )
 
 
@@ -392,6 +393,7 @@ def _remove_data(
         ddefparams_obj=ddefparams_obj,
         data_none=data_none,
         max_ndim=max_ndim,
+        harmonize=True,
     )
 
 
@@ -450,6 +452,7 @@ def _remove_obj(
         ddefparams_obj=ddefparams_obj,
         data_none=data_none,
         max_ndim=max_ndim,
+        harmonize=True,
     )
 
 
@@ -1110,12 +1113,13 @@ def _harmonize_params(
                 if isinstance(v0[k1], (tuple, list)):
                     if any([k2 not in dobj0[k1].keys() for k2 in v0[k1]]):
                         out = True
-                elif isinstance(v0[k1], str) and v0[k1] not in dobj0[k1]:
-                    out = True
+                elif isinstance(v0[k1], str):
+                    if v0[k1] not in dobj0[k1]:
+                        out = True
                 else:
                     msg = (
-                        "Unknow way of refering to another obj:\n"
-                        "{type(v0[k1])}"
+                        "Unknown way of refering to another obj:\n"
+                        f"{dd_name}['{k0}']['{k1}']: {type(v0[k1])}"
                     )
                     raise Exception(msg)
 
@@ -1208,10 +1212,21 @@ def _consistency(
     ddefparams_obj=None,
     data_none=None,
     max_ndim=None,
+    harmonize=None,
 ):
 
     # --------------
+    # check inputs
+
+    harmonize = _generic_check._check_var(
+        harmonize, 'harmonize',
+        types=bool,
+        default=True,
+    )
+
+    # --------------
     # dref
+
     dref, ddata_add = _check_dref(
         dref=dref, dref0=dref0, ddata0=ddata0,
     )
@@ -1224,6 +1239,7 @@ def _consistency(
 
     # --------------
     # ddata
+
     ddata, dref_add = _check_ddata(
         ddata=ddata, ddata0=ddata0,
         dref0=dref0,
@@ -1237,6 +1253,7 @@ def _consistency(
 
     # -----------------
     # dobj
+
     dobj = _check_dobj(
         dobj=dobj, dobj0=dobj0,
     )
@@ -1247,30 +1264,33 @@ def _consistency(
             dobj0[k0].update(v0)
 
     # --------------
-    # params harmonization - ddata
-    ddata0 = _harmonize_params(
-        dd=ddata0,
-        dd_name='ddata',
-        dobj0=dobj0,
-        ddefparams=ddefparams_data,
-        reserved_keys=reserved_keys,
-    )
+    # params harmonization
 
-    # --------------
-    # params harmonization - dobj
-    for k0, v0 in dobj0.items():
-        if ddefparams_obj is None:
-            ddefparams = None
-        else:
-            ddefparams = ddefparams_obj.get(k0)
-        dobj0[k0] = _harmonize_params(
-            dd=v0,
-            dd_name='dobj',
-            dd_name2=f'dobj[{k0}]',
+    if harmonize is True:
+
+        # data
+        ddata0 = _harmonize_params(
+            dd=ddata0,
+            dd_name='ddata',
             dobj0=dobj0,
-            ddefparams=ddefparams,
+            ddefparams=ddefparams_data,
             reserved_keys=reserved_keys,
         )
+
+        # dobj
+        for k0, v0 in dobj0.items():
+            if ddefparams_obj is None:
+                ddefparams = None
+            else:
+                ddefparams = ddefparams_obj.get(k0)
+            dobj0[k0] = _harmonize_params(
+                dd=v0,
+                dd_name='dobj',
+                dd_name2=f'dobj[{k0}]',
+                dobj0=dobj0,
+                ddefparams=ddefparams,
+                reserved_keys=reserved_keys,
+            )
 
     # --------------
     # Complement
