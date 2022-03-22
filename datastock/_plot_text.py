@@ -133,6 +133,6 @@ def plot_text(
                 data=data,
                 dtype='txt',
                 bstr=bstr_dict[k0],
-                ax=kax,
+                axes=kax,
                 ind=jj,
             )

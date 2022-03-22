@@ -139,7 +139,7 @@ def plot_as_array(
     #  call appropriate routine
 
     if ndim == 1:
-        return plot_as_array_1d(
+        coll, dax, dgroup = plot_as_array_1d(
             # parameters
             coll=coll2,
             key=key,
@@ -154,7 +154,6 @@ def plot_as_array(
             aspect=aspect,
             nmax=nmax,
             color_dict=color_dict,
-            dinc=dinc,
             lkeys=lkeys,
             bstr_dict=bstr_dict,
             rotation=rotation,
@@ -164,11 +163,10 @@ def plot_as_array(
             fs=fs,
             dcolorbar=dcolorbar,
             dleg=dleg,
-            connect=connect,
         )
 
     elif ndim == 2:
-        return plot_as_array_2d(
+        coll, dax, dgroup = plot_as_array_2d(
             # parameters
             coll=coll2,
             key=key,
@@ -185,7 +183,6 @@ def plot_as_array(
             aspect=aspect,
             nmax=nmax,
             color_dict=color_dict,
-            dinc=dinc,
             lkeys=lkeys,
             bstr_dict=bstr_dict,
             rotation=rotation,
@@ -196,11 +193,10 @@ def plot_as_array(
             fs=fs,
             dcolorbar=dcolorbar,
             dleg=dleg,
-            connect=connect,
         )
 
     elif ndim == 3:
-        return plot_as_array_3d(
+        coll, dax, dgroup = plot_as_array_3d(
             # parameters
             coll=coll2,
             key=key,
@@ -219,7 +215,6 @@ def plot_as_array(
             aspect=aspect,
             nmax=nmax,
             color_dict=color_dict,
-            dinc=dinc,
             lkeys=lkeys,
             bstr_dict=bstr_dict,
             rotation=rotation,
@@ -231,9 +226,23 @@ def plot_as_array(
             fs=fs,
             dcolorbar=dcolorbar,
             dleg=dleg,
-            connect=connect,
         )
 
+    # --------------------------
+    # add axes and interactivity
+
+    # add axes
+    for ii, kax in enumerate(dax.keys()):
+        harmonize = ii == len(dax.keys()) - 1
+        coll.add_axes(key=kax, harmonize=harmonize, **dax[kax])
+
+    # connect
+    if connect is True:
+        coll.setup_interactivity(kinter='inter0', dgroup=dgroup, dinc=dinc)
+        coll.disconnect_old()
+        coll.connect()
+
+    return coll
 
 # #############################################################################
 # #############################################################################
@@ -551,7 +560,6 @@ def plot_as_array_1d(
     aspect=None,
     nmax=None,
     color_dict=None,
-    dinc=None,
     lkeys=None,
     bstr_dict=None,
     rotation=None,
@@ -561,7 +569,6 @@ def plot_as_array_1d(
     fs=None,
     dcolorbar=None,
     dleg=None,
-    connect=None,
 ):
 
     # --------------
@@ -671,7 +678,7 @@ def plot_as_array_1d(
                 ref=ref,
                 data='index',
                 dtype='xdata',
-                ax=kax,
+                axes=kax,
                 ind=ii,
             )
 
@@ -697,19 +704,7 @@ def plot_as_array_1d(
             bstr_dict=bstr_dict,
         )
 
-    # add axes
-    for kax in dax.keys():
-        coll.add_axes(key=kax, **dax[kax])
-
-    # increment dict
-
-    coll.setup_interactivity(kinter='inter0', dgroup=dgroup, dinc=dinc)
-
-    # connect
-    if connect is True:
-        coll.connect()
-
-    return coll
+    return coll, dax, dgroup
 
 
 # #############################################################################
@@ -737,7 +732,6 @@ def plot_as_array_2d(
     aspect=None,
     nmax=None,
     color_dict=None,
-    dinc=None,
     lkeys=None,
     bstr_dict=None,
     rotation=None,
@@ -748,7 +742,6 @@ def plot_as_array_2d(
     fs=None,
     dcolorbar=None,
     dleg=None,
-    connect=None,
     interactive=None,
 ):
 
@@ -960,7 +953,7 @@ def plot_as_array_2d(
                     ref=refY,
                     data=keyY,
                     dtype='ydata',
-                    ax=kax,
+                    axes=kax,
                     ind=ii,
                 )
 
@@ -987,7 +980,7 @@ def plot_as_array_2d(
                     ref=refX,
                     data=keyX,
                     dtype='xdata',
-                    ax=kax,
+                    axes=kax,
                     ind=ii,
                 )
 
@@ -1026,7 +1019,7 @@ def plot_as_array_2d(
                 ref=(refX,),
                 data=key,
                 dtype='xdata',
-                ax=kax,
+                axes=kax,
                 ind=ii,
             )
 
@@ -1041,10 +1034,11 @@ def plot_as_array_2d(
                 ref=(refY,),
                 data=keyY,
                 dtype='ydata',
-                ax=kax,
+                axes=kax,
                 ind=ii,
             )
 
+        ax.set_xlim(vmin, vmax)
         dax[kax].update(refy=[refY], datay=keyY)
 
     kax = 'horizontal'
@@ -1069,7 +1063,7 @@ def plot_as_array_2d(
                 ref=(refY,),
                 data=[key],
                 dtype='ydata',
-                ax=kax,
+                axes=kax,
                 ind=ii,
             )
 
@@ -1084,10 +1078,11 @@ def plot_as_array_2d(
                 ref=(refX,),
                 data=keyX,
                 dtype='xdata',
-                ax=kax,
+                axes=kax,
                 ind=ii,
             )
 
+        ax.set_ylim(vmin, vmax)
         dax[kax].update(refx=[refX], datax=keyX)
 
     # ---------
@@ -1127,22 +1122,7 @@ def plot_as_array_2d(
             bstr_dict=bstr_dict,
         )
 
-    # --------------------------
-    # add axes and interactivity
-
-    # add axes
-    for kax in dax.keys():
-        coll.add_axes(key=kax, **dax[kax])
-
-    # increment dict
-
-    coll.setup_interactivity(kinter='inter0', dgroup=dgroup, dinc=dinc)
-
-    # connect
-    if connect is True:
-        coll.connect()
-
-    return coll
+    return coll, dax, dgroup
 
 
 # #############################################################################
@@ -1170,7 +1150,6 @@ def plot_as_array_3d(
     aspect=None,
     nmax=None,
     color_dict=None,
-    dinc=None,
     lkeys=None,
     bstr_dict=None,
     rotation=None,
@@ -1182,7 +1161,6 @@ def plot_as_array_3d(
     fs=None,
     dcolorbar=None,
     dleg=None,
-    connect=None,
 ):
 
     # --------------
@@ -1450,7 +1428,7 @@ def plot_as_array_3d(
             ref=refZ,
             data=key,
             dtype=datatype,
-            ax=kax,
+            axes=kax,
             ind=0,
         )
 
@@ -1484,7 +1462,7 @@ def plot_as_array_3d(
                 ref=refY,
                 data=keyY,
                 dtype='ydata',
-                ax=kax,
+                axes=kax,
                 ind=ii,
             )
             coll.add_mobile(
@@ -1493,7 +1471,7 @@ def plot_as_array_3d(
                 ref=refX,
                 data=keyX,
                 dtype='xdata',
-                ax=kax,
+                axes=kax,
                 ind=ii,
             )
             km = f'm{ii:02.0f}'
@@ -1503,7 +1481,7 @@ def plot_as_array_3d(
                 ref=[refX, refY],
                 data=[keyX, keyY],
                 dtype=['xdata', 'ydata'],
-                ax=kax,
+                axes=kax,
                 ind=ii,
             )
 
@@ -1532,7 +1510,7 @@ def plot_as_array_3d(
                 data=[key, key],
                 dtype=['xdata', 'xdata'],
                 group_vis='X',
-                ax=kax,
+                axes=kax,
                 ind=ii,
             )
 
@@ -1548,7 +1526,7 @@ def plot_as_array_3d(
                 data=keyY,
                 dtype='ydata',
                 group_vis='Y',
-                ax=kax,
+                axes=kax,
                 ind=ii,
             )
 
@@ -1576,7 +1554,7 @@ def plot_as_array_3d(
                 data=[key, key],
                 dtype=['ydata', 'ydata'],
                 group_vis='Y',
-                ax=kax,
+                axes=kax,
                 ind=ii,
             )
 
@@ -1592,7 +1570,7 @@ def plot_as_array_3d(
                 data=keyX,
                 dtype='xdata',
                 group_vis='X',
-                ax=kax,
+                axes=kax,
                 ind=ii,
             )
 
@@ -1618,7 +1596,7 @@ def plot_as_array_3d(
                 ref=(refX, refY),
                 data=[key, key],
                 dtype=['ydata', 'ydata'],
-                ax=kax,
+                axes=kax,
                 ind=ii,
             )
 
@@ -1633,7 +1611,7 @@ def plot_as_array_3d(
             ref=(refZ,),
             data=keyZ,
             dtype='xdata',
-            ax=kax,
+            axes=kax,
             ind=0,
         )
 
@@ -1693,19 +1671,4 @@ def plot_as_array_3d(
             bstr_dict=bstr_dict,
         )
 
-    # --------------------------
-    # add axes and interactivity
-
-    # add axes
-    for kax in dax.keys():
-        coll.add_axes(key=kax, **dax[kax])
-
-    # increment dict
-
-    coll.setup_interactivity(kinter='inter0', dgroup=dgroup, dinc=dinc)
-
-    # connect
-    if connect is True:
-        coll.connect()
-
-    return coll
+    return coll, dax, dgroup

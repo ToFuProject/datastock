@@ -150,11 +150,9 @@ def plot_correlations(
     # for kax in dax.keys():
         # coll.add_axes(key=kax, **dax[kax])
 
-    # setup interactivity
-    # coll.setup_interactivity(kinter='inter0', dgroup=dgroup, dinc=dinc)
-
     # connect
     # if connect is True:
+        # coll.setup_interactivity(kinter='inter0', dgroup=dgroup, dinc=dinc)
         # coll.disconnect_old()
         # coll.connect()
 
