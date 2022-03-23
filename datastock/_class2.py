@@ -483,6 +483,7 @@ class DataStock2(DataStock1):
                 kinter = self.kinter
             else:
                 kinter = 'inter0'
+
         self.kinter = kinter
         self.add_obj(
             which='interactivity',
