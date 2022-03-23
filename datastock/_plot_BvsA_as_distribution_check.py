@@ -146,12 +146,12 @@ def _plot_BvsA_check(
             c0 = (
                 keyX in refs
                 or (
-                    keyX in coll._ddata.keys()
+                    keyX in coll2._ddata.keys()
                     and (
-                        coll._ddata[keyX]['ref'] == refs
+                        coll2._ddata[keyX]['ref'] == refs
                         or (
-                            len(coll._ddata[keyX]['ref']) == 1
-                            and coll._ddata[keyX]['ref'][0] in refs
+                            len(coll2._ddata[keyX]['ref']) == 1
+                            and coll2._ddata[keyX]['ref'][0] in refs
                         )
                     )
                 )
@@ -164,7 +164,7 @@ def _plot_BvsA_check(
                 raise Exception(msg)
 
             # Deduce refX and axis
-            refX = keyX if keyX in refs else coll._ddata[keyX]['ref']
+            refX = keyX if keyX in refs else coll2._ddata[keyX]['ref']
             if isinstance(refX, str):
                 axis = refs.index(keyX)
             elif len(refX) == 1:
@@ -181,9 +181,9 @@ def _plot_BvsA_check(
 
         # dataX
         if keyX in refs:
-            dataX = np.arange(0, coll._dref[keyX]['size'])
+            dataX = np.arange(0, coll2._dref[keyX]['size'])
         else:
-            dataX = coll.ddata[keyX]['data']
+            dataX = coll2.ddata[keyX]['data']
 
         if hasattr(dataX, 'nnz'):
             dataX = dataX.toarray()
@@ -252,7 +252,7 @@ def _plot_BvsA_check(
                     dlim=color_dict[k0]['dlim'],
                     logic_intervals='all',
                     logic=color_dict_logic,
-                    ddata=coll._ddata,
+                    ddata=coll2._ddata,
                 )
 
             if v0['ind'].shape != shape:
@@ -282,12 +282,12 @@ def _plot_BvsA_check(
 
         # color_map_key
         c0 = (
-            color_map_key in coll._ddata.keys()
+            color_map_key in coll2._ddata.keys()
             and (
-                coll._ddata[color_map_key]['ref']
+                coll2._ddata[color_map_key]['ref']
                 == tuple([
                     rr for rr in refs
-                    if rr in coll._ddata[color_map_key]['ref']
+                    if rr in coll2._ddata[color_map_key]['ref']
                 ])
             )
         )
@@ -297,21 +297,21 @@ def _plot_BvsA_check(
                 f"It must have ref = {refs}\n"
                 "Provided:\n"
                 f"\t- color_map_key: {color_map_key}\n"
-                f"\t- ref: {coll._ddata[color_map_key]['ref']}\n"
+                f"\t- ref: {coll2._ddata[color_map_key]['ref']}\n"
             )
             raise Exception(msg)
 
         # color_map_data
-        if coll._ddata[color_map_key]['ref'] == refs:
-            color_map_data = coll._ddata[color_map_key]['data']
+        if coll2._ddata[color_map_key]['ref'] == refs:
+            color_map_data = coll2._ddata[color_map_key]['data']
         else:
             color_map_data = np.full(shape, np.nan)
             shap = tuple([
-                aa if aa in coll._ddata[color_map_key]['data'].shape else 1
+                aa if aa in coll2._ddata[color_map_key]['data'].shape else 1
                 for aa in shape
             ])
             color_map_data[...] = np.reshape(
-                coll._ddata[color_map_key]['data'],
+                coll2._ddata[color_map_key]['data'],
                 shap,
             )
 
@@ -319,7 +319,7 @@ def _plot_BvsA_check(
         (
             color_map, color_map_vmin, color_map_vmax,
         ) = _generic_check._check_cmap_vminvmax(
-            data=coll._ddata[color_map_key]['data'],
+            data=coll2._ddata[color_map_key]['data'],
             cmap=color_map,
             vmin=color_map_vmin,
             vmax=color_map_vmax,
@@ -327,13 +327,13 @@ def _plot_BvsA_check(
 
     # Amin, Amax, Bmin, Bmax
     if Amin is None:
-        Amin = np.nanmin(coll._ddata[keyA]['data'])
+        Amin = np.nanmin(coll2._ddata[keyA]['data'])
     if Amax is None:
-        Amax = np.nanmax(coll._ddata[keyA]['data'])
+        Amax = np.nanmax(coll2._ddata[keyA]['data'])
     if Bmin is None:
-        Bmin = np.nanmin(coll._ddata[keyB]['data'])
+        Bmin = np.nanmin(coll2._ddata[keyB]['data'])
     if Bmax is None:
-        Bmax = np.nanmax(coll._ddata[keyB]['data'])
+        Bmax = np.nanmax(coll2._ddata[keyB]['data'])
 
     # distribution binning
     if nAbin is None:
@@ -449,6 +449,7 @@ def _plot_BvsA_check(
     )
 
     return (
+        coll2,
         keyA,
         refA,
         dataA,

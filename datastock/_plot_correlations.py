@@ -2,7 +2,7 @@
 
 
 # Built-in
-# import itertools as itt
+import itertools as itt
 # import warnings
 
 
@@ -46,12 +46,14 @@ def plot_correlations(
     inverty=None,
     # interactivity
     connect=None,
+    inplace=None,
 ):
 
     # ----------------------------------
     #  check inputs - all others
 
     (
+        coll2,
         # customization of scatter plot
         cmap,
         vmin,
@@ -67,6 +69,7 @@ def plot_correlations(
         connect,
     ) = _check(
         coll=coll,
+        inplace=inplace,
         dcross=dcross,
         # customization of scatter plot
         cmap=cmap,
@@ -149,15 +152,15 @@ def plot_correlations(
     # add axes
     # for ii, kax in enumerate(dax.keys()):
         # harmonize = ii == len(dax) - 1
-        # coll.add_axes(key=kax, harmonize=harmonize, **dax[kax])
+        # coll2.add_axes(key=kax, harmonize=harmonize, **dax[kax])
 
     # connect
     # if connect is True:
-        # coll.setup_interactivity(kinter='inter0', dgroup=dgroup, dinc=dinc)
-        # coll.disconnect_old()
-        # coll.connect()
+        # coll2.setup_interactivity(kinter='inter0', dgroup=dgroup, dinc=dinc)
+        # coll2.disconnect_old()
+        # coll2.connect()
 
-    return coll
+    return coll2
 
 
 # #############################################################################
@@ -168,6 +171,7 @@ def plot_correlations(
 
 def _check(
     coll=None,
+    inplace=None,
     # parameters
     dcross=None,
     # customization of scatter plot
@@ -184,6 +188,16 @@ def _check(
     # interactivity
     connect=None,
 ):
+
+    # check key, inplace flag and extract sub-collection
+    lk = list(set(itt.chain.from_iterable([
+        v0['keys0'].tolist() + v0['keys1'].tolist() for v0 in dcross.values()
+    ])))
+    _, inplace, coll2 = _generic_check._check_inplace(
+        coll=coll,
+        keys=lk,
+        inplace=inplace,
+    )
 
     # check dimensions
     ndim = [
@@ -233,6 +247,7 @@ def _check(
     )
 
     return (
+        coll2,
         # customization of scatter plot
         cmap,
         vmin,

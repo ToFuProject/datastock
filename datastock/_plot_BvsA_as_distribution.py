@@ -81,6 +81,7 @@ def plot_BvsA_as_distribution(
     #  check inputs - all others
 
     (
+        coll2,
         keyA,
         refA,
         dataA,
@@ -189,15 +190,15 @@ def plot_BvsA_as_distribution(
     # --------------
     #  Prepare data
 
-    unitsA = coll._ddata[keyA]['units']
-    unitsB = coll._ddata[keyB]['units']
+    unitsA = coll2._ddata[keyA]['units']
+    unitsB = coll2._ddata[keyB]['units']
     laby = f'{keyB} ({unitsB})'
     labx = f'{keyA} ({unitsA})'
     if ndim == 2:
         if keyX in refs:
             unitsX = 'index'
         else:
-            unitsX = coll._ddata[keyX]['units']
+            unitsX = coll2._ddata[keyX]['units']
         labX = f'{keyX} ({unitsX})'
     else:
         labX = None
@@ -220,7 +221,7 @@ def plot_BvsA_as_distribution(
             dlim=dlim,
             logic_intervals='all',
             logic=dlim_logic,
-            ddata=coll._ddata,
+            ddata=coll2._ddata,
         )
 
         # implement
@@ -359,7 +360,7 @@ def plot_BvsA_as_distribution(
 
             # update coll
             km = f'm{ii:02.0f}'
-            coll.add_mobile(
+            coll2.add_mobile(
                 key=km,
                 handle=mi,
                 ref=[ref0, ref0],
@@ -401,7 +402,7 @@ def plot_BvsA_as_distribution(
 
                         # update coll
                         km = f'l{kk}{ii:02.0f}'
-                        coll.add_mobile(
+                        coll2.add_mobile(
                             key=km,
                             handle=li,
                             ref=[ref0],
@@ -425,7 +426,7 @@ def plot_BvsA_as_distribution(
 
                         # update coll
                         km = f'l{kk}{ii:02.0f}'
-                        coll.add_mobile(
+                        coll2.add_mobile(
                             key=km,
                             handle=li,
                             ref=[ref0, ref0],
@@ -443,7 +444,7 @@ def plot_BvsA_as_distribution(
         ax = dax[kax]['handle']
 
         _plot_text.plot_text(
-            coll=coll,
+            coll=coll2,
             kax=kax,
             ax=ax,
             ref=ref0,
@@ -461,15 +462,15 @@ def plot_BvsA_as_distribution(
     # add axes
     for ii, kax in enumerate(dax.keys()):
         harmonize = ii == len(dax) - 1
-        coll.add_axes(key=kax, harmonize=harmonize, **dax[kax])
+        coll2.add_axes(key=kax, harmonize=harmonize, **dax[kax])
 
     # connect
     if connect is True:
-        coll.setup_interactivity(kinter='inter0', dgroup=dgroup, dinc=dinc)
-        coll.disconnect_old()
-        coll.connect()
+        coll2.setup_interactivity(kinter='inter0', dgroup=dgroup, dinc=dinc)
+        coll2.disconnect_old()
+        coll2.connect()
 
-    return coll
+    return coll2
 
 
 # #############################################################################

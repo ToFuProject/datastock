@@ -91,7 +91,7 @@ def plot_as_array(
         inplace=inplace,
     )
     key = key[0]
-    ndim = coll._ddata[key]['data'].ndim
+    ndim = coll2._ddata[key]['data'].ndim
 
     # --------------
     # check input
@@ -112,7 +112,7 @@ def plot_as_array(
         dcolorbar, dleg, connect,
     ) = _plot_as_array_check(
         ndim=ndim,
-        coll=coll,
+        coll=coll2,
         key=key,
         keyX=keyX,
         keyY=keyY,
@@ -139,7 +139,7 @@ def plot_as_array(
     #  call appropriate routine
 
     if ndim == 1:
-        coll, dax, dgroup = plot_as_array_1d(
+        coll2, dax, dgroup = plot_as_array_1d(
             # parameters
             coll=coll2,
             key=key,
@@ -166,7 +166,7 @@ def plot_as_array(
         )
 
     elif ndim == 2:
-        coll, dax, dgroup = plot_as_array_2d(
+        coll2, dax, dgroup = plot_as_array_2d(
             # parameters
             coll=coll2,
             key=key,
@@ -234,15 +234,15 @@ def plot_as_array(
     # add axes
     for ii, kax in enumerate(dax.keys()):
         harmonize = ii == len(dax.keys()) - 1
-        coll.add_axes(key=kax, harmonize=harmonize, **dax[kax])
+        coll2.add_axes(key=kax, harmonize=harmonize, **dax[kax])
 
     # connect
     if connect is True:
-        coll.setup_interactivity(kinter='inter0', dgroup=dgroup, dinc=dinc)
-        coll.disconnect_old()
-        coll.connect()
+        coll2.setup_interactivity(kinter='inter0', dgroup=dgroup, dinc=dinc)
+        coll2.disconnect_old()
+        coll2.connect()
 
-    return coll
+    return coll2
 
 # #############################################################################
 # #############################################################################
