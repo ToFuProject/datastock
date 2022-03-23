@@ -98,9 +98,9 @@ def plot_as_array(
 
     (
         key,
-        keyX, refX,
-        keyY, refY,
-        keyZ, refZ,
+        keyX, refX, islogX,
+        keyY, refY, islogY,
+        keyZ, refZ, islogZ,
         ind,
         cmap, vmin, vmax,
         ymin, ymax,
@@ -145,6 +145,7 @@ def plot_as_array(
             key=key,
             keyX=keyX,
             refX=refX,
+            islogX=islogX,
             ind=ind,
             vmin=vmin,
             vmax=vmax,
@@ -174,6 +175,8 @@ def plot_as_array(
             keyY=keyY,
             refX=refX,
             refY=refY,
+            islogX=islogX,
+            islogY=islogY,
             ind=ind,
             vmin=vmin,
             vmax=vmax,
@@ -196,7 +199,7 @@ def plot_as_array(
         )
 
     elif ndim == 3:
-        coll, dax, dgroup = plot_as_array_3d(
+        coll2, dax, dgroup = plot_as_array_3d(
             # parameters
             coll=coll2,
             key=key,
@@ -206,6 +209,9 @@ def plot_as_array(
             refX=refX,
             refY=refY,
             refZ=refZ,
+            islogX=islogX,
+            islogY=islogY,
+            islogZ=islogZ,
             ind=ind,
             vmin=vmin,
             vmax=vmax,
@@ -254,6 +260,7 @@ def _check_keyXYZ(coll=None, refs=None, keyX=None, ndim=None, dimlim=None):
     """   """
 
     refX = None
+    islog = False
     if ndim >= dimlim:
         if keyX is not None:
             if keyX in coll._ddata.keys():
@@ -271,6 +278,15 @@ def _check_keyXYZ(coll=None, refs=None, keyX=None, ndim=None, dimlim=None):
                                 equal_nan=False,
                             )
                         )
+                        or (
+                            v0['monot'] == (True,)
+                            and np.all(v0['data'] > 0.)
+                            and np.allclose(
+                                np.diff(np.log(v0['data'])),
+                                np.log(v0['data'][1]) - np.log(v0['data'][0]),
+                                equal_nan=False,
+                            )
+                        )
                     )
                 ]
                 keyX = _generic_check._check_var(
@@ -278,6 +294,19 @@ def _check_keyXYZ(coll=None, refs=None, keyX=None, ndim=None, dimlim=None):
                     allowed=lok,
                 )
                 refX = coll._ddata[keyX]['ref'][0]
+
+                # islog
+                c0 = (
+                    np.all(coll._ddata[keyX]['data'] > 0.)
+                    and np.allclose(
+                        np.diff(np.log(coll._ddata[keyX]['data'])),
+                        np.log(coll._ddata[keyX]['data'][1])
+                        - np.log(coll._ddata[keyX]['data'][0]),
+                        equal_nan=False,
+                    )
+                )
+                if c0:
+                    islog = True
 
             elif keyX in refs:
                 keyX, refX = 'index', keyX
@@ -288,7 +317,7 @@ def _check_keyXYZ(coll=None, refs=None, keyX=None, ndim=None, dimlim=None):
         else:
             keyX, refX = 'index', refs[dimlim - 1]
 
-    return keyX, refX
+    return keyX, refX, islog
 
 
 def _plot_as_array_check(
@@ -331,13 +360,13 @@ def _plot_as_array_check(
 
     # keyX, keyY, keyZ
     refs = coll._ddata[key]['ref']
-    keyX, refX = _check_keyXYZ(
+    keyX, refX, islogX = _check_keyXYZ(
         coll=coll, refs=refs, keyX=keyX, ndim=ndim, dimlim=1,
     )
-    keyY, refY = _check_keyXYZ(
+    keyY, refY, islogY = _check_keyXYZ(
         coll=coll, refs=refs, keyX=keyY, ndim=ndim, dimlim=2,
     )
-    keyZ, refZ = _check_keyXYZ(
+    keyZ, refZ, islogZ = _check_keyXYZ(
         coll=coll, refs=refs, keyX=keyZ, ndim=ndim, dimlim=3,
     )
 
@@ -511,9 +540,9 @@ def _plot_as_array_check(
 
     return (
         key,
-        keyX, refX,
-        keyY, refY,
-        keyZ, refZ,
+        keyX, refX, islogX,
+        keyY, refY, islogY,
+        keyZ, refZ, islogZ,
         ind,
         cmap, vmin, vmax,
         ymin, ymax,
@@ -526,8 +555,9 @@ def _plot_as_array_check(
     )
 
 
-def _get_str_datadlab(keyX=None, nx=None, coll=None):
+def _get_str_datadlab(keyX=None, nx=None, islogX=None, coll=None):
 
+    keyX2 = keyX
     xstr = keyX != 'index' and coll.ddata[keyX]['data'].dtype.type == np.str_
     if keyX == 'index':
         dataX = np.arange(0, nx)
@@ -538,11 +568,21 @@ def _get_str_datadlab(keyX=None, nx=None, coll=None):
         labX = ''
         dX2 = 0.5
     else:
-        dataX = coll.ddata[keyX]['data']
-        dX2 = np.nanmean(np.diff(dataX))
-        labX = f"{keyX} ({coll._ddata[keyX]['units']})"
+        if islogX is True:
+            keyX2 = f"{keyX}-log10"
+            coll.add_data(
+                key=keyX2,
+                data=np.log10(coll.ddata[keyX]['data']),
+                ref=coll.ddata[keyX]['ref'],
+            )
+            labX = r"$\log_{10}$" + f"({keyX} ({coll._ddata[keyX]['units']}))"
+            dataX = coll.ddata[keyX2]['data']
+        else:
+            labX = f"{keyX} ({coll._ddata[keyX]['units']})"
+            dataX = coll.ddata[keyX]['data']
+        dX2 = np.nanmean(np.diff(dataX)) / 2.
 
-    return xstr, dataX, dX2, labX
+    return keyX2, xstr, dataX, dX2, labX
 
 
 # #############################################################################
@@ -557,6 +597,7 @@ def plot_as_array_1d(
     key=None,
     keyX=None,
     refX=None,
+    islogX=None,
     ind=None,
     vmin=None,
     vmax=None,
@@ -586,7 +627,9 @@ def plot_as_array_1d(
     assert data.ndim == len(coll.ddata[key]['ref']) == 1
     n0, = data.shape
 
-    xstr, dataX, dX2, labX = _get_str_datadlab(keyX=keyX, nx=n0, coll=coll)
+    keyX, xstr, dataX, dX2, labX = _get_str_datadlab(
+        keyX=keyX, nx=n0, islogX=islogX, coll=coll,
+    )
     ref = coll._ddata[key]['ref'][0]
     units = coll._ddata[key]['units']
     lab0 = f'ind ({ref})'
@@ -729,6 +772,9 @@ def plot_as_array_2d(
     refX=None,
     refY=None,
     refZ=None,
+    islogX=None,
+    islogY=None,
+    islogZ=None,
     ind=None,
     vmin=None,
     vmax=None,
@@ -781,8 +827,12 @@ def plot_as_array_2d(
     # ----------------------
     #  labels and data
 
-    xstr, dataX, dX2, labX = _get_str_datadlab(keyX=keyX, nx=nx, coll=coll)
-    ystr, dataY, dY2, labY = _get_str_datadlab(keyX=keyY, nx=ny, coll=coll)
+    keyX, xstr, dataX, dX2, labX = _get_str_datadlab(
+        keyX=keyX, nx=nx, islogX=islogX, coll=coll,
+    )
+    keyY, ystr, dataY, dY2, labY = _get_str_datadlab(
+        keyX=keyY, nx=ny, islogX=islogY, coll=coll,
+    )
 
     extent = (
         dataX[0] - dX2, dataX[-1] + dX2,
@@ -998,7 +1048,6 @@ def plot_as_array_2d(
             ax_refy = None
             ax_datay = None
 
-
         dax[kax].update(
             refx=ax_refx, datax=ax_datax, refy=ax_refy, datay=ax_datay,
         )
@@ -1030,7 +1079,7 @@ def plot_as_array_2d(
             )
 
             l0 = ax.axhline(
-                ind[1],
+                dataY[ind[1]],
                 c=color_dict['X'][ii],
             )
             km = f'lh-v{ii:02.0f}'
@@ -1073,7 +1122,7 @@ def plot_as_array_2d(
             )
 
             l0 = ax.axvline(
-                ind[0],
+                dataX[ind[0]],
                 c=color_dict['Y'][ii],
             )
             km = f'lv-h{ii:02.0f}'
@@ -1145,6 +1194,9 @@ def plot_as_array_3d(
     refX=None,
     refY=None,
     refZ=None,
+    islogX=None,
+    islogY=None,
+    islogZ=None,
     ind=None,
     vmin=None,
     vmax=None,
@@ -1200,9 +1252,15 @@ def plot_as_array_3d(
     # ----------------------
     #  labels and data
 
-    xstr, dataX, dX2, labX = _get_str_datadlab(keyX=keyX, nx=nx, coll=coll)
-    ystr, dataY, dY2, labY = _get_str_datadlab(keyX=keyY, nx=ny, coll=coll)
-    zstr, dataZ, dZ2, labZ = _get_str_datadlab(keyX=keyZ, nx=nz, coll=coll)
+    keyX, xstr, dataX, dX2, labX = _get_str_datadlab(
+        keyX=keyX, nx=nx, islogX=islogX, coll=coll,
+    )
+    keyY, ystr, dataY, dY2, labY = _get_str_datadlab(
+        keyX=keyY, nx=ny, islogX=islogY, coll=coll,
+    )
+    keyZ, zstr, dataZ, dZ2, labZ = _get_str_datadlab(
+        keyX=keyZ, nx=nz, islogX=islogZ, coll=coll,
+    )
 
     extent = (
         dataX[0] - dX2, dataX[-1] + dX2,
