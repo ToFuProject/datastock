@@ -388,10 +388,12 @@ class DataStock2(DataStock1):
             ]
             dgroup[k0]['axes'] = lkax
 
-        for k0, v0 in dgroup.items():
+        for ii, (k0, v0) in enumerate(dgroup.items()):
+            harmonize = ii == len(dgroup) - 1
             self.add_obj(
                 which='group',
                 key=k0,
+                harmonize=harmonize,
                 **v0,
             )
 
@@ -446,10 +448,12 @@ class DataStock2(DataStock1):
         dkeys = _class2_interactivity._setup_keys(dkeys=dkeys, dgroup=dgroup)
 
         # implement dict
-        for k0, v0 in dkeys.items():
+        for ii, (k0, v0) in enumerate(dkeys.items()):
+            harmonize = ii == len(dgroup) - 1
             self.add_obj(
                 which='key',
                 key=k0,
+                harmonize=harmonize,
                 **v0,
             )
 
