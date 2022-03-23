@@ -1427,6 +1427,8 @@ def _get_param(
 
     # param
     lp = [kk for kk in list(dd.values())[0].keys() if kk != 'data']
+    if isinstance(param, str):
+        param = [param]
     param = _generic_check._check_var_iter(
         param,
         'param',
