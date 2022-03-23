@@ -525,7 +525,13 @@ def correlations(
             ind = np.argsort(data0[ioki])
 
             # ignore constant arrays
-            if np.allclose(datai[ioki], np.mean(datai[ioki])):
+            c0 = (
+                np.allclose(datai[ioki], np.mean(datai[ioki]))
+                and np.allclose(
+                    np.log10(datai[ioki]), np.log10(np.mean(datai[ioki]))
+                )
+            )
+            if c0:
                 continue
 
             # get correlation coefs
@@ -551,7 +557,9 @@ def correlations(
                 if k0 == ref:
                     datai = ddata[k1]['data']
                 else:
-                    datai[...] = ddata[k1]['data'].reshape(v0['reshape'])
+                    datai[...] = ddata[k1]['data'].reshape(
+                        dcross[rr]['reshape'],
+                    )
 
                 # Only keep finite values
                 ioki = iok & np.isfinite(datai)
