@@ -92,6 +92,8 @@ def interpolate(
 
             # only keep finite y
             indok = np.isfinite(y)
+            if log_log is True:
+                indok &= y > 0
             x = x[indok]
             y = y[indok]
 
@@ -99,7 +101,11 @@ def interpolate(
             indok = (
                 np.isfinite(pts_axis0)
                 & (pts_axis0 >= x[0]) & (pts_axis0 <= x[-1])
-            ).nonzero()[0]
+            )
+            if log_log is True:
+                indok &= pts_axis0 > 0
+            indok = indok.nonzero()[0]
+
             # sort for more efficient evaluation
             indok = indok[np.argsort(pts_axis0[indok])]
 
@@ -264,6 +270,24 @@ def _check(
         default=False,
         types=bool,
     )
+
+    if log_log is True:
+        lkout = [k0 for k0 in keys_ref if np.any(ddata[k0]['data'] <= 0)]
+        if len(lkout) > 0:
+            msg = (
+                "The following keys cannot be used as ref / coordinates "
+                "with log_log=True because they have <=0 values:\n"
+                f"\t- {lkout}"
+            )
+            raise Exception(msg)
+        lkout = [k0 for k0 in keys if np.any(ddata[k0]['data'] <= 0)]
+        if len(lkout) > 0:
+            msg = (
+                "The following keys cannot be used as data "
+                "with log_log=True because they have <=0 values:\n"
+                f"\t- {lkout}"
+            )
+            raise Exception(msg)
 
     # ---
     # pts_axis0

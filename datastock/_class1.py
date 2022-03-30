@@ -534,10 +534,9 @@ class DataStock1(DataStock0):
         pts_axis1=None,
         pts_axis2=None,
         grid=None,
-        ddata=None,
-        dref=None,
         deg=None,
         deriv=None,
+        log_log=None,
     ):
         return _class1_interpolate.interpolate(
             keys_ref=keys_ref,
@@ -548,6 +547,7 @@ class DataStock1(DataStock0):
             grid=grid,
             deg=deg,
             deriv=deriv,
+            log_log=log_log,
             ddata=self._ddata,
             dref=self._dref,
         )
