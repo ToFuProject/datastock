@@ -29,6 +29,7 @@ def interpolate(
     dref=None,
     deg=None,
     deriv=None,
+    log_log=None,
 ):
     """ Interpolate at desired points on desired data
 
@@ -56,7 +57,7 @@ def interpolate(
         keys_ref, keys,
         deg, deriv,
         pts_axis0, pts_axis1, pts_axis2,
-        grid, ndim,
+        log_log, grid, ndim,
     ) = _check(
         keys_ref=keys_ref,
         keys=keys,
@@ -66,6 +67,7 @@ def interpolate(
         pts_axis1=pts_axis1,
         pts_axis2=pts_axis2,
         grid=grid,
+        log_log=log_log,
         ddata=ddata,
         dref=dref,
     )
@@ -88,24 +90,37 @@ def interpolate(
                 x = ddata[keys_ref[0]]['data'][::-1]
                 y = ddata[k0]['data'][::-1]
 
-            # Instanciate interpolation, using finite values only
+            # only keep finite y
             indok = np.isfinite(y)
-            spl = scpinterp.InterpolatedUnivariateSpline(
-                x[indok],
-                y[indok],
-                k=deg,
-                ext='zeros',
-            )
+            x = x[indok]
+            y = y[indok]
 
             # Interpolate on finite values within boundaries only
             indok = (
                 np.isfinite(pts_axis0)
                 & (pts_axis0 >= x[0]) & (pts_axis0 <= x[-1])
             ).nonzero()[0]
-
             # sort for more efficient evaluation
             indok = indok[np.argsort(pts_axis0[indok])]
-            dvalues[k0][indok] = spl(pts_axis0[indok], nu=deriv)
+
+            # Instanciate interpolation, using finite values only
+            if log_log is True:
+                dvalues[k0][indok] = np.exp(
+                    scpinterp.InterpolatedUnivariateSpline(
+                        np.log(x),
+                        np.log(y),
+                        k=deg,
+                        ext='zeros',
+                    )(np.log(pts_axis0[indok]), nu=deriv)
+                )
+
+            else:
+                dvalues[k0][indok] = scpinterp.InterpolatedUnivariateSpline(
+                    x,
+                    y,
+                    k=deg,
+                    ext='zeros',
+                )(pts_axis0[indok], nu=deriv)
 
     elif ndim == 2:
         pass
@@ -142,10 +157,11 @@ def _check(
     pts_axis1=None,
     pts_axis2=None,
     grid=None,
-    ddata=None,
-    dref=None,
     deg=None,
     deriv=None,
+    log_log=None,
+    ddata=None,
+    dref=None,
 ):
 
     # ---
@@ -241,6 +257,15 @@ def _check(
     )
 
     # ---
+    # log_log
+
+    log_log = _generic_check._check_var(
+        log_log, 'log_log',
+        default=False,
+        types=bool,
+    )
+
+    # ---
     # pts_axis0
 
     pts_axis0 = _check_pts(pts=pts_axis0, pts_name='pts_axis0')
@@ -305,5 +330,5 @@ def _check(
         keys_ref, keys,
         deg, deriv,
         pts_axis0, pts_axis1, pts_axis2,
-        grid, ndim,
+        log_log, grid, ndim,
     )
