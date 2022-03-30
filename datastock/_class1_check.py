@@ -677,10 +677,14 @@ def _check_data(data=None, key=None, max_ndim=None):
         if data.dtype.type == np.str_:
             monotonous = tuple([False for ii in data.shape])
         else:
+            monot = np.all(np.isfinite(data))
             monotonous = tuple([
                 bool(
-                    np.all(np.diff(data, axis=aa) > 0.)
-                    or np.all(np.diff(data, axis=aa) < 0.)
+                    monot
+                    and (
+                        np.all(np.diff(data, axis=aa) > 0.)
+                        or np.all(np.diff(data, axis=aa) < 0.)
+                    )
                 )
                 for aa in range(data.ndim)
             ])

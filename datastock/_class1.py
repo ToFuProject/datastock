@@ -15,6 +15,7 @@ from . import _generic_utils
 from . import _class1_check
 from ._class0 import *
 from . import _class1_compute
+from . import _class1_interpolate
 
 
 #############################################
@@ -520,6 +521,36 @@ class DataStock1(DataStock0):
             self.dref = dd
         elif which in self._dobj.keys():
             self._dobj[which] = dd
+
+    # ---------------------
+    # Methods interpolating
+    # ---------------------
+
+    def interpolate(
+        self,
+        keys_ref=None,
+        keys=None,
+        pts_axis0=None,
+        pts_axis1=None,
+        pts_axis2=None,
+        grid=None,
+        ddata=None,
+        dref=None,
+        deg=None,
+        deriv=None,
+    ):
+        return _class1_interpolate.interpolate(
+            keys_ref=keys_ref,
+            keys=keys,
+            pts_axis0=pts_axis0,
+            pts_axis1=pts_axis1,
+            pts_axis2=pts_axis2,
+            grid=grid,
+            deg=deg,
+            deriv=deriv,
+            ddata=self._ddata,
+            dref=self._dref,
+        )
 
     # ---------------------
     # Methods computing correlations

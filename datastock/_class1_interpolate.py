@@ -28,16 +28,40 @@ def interpolate(
     ddata=None,
     dref=None,
     deg=None,
+    deriv=None,
 ):
-    """ Interpolate at desried points on desired data """
+    """ Interpolate at desired points on desired data
+
+    Interpolate quantities (keys) on coordinates (keys_ref)
+    All provided keys should share the same refs
+    They should have dimension 2 or less
+
+    keys_ref should be a list of monotonous data keys to be used as coordinates
+    It should have one element per dimension in refs
+
+    The interpolation points are provided as np.ndarrays in each dimension
+    They should all have the same shape except if grid = True
+
+    deg is the degree of the interpolation
+
+    It is an interpolation, not a smoothing, so it will pass through all points
+    Uses scpinterp.InterpolatedUnivariateSpline() for 1d
+
+    """
 
     # --------------
     # check inputs
 
-    keys_ref, keys, deg, pts_axis0, pts_axis1, pts_axis2, grid, ndim = _check(
+    (
+        keys_ref, keys,
+        deg, deriv,
+        pts_axis0, pts_axis1, pts_axis2,
+        grid, ndim,
+    ) = _check(
         keys_ref=keys_ref,
         keys=keys,
         deg=deg,
+        deriv=deriv,
         pts_axis0=pts_axis0,
         pts_axis1=pts_axis1,
         pts_axis2=pts_axis2,
@@ -49,13 +73,39 @@ def interpolate(
     # ----------------
     # Interpolate
 
+    shape = pts_axis0.shape
+    dvalues = {k0: np.full(shape, np.nan) for k0 in keys}
+
     if ndim == 1:
 
         for k0 in keys:
+
+            # x must be strictly increasing
+            if ddata[keys_ref[0]]['data'][1] > ddata[keys_ref[0]]['data'][0]:
+                x = ddata[keys_ref[0]]['data']
+                y = ddata[k0]['data']
+            else:
+                x = ddata[keys_ref[0]]['data'][::-1]
+                y = ddata[k0]['data'][::-1]
+
+            # Instanciate interpolation, using finite values only
+            indok = np.isfinite(y)
             spl = scpinterp.InterpolatedUnivariateSpline(
-                ddata[keys_ref[0]]['data'],
-                ddata[k0]['data'],
+                x[indok],
+                y[indok],
+                k=deg,
+                ext='zeros',
             )
+
+            # Interpolate on finite values within boundaries only
+            indok = (
+                np.isfinite(pts_axis0)
+                & (pts_axis0 >= x[0]) & (pts_axis0 <= x[-1])
+            ).nonzero()[0]
+
+            # sort for more efficient evaluation
+            indok = indok[np.argsort(pts_axis0[indok])]
+            dvalues[k0][indok] = spl(pts_axis0[indok], nu=deriv)
 
     elif ndim == 2:
         pass
@@ -63,7 +113,7 @@ def interpolate(
     else:
         pass
 
-    return values
+    return dvalues
 
 # #############################################################################
 # #############################################################################
@@ -71,16 +121,16 @@ def interpolate(
 # #############################################################################
 
 
-def _check_pts(pts=None):
-    if pts_axis0 is None:
-        msg = "Please provide the interpolation points pts_axis0!"
+def _check_pts(pts=None, pts_name=None):
+    if pts is None:
+        msg = f"Please provide the interpolation points {pts_name}!"
         raise Exception(msg)
 
-    if not isinstance(pts_axis0, np.ndarray):
+    if not isinstance(pts, np.ndarray):
         try:
-            pts_axis0 = np.atleast_1d(pts_axis0)
+            pts = np.atleast_1d(pts)
         except Exception:
-            msg = "pts_axis0 should be convertible to a np.ndarray!"
+            msg = f"{pts_name} should be convertible to a np.ndarray!"
             raise Exception(msg)
     return pts
 
@@ -95,15 +145,16 @@ def _check(
     ddata=None,
     dref=None,
     deg=None,
+    deriv=None,
 ):
 
     # ---
-    # key
+    # keys
 
     lkok = list(ddata.keys())
     if isinstance(keys, str):
         keys = [keys]
-    key = _generic_check._check_var_iter(
+    keys = _generic_check._check_var_iter(
         keys, 'keys',
         types=list,
         types_iter=str,
@@ -120,7 +171,7 @@ def _check(
         raise Exception(msg)
 
     ref = ddata[keys[0]]['ref']
-    ndim = ddata['data'].ndim
+    ndim = ddata[keys[0]]['data'].ndim
     assert ndim == len(ref)
     if ndim > 2:
         msg = "Interpolation not implemented for more than 3 dimensions!"
@@ -132,7 +183,7 @@ def _check(
     if keys_ref is None:
         keys_ref = [None for rr in ref]
 
-    if ndim == 1 and (keys_ref is None or isinstance(keys_ref, str)):
+    if keys_ref == 1 and (keys_ref is None or isinstance(keys_ref, str)):
         keys_ref = [keys_ref]
     c0 = (
         isinstance(keys_ref, list)
@@ -152,7 +203,7 @@ def _check(
         lok = [
             k1 for k1, v1 in ddata.items()
             if v1['ref'] == (rr,)
-            and v1['monotonous'] == True
+            and v1['monot'] == (True,)
         ]
         keys_ref[ii] = _generic_check._check_var(
             keys_ref[ii], f'keys_ref[{ii}]',
@@ -171,6 +222,16 @@ def _check(
     )
 
     # ---
+    # deriv
+
+    deriv = _generic_check._check_var(
+        deriv, 'deriv',
+        default=0,
+        types=int,
+        allowed=[ii for ii in range(deg + 1)],
+    )
+
+    # ---
     # grid
 
     grid = _generic_check._check_var(
@@ -182,14 +243,14 @@ def _check(
     # ---
     # pts_axis0
 
-    pts_axis0 = _check_pts(pts=pts_axis0)
+    pts_axis0 = _check_pts(pts=pts_axis0, pts_name='pts_axis0')
     if ndim == 1:
 
-        scpinterp.InterpolatedUnivariateSpline()
+        pass
 
     elif ndim == 2:
 
-        pts_axis1 = _check_pts(pts=pts_axis1)
+        pts_axis1 = _check_pts(pts=pts_axis1, pts_name='pts_axis1')
         sh0 = pts_axis0.shape
         sh1 = pts_axis1.shape
 
@@ -213,8 +274,8 @@ def _check(
 
             else:
                 lc = [
-                    sh0 = tuple([ss for ss in sh1 if ss in sh0]),
-                    sh1 = tuple([ss for ss in sh0 if ss in sh1]),
+                    sh0 == tuple([ss for ss in sh1 if ss in sh0]),
+                    sh1 == tuple([ss for ss in sh0 if ss in sh1]),
                 ]
 
                 if lc[0]:
@@ -238,10 +299,11 @@ def _check(
                     raise Exception(msg)
 
     else:
+        raise NotImplementedError()
 
-        pts_axis1 = _check_pts(pts=pts_axis1)
-        pts_axis2 = _check_pts(pts=pts_axis2)
-
-
-
-    return keys_ref, keys, deg, pts_axis0, pts_axis1, pts_axis2, grid, ndim
+    return (
+        keys_ref, keys,
+        deg, deriv,
+        pts_axis0, pts_axis1, pts_axis2,
+        grid, ndim,
+    )
