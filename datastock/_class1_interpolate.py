@@ -21,25 +21,30 @@ from . import _generic_check
 
 
 def interpolate(
-    keys_ref=None,
+    # interpolation base
     keys=None,
+    ref_keys=None,
+    ref_quant=None,
+    # interpolation pts
     pts_axis0=None,
     pts_axis1=None,
     pts_axis2=None,
     grid=None,
-    ddata=None,
-    dref=None,
+    # parameters
     deg=None,
     deriv=None,
     log_log=None,
+    # ressources
+    ddata=None,
+    dref=None,
 ):
     """ Interpolate at desired points on desired data
 
-    Interpolate quantities (keys) on coordinates (keys_ref)
+    Interpolate quantities (keys) on coordinates (ref_keys)
     All provided keys should share the same refs
     They should have dimension 2 or less
 
-    keys_ref should be a list of monotonous data keys to be used as coordinates
+    ref_keys should be a list of monotonous data keys to be used as coordinates
     It should have one element per dimension in refs
 
     The interpolation points are provided as np.ndarrays in each dimension
@@ -56,20 +61,25 @@ def interpolate(
     # check inputs
 
     (
-        keys_ref, keys,
+        ref_keys, keys,
         deg, deriv,
         pts_axis0, pts_axis1, pts_axis2,
         log_log, grid, ndim,
     ) = _check(
-        keys_ref=keys_ref,
+        # interpolation base
         keys=keys,
-        deg=deg,
-        deriv=deriv,
+        ref_keys=ref_keys,
+        ref_quant=ref_quant,
+        # interpolation pts
         pts_axis0=pts_axis0,
         pts_axis1=pts_axis1,
         pts_axis2=pts_axis2,
+        # parameters
+        deg=deg,
+        deriv=deriv,
         grid=grid,
         log_log=log_log,
+        # ressources
         ddata=ddata,
         dref=dref,
     )
@@ -81,7 +91,7 @@ def interpolate(
     dvalues = {k0: np.full(shape, np.nan) for k0 in keys}
 
     # x must be increasing
-    x = ddata[keys_ref[0]]['data']
+    x = ddata[ref_keys[0]]['data']
     dx = x[1] - x[0]
     if dx < 0:
         x = x[::-1]
@@ -137,7 +147,7 @@ def interpolate(
     elif ndim == 2:
 
         # x, y
-        y = ddata[keys_ref[1]]['data']
+        y = ddata[ref_keys[1]]['data']
         dy = y[1] - y[0]
         if dy < 0:
             y = y[::-1]
@@ -226,15 +236,20 @@ def _check_pts(pts=None, pts_name=None):
 
 
 def _check(
-    keys_ref=None,
+    # interpolation base
     keys=None,
+    ref_keys=None,
+    ref_quant=None,
+    # interpolation pts
     pts_axis0=None,
     pts_axis1=None,
     pts_axis2=None,
+    # parameters
     grid=None,
     deg=None,
     deriv=None,
     log_log=None,
+    # ressources
     ddata=None,
     dref=None,
 ):
@@ -269,25 +284,32 @@ def _check(
         raise NotImplementedError(msg)
 
     # --------
-    # keys_ref
+    # ref_keys
 
-    if keys_ref is None:
-        keys_ref = [None for rr in ref]
+    if ref_keys is None:
+        ref_keys = [None for rr in ref]
 
-    if keys_ref == 1 and (keys_ref is None or isinstance(keys_ref, str)):
-        keys_ref = [keys_ref]
+    if ref_keys == 1 and (ref_keys is None or isinstance(ref_keys, str)):
+        ref_keys = [ref_keys]
     c0 = (
-        isinstance(keys_ref, list)
-        and len(keys_ref) == ndim
-        and all([kk is None or kk in ddata.keys() for kk in keys_ref])
+        isinstance(ref_keys, list)
+        and len(ref_keys) == ndim
+        and all([kk is None or kk in ddata.keys() for kk in ref_keys])
     )
     if not c0:
         msg = (
-            "Arg keys_ref must be a list of keys to monotonous data\n"
+            "Arg ref_keys must be a list of keys to monotonous data\n"
             f"One for each component in data['ref']: {ref}\n"
-            f"Provided: {keys_ref}"
+            f"Provided: {ref_keys}"
         )
         raise Exception(msg)
+
+    if ref_quant is not None:
+        ref_quant = _generic_check._check_var(
+            ref_quant, 'ref_quant',
+            types=str,
+            allowed=[v0.get('quant') for v0 in ddata.values()],
+        )
 
     # check for each dimension
     for ii, rr in enumerate(ref):
@@ -295,9 +317,10 @@ def _check(
             k1 for k1, v1 in ddata.items()
             if v1['ref'] == (rr,)
             and v1['monot'] == (True,)
+            and (ref_quant is None or v1.get('quant') == ref_quant)
         ]
-        keys_ref[ii] = _generic_check._check_var(
-            keys_ref[ii], f'keys_ref[{ii}]',
+        ref_keys[ii] = _generic_check._check_var(
+            ref_keys[ii], f'ref_keys[{ii}]',
             types=str,
             allowed=lok,
         )
@@ -349,7 +372,7 @@ def _check(
     )
 
     if log_log is True:
-        lkout = [k0 for k0 in keys_ref if np.any(ddata[k0]['data'] <= 0)]
+        lkout = [k0 for k0 in ref_keys if np.any(ddata[k0]['data'] <= 0)]
         if len(lkout) > 0:
             msg = (
                 "The following keys cannot be used as ref / coordinates "
@@ -428,7 +451,7 @@ def _check(
         raise NotImplementedError()
 
     return (
-        keys_ref, keys,
+        ref_keys, keys,
         deg, deriv,
         pts_axis0, pts_axis1, pts_axis2,
         log_log, grid, ndim,
