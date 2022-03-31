@@ -100,8 +100,6 @@ def interpolate(
 
             # only keep finite y
             indok = np.isfinite(y)
-            if log_log is True:
-                indok &= y > 0
             xi = x[indok]
             y = y[indok]
 
@@ -156,8 +154,6 @@ def interpolate(
 
             # only keep finite y
             indok = np.isfinite(z)
-            if log_log is True:
-                indok &= z > 0
             indokx = np.all(indok, axis=1)
             indoky = np.all(indok, axis=0)
             xi = x[indokx]
