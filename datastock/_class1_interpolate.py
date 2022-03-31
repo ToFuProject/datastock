@@ -129,7 +129,9 @@ def interpolate(
                 )(pts_axis0[indok], nu=deriv)
 
     elif ndim == 2:
-        pass
+
+        for k0 in keys:
+
 
     else:
         pass
