@@ -4,10 +4,13 @@
 # Builtin
 import warnings
 
+
 # Common
 import numpy as np
 import scipy.interpolate as scpinterp
 
+
+# local
 from . import _generic_check
 
 
@@ -15,7 +18,6 @@ from . import _generic_check
 # #############################################################################
 #           Interpolate
 # #############################################################################
-
 
 
 def interpolate(
@@ -78,29 +80,35 @@ def interpolate(
     shape = pts_axis0.shape
     dvalues = {k0: np.full(shape, np.nan) for k0 in keys}
 
+    # x must be increasing
+    x = ddata[keys_ref[0]]['data']
+    dx = x[1] - x[0]
+    if dx < 0:
+        x = x[::-1]
+
+    # treat oer dimnesionality
     if ndim == 1:
 
-        for k0 in keys:
+        # loop on keys
+        for ii, k0 in enumerate(keys):
 
             # x must be strictly increasing
-            if ddata[keys_ref[0]]['data'][1] > ddata[keys_ref[0]]['data'][0]:
-                x = ddata[keys_ref[0]]['data']
+            if dx > 0:
                 y = ddata[k0]['data']
             else:
-                x = ddata[keys_ref[0]]['data'][::-1]
                 y = ddata[k0]['data'][::-1]
 
             # only keep finite y
             indok = np.isfinite(y)
             if log_log is True:
                 indok &= y > 0
-            x = x[indok]
+            xi = x[indok]
             y = y[indok]
 
             # Interpolate on finite values within boundaries only
             indok = (
                 np.isfinite(pts_axis0)
-                & (pts_axis0 >= x[0]) & (pts_axis0 <= x[-1])
+                & (pts_axis0 >= xi[0]) & (pts_axis0 <= xi[-1])
             )
             if log_log is True:
                 indok &= pts_axis0 > 0
@@ -113,7 +121,7 @@ def interpolate(
             if log_log is True:
                 dvalues[k0][indok] = np.exp(
                     scpinterp.InterpolatedUnivariateSpline(
-                        np.log(x),
+                        np.log(xi),
                         np.log(y),
                         k=deg,
                         ext='zeros',
@@ -122,7 +130,7 @@ def interpolate(
 
             else:
                 dvalues[k0][indok] = scpinterp.InterpolatedUnivariateSpline(
-                    x,
+                    xi,
                     y,
                     k=deg,
                     ext='zeros',
@@ -130,8 +138,71 @@ def interpolate(
 
     elif ndim == 2:
 
-        for k0 in keys:
+        # x, y
+        y = ddata[keys_ref[1]]['data']
+        dy = y[1] - y[0]
+        if dy < 0:
+            y = y[::-1]
 
+        # loop on keys
+        for ii, k0 in enumerate(keys):
+
+            # adjust z order
+            z = ddata[k0]['data']
+            if dx < 0:
+                z = np.flip(z, axis=0)
+            if dy < 0:
+                z = np.flip(z, axis=1)
+
+            # only keep finite y
+            indok = np.isfinite(z)
+            if log_log is True:
+                indok &= z > 0
+            indokx = np.all(indok, axis=1)
+            indoky = np.all(indok, axis=0)
+            xi = x[indokx]
+            yi = y[indoky]
+            z = z[indokx, :][:, indoky]
+
+            # Interpolate on finite values within boundaries only
+            indok = (
+                np.isfinite(pts_axis0)
+                & np.isfinite(pts_axis1)
+                & (pts_axis0 >= xi[0]) & (pts_axis0 <= xi[-1])
+                & (pts_axis1 >= yi[0]) & (pts_axis1 <= yi[-1])
+            )
+            if log_log is True:
+                indok &= (pts_axis0 > 0) & (pts_axis1 > 0)
+
+            # Instanciate interpolation, using finite values only
+            if log_log is True:
+                dvalues[k0][indok] = np.exp(
+                    scpinterp.RectBivariateSpline(
+                        np.log(xi),
+                        np.log(yi),
+                        np.log(z),
+                        kx=deg,
+                        ky=deg,
+                        s=0,
+                    )(
+                        np.log(pts_axis0[indok]),
+                        np.log(pts_axis1[indok]),
+                        grid=False,
+                    )
+                )
+            else:
+                dvalues[k0][indok] = scpinterp.RectBivariateSpline(
+                    xi,
+                    yi,
+                    z,
+                    kx=deg,
+                    ky=deg,
+                    s=0,
+                )(
+                    pts_axis0[indok],
+                    pts_axis1[indok],
+                    grid=False,
+                )
 
     else:
         pass
@@ -247,6 +318,14 @@ def _check(
 
     # ---
     # deriv
+
+    if deriv is not None and ndim > 1:
+        msg = (
+            "Arg deriv can only be used for 1d interpolations!\n"
+            f"\t- ndim: {ndim}\n"
+            f"\t- deriv: {deriv}\n"
+        )
+        raise Exception(msg)
 
     deriv = _generic_check._check_var(
         deriv, 'deriv',
