@@ -34,6 +34,7 @@ def interpolate(
     deg=None,
     deriv=None,
     log_log=None,
+    return_params=None,
     # ressources
     ddata=None,
     dref=None,
@@ -64,7 +65,7 @@ def interpolate(
         ref_keys, keys,
         deg, deriv,
         pts_axis0, pts_axis1, pts_axis2,
-        log_log, grid, ndim,
+        log_log, grid, ndim, return_params,
     ) = _check(
         # interpolation base
         keys=keys,
@@ -79,6 +80,7 @@ def interpolate(
         deriv=deriv,
         grid=grid,
         log_log=log_log,
+        return_params=return_params,
         # ressources
         ddata=ddata,
         dref=dref,
@@ -234,7 +236,24 @@ def interpolate(
         )
         warnings.warn(msg)
 
-    return dvalues
+    # -------
+    # return
+
+    if return_params is True:
+        dparam = {
+            'keys': keys,
+            'ref_keys': ref_keys,
+            'deg': deg,
+            'deriv': deriv,
+            'log_log': log_log,
+            'pts_axis0': pts_axis0,
+            'pts_axis1': pts_axis0,
+            'pts_axis2': pts_axis0,
+            'grid': grid,
+        }
+        return dvalues, dparam
+    else:
+        return dvalues
 
 # #############################################################################
 # #############################################################################
@@ -270,6 +289,7 @@ def _check(
     deg=None,
     deriv=None,
     log_log=None,
+    return_params=None,
     # ressources
     ddata=None,
     dref=None,
@@ -404,6 +424,15 @@ def _check(
             )
             raise Exception(msg)
 
+    # -------------
+    # return_params
+
+    return_params = _generic_check._check_var(
+        return_params, 'return_params',
+        default=False,
+        types=bool,
+    )
+
     # --------------------------
     # pts_axis0, pts_axis1, grid
 
@@ -477,5 +506,5 @@ def _check(
         ref_keys, keys,
         deg, deriv,
         pts_axis0, pts_axis1, pts_axis2,
-        log_log, grid, ndim,
+        log_log, grid, ndim, return_params,
     )

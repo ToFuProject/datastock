@@ -541,6 +541,7 @@ class DataStock1(DataStock0):
         deg=None,
         deriv=None,
         log_log=None,
+        return_params=None,
     ):
         return _class1_interpolate.interpolate(
             # interpolation base
@@ -556,6 +557,7 @@ class DataStock1(DataStock0):
             deg=deg,
             deriv=deriv,
             log_log=log_log,
+            return_params=return_params,
             # ressources
             ddata=self._ddata,
             dref=self._dref,
