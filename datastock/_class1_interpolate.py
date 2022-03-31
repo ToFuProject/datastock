@@ -325,12 +325,15 @@ def _check(
         )
         raise Exception(msg)
 
-    if ref_quant is not None:
-        ref_quant = _generic_check._check_var(
-            ref_quant, 'ref_quant',
-            types=str,
-            allowed=[v0.get('quant') for v0 in ddata.values()],
-        )
+    # ref_quant
+    lqok = [v0.get('quant') for v0 in ddata.values()] + [None]
+    if ref_quant is None:
+        ref_quant = [None for ii in range(ndim)]
+    ref_quant = _generic_check._check_var_iter(
+        ref_quant, 'ref_quant',
+        types=list,
+        allowed=lqok,
+    )
 
     # check for each dimension
     for ii, rr in enumerate(ref):
@@ -338,7 +341,7 @@ def _check(
             k1 for k1, v1 in ddata.items()
             if v1['ref'] == (rr,)
             and v1['monot'] == (True,)
-            and (ref_quant is None or v1.get('quant') == ref_quant)
+            and (ref_quant[ii] is None or v1.get('quant') == ref_quant[ii])
         ]
         ref_keys[ii] = _generic_check._check_var(
             ref_keys[ii], f'ref_keys[{ii}]',
@@ -359,7 +362,7 @@ def _check(
     # ---
     # deriv
 
-    if deriv is not None and ndim > 1:
+    if deriv not in [None, 0] and ndim > 1:
         msg = (
             "Arg deriv can only be used for 1d interpolations!\n"
             f"\t- ndim: {ndim}\n"
@@ -372,15 +375,6 @@ def _check(
         default=0,
         types=int,
         allowed=[ii for ii in range(deg + 1)],
-    )
-
-    # ---
-    # grid
-
-    grid = _generic_check._check_var(
-        grid, 'grid',
-        default=False,
-        types=bool,
     )
 
     # ---
@@ -410,19 +404,27 @@ def _check(
             )
             raise Exception(msg)
 
-    # ---
-    # pts_axis0
+    # --------------------------
+    # pts_axis0, pts_axis1, grid
 
     pts_axis0 = _check_pts(pts=pts_axis0, pts_name='pts_axis0')
+    sh0 = pts_axis0.shape
+    if ndim >= 2:
+        pts_axis1 = _check_pts(pts=pts_axis1, pts_name='pts_axis1')
+        sh1 = pts_axis1.shape
+
+        # grid
+        grid = _generic_check._check_var(
+            grid, 'grid',
+            default=sh0 != sh1,
+            types=bool,
+        )
+
     if ndim == 1:
 
         pass
 
     elif ndim == 2:
-
-        pts_axis1 = _check_pts(pts=pts_axis1, pts_name='pts_axis1')
-        sh0 = pts_axis0.shape
-        sh1 = pts_axis1.shape
 
         if grid is True:
             sh = list(sh0) + list(sh1)
