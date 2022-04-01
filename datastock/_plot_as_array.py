@@ -1259,6 +1259,7 @@ def plot_as_array_3d(
     keyY, ystr, dataY, dY2, labY = _get_str_datadlab(
         keyX=keyY, nx=ny, islogX=islogY, coll=coll,
     )
+
     keyZ, zstr, dataZ, dZ2, labZ = _get_str_datadlab(
         keyX=keyZ, nx=nz, islogX=islogZ, coll=coll,
     )
@@ -1678,7 +1679,7 @@ def plot_as_array_3d(
             ind=0,
         )
 
-        dax[kax].update(refx=[refZ])
+        dax[kax].update(refx=[refZ], datax=keyZ)
 
     # ---------
     # add text
