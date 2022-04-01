@@ -726,13 +726,13 @@ def plot_as_array_1d(
                 key=kv,
                 handle=lv,
                 ref=ref,
-                data='index',
+                data=keyX,
                 dtype='xdata',
                 axes=kax,
                 ind=ii,
             )
 
-        dax[kax].update(refx=[ref])
+        dax[kax].update(refx=[ref], datax=[keyX])
 
     # ---------
     # add text
