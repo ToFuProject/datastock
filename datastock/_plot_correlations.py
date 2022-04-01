@@ -161,6 +161,7 @@ def plot_correlations(
         # coll2.connect()
         return coll2
     else:
+        dgroup = None
         return coll2, dgroup
 
 
