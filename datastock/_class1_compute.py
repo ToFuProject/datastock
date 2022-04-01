@@ -1,4 +1,3 @@
-
 # -*- coding: utf-8 -*-
 
 # Builtin
@@ -915,56 +914,56 @@ def _get_tcom(
 #############################################
 
 
-def fit_1d(data, x=None, axis=None, Type=None, func=None,
-           dTypes=None, **kwdargs):
+# def fit_1d(data, x=None, axis=None, Type=None, func=None,
+           # dTypes=None, **kwdargs):
 
-    lc = [Type is not None, func is not None]
-    assert np.sum(lc) == 1
+    # lc = [Type is not None, func is not None]
+    # assert np.sum(lc) == 1
 
-    if lc[0]:
+    # if lc[0]:
 
-        # Pre-defined models dict
-        # ------------------------
+        # # Pre-defined models dict
+        # # ------------------------
 
-        _DTYPES = {'staircase': _fit1d_staircase}
+        # _DTYPES = {'staircase': _fit1d_staircase}
 
-        # Use a pre-defined model
-        # ------------------------
+        # # Use a pre-defined model
+        # # ------------------------
 
-        if dTypes is None:
-            dTypes = _DTYPES
+        # if dTypes is None:
+            # dTypes = _DTYPES
 
-        if Type not in dTypes.keys():
-            msg = "Chosen Type not available:\n"
-            msg += "    - provided: {}\n".format(Type)
-            msg += "    - Available: {}".format(list(dTypes.keys()))
-            raise Exception(msg)
+        # if Type not in dTypes.keys():
+            # msg = "Chosen Type not available:\n"
+            # msg += "    - provided: {}\n".format(Type)
+            # msg += "    - Available: {}".format(list(dTypes.keys()))
+            # raise Exception(msg)
 
-        dout = dTypes[Type](data, x=x, axis=axis, **kwdargs)
+        # dout = dTypes[Type](data, x=x, axis=axis, **kwdargs)
 
-    else:
+    # else:
 
-        # Use a user-provided model
-        # -------------------------
+        # # Use a user-provided model
+        # # -------------------------
 
-        dout = func(data, x=x, axis=axis, **kwdargs)
+        # dout = func(data, x=x, axis=axis, **kwdargs)
 
-    return dout
-
-
-# -------------------------------------------
-#       1d fit models
-# -------------------------------------------
+    # return dout
 
 
-def _fit1d_staircase(data, x=None, axis=None):
-    """ Model data as a staircase (ramps + plateaux)
+# # -------------------------------------------
+# #       1d fit models
+# # -------------------------------------------
 
-    Return a the fitted parameters as a dict:
-        {'plateaux': {'plateaux': {'Dt': (2,N) np.ndarray
-                                   '':
-                                    }}
-        - to be discussed.... ?
 
-    """
-    pass
+# def _fit1d_staircase(data, x=None, axis=None):
+    # """ Model data as a staircase (ramps + plateaux)
+
+    # Return a the fitted parameters as a dict:
+        # {'plateaux': {'plateaux': {'Dt': (2,N) np.ndarray
+                                   # '':
+                                    # }}
+        # - to be discussed.... ?
+
+    # """
+    # pass
