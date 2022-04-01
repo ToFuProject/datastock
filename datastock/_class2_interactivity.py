@@ -187,7 +187,7 @@ def _setup_keys(dkeys=None, dgroup=None):
     """ return dkeys """
 
     if dkeys is None:
-        dkeys = _DKEYS
+        dkeys = dict(_DKEYS)
 
     # add key for switching groups
     dkeys.update({
