@@ -155,12 +155,13 @@ def plot_correlations(
         # coll2.add_axes(key=kax, harmonize=harmonize, **dax[kax])
 
     # connect
-    # if connect is True:
+    if connect is True:
         # coll2.setup_interactivity(kinter='inter0', dgroup=dgroup, dinc=dinc)
         # coll2.disconnect_old()
         # coll2.connect()
-
-    return coll2
+        return coll2
+    else:
+        return coll2, dgroup
 
 
 # #############################################################################

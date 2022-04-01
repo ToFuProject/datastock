@@ -247,8 +247,9 @@ def plot_as_array(
         coll2.setup_interactivity(kinter='inter0', dgroup=dgroup, dinc=dinc)
         coll2.disconnect_old()
         coll2.connect()
-
-    return coll2
+        return coll2
+    else:
+        return coll2, dgroup
 
 # #############################################################################
 # #############################################################################
