@@ -247,8 +247,9 @@ def plot_as_array(
         coll2.setup_interactivity(kinter='inter0', dgroup=dgroup, dinc=dinc)
         coll2.disconnect_old()
         coll2.connect()
-
-    return coll2
+        return coll2
+    else:
+        return coll2, dgroup
 
 # #############################################################################
 # #############################################################################
@@ -725,13 +726,13 @@ def plot_as_array_1d(
                 key=kv,
                 handle=lv,
                 ref=ref,
-                data='index',
+                data=keyX,
                 dtype='xdata',
                 axes=kax,
                 ind=ii,
             )
 
-        dax[kax].update(refx=[ref])
+        dax[kax].update(refx=[ref], datax=[keyX])
 
     # ---------
     # add text
@@ -1258,6 +1259,7 @@ def plot_as_array_3d(
     keyY, ystr, dataY, dY2, labY = _get_str_datadlab(
         keyX=keyY, nx=ny, islogX=islogY, coll=coll,
     )
+
     keyZ, zstr, dataZ, dZ2, labZ = _get_str_datadlab(
         keyX=keyZ, nx=nz, islogX=islogZ, coll=coll,
     )
@@ -1677,7 +1679,7 @@ def plot_as_array_3d(
             ind=0,
         )
 
-        dax[kax].update(refx=[refZ])
+        dax[kax].update(refx=[refZ], datax=keyZ)
 
     # ---------
     # add text
