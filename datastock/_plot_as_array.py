@@ -428,7 +428,10 @@ def _plot_as_array_check(
     # vmin, vmax
     if vmin is None:
         if diverging:
-            vmin = -max(abs(nanmin), nanmax)
+            if isinstance(nanmin, np.bool_):
+                vmin = 0
+            else:
+                vmin = -max(abs(nanmin), nanmax)
         else:
             vmin = nanmin
         if vmax is None:
