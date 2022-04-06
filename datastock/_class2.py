@@ -841,13 +841,15 @@ class DataStock2(DataStock1):
         # --- Redraw all objects (due to background restore) --- 25 ms
         for k0, v0 in self._dobj['mobile'].items():
             v0['handle'].set_visible(v0['visible'])
-            try:
-                self._dobj['axes'][v0['axes']]['handle'].draw_artist(v0['handle'])
-            except Exception:
-                print(0, k0)        # DB
-                print(1, v0['axes'])    # DB
-                print(2, self._dobj['axes'][v0['axes']]['handle'])  # DB
-                print(3, v0['handle'])  # DB
+            # try:
+            self._dobj['axes'][v0['axes']]['handle'].draw_artist(v0['handle'])
+            # except Exception as err:
+                # print(0, k0)        # DB
+                # print(1, v0['axes'])    # DB
+                # print(2, self._dobj['axes'][v0['axes']]['handle'])  # DB
+                # print(3, v0['handle'])  # DB
+                # print(err)
+                # print()
 
         # ---- blit axes ------ 5 ms
         for aa in lax:
