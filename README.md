@@ -29,8 +29,31 @@ conda install -c conda-forge datastock
 ``
 
 Examples:
----------
+=========
  
+
+Straightforward array visualization:
+------------------------------------
+
+```
+import datastock as ds
+
+# any 1d, 2d or 3d array
+aa = np.np.random.random((100, 100, 100))
+
+# plot interactive figure using shortcut to method
+dax = ds.plot_as_array(aa)
+```
+
+The interactive commands are automatically printed in your python console
+
+
+<p align="center">
+<img align="middle" src="https://github.com/ToFuProject/datastock/blob/main/README_figures/DirectVisualization_3d.png" width="600" alt="Direct 3d array visualization"/>
+</p>
+
+
+
 
 
 
