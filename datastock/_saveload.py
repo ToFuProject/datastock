@@ -180,9 +180,9 @@ def load(
     # -----------
     # Instanciate
 
-    from ._DataCollection_class import DataCollection
+    from ._class import DataStock
 
-    obj = DataCollection.from_dict(dout)
+    obj = DataStock.from_dict(dout)
 
     if verb:
         msg = f"Loaded from\n\t{pfe}"
