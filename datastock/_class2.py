@@ -4,6 +4,7 @@ import warnings
 
 
 import numpy as np
+import scipy.sparse as scpsparse
 import matplotlib.pyplot as plt
 
 
@@ -951,6 +952,11 @@ class DataStock2(DataStock1):
             cdy = self._ddata[cur_datay]['data']
             dx = np.diff(ax.get_xlim())
             dy = np.diff(ax.get_ylim())
+
+            if scpsparse.issparse(cdx) or scpsparse.issparse(cdy):
+                msg = "No handling of pts selection for sparse data yet!"
+                raise Exception(msg)
+
             dist = ((cdx - event.xdata)/dx)**2 + ((cdy - event.ydata)/dy)**2
             if dist.ndim == 1:
                 ix = np.nanargmin(dist)
