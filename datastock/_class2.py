@@ -1,4 +1,7 @@
+"""
+Where the matplotlib interactivity is implemented
 
+"""
 
 import warnings
 
@@ -275,7 +278,17 @@ class DataStock2(DataStock1):
 
     @property
     def dinteractivity(self):
-        return self._dinteractivity
+        return self.dobj.get('interactivity', {})
+
+    # ------------------
+    # show basic commands
+    # ------------------
+
+    def show_commands(self, verb=None, returnas=None):
+        return _class2_interactivity.show_commands(
+            verb=verb,
+            returnas=returnas,
+        )
 
     # ------------------
     # Debug mode
