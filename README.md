@@ -4,12 +4,8 @@
 [![](https://anaconda.org/conda-forge/datastock/badges/platforms.svg)](https://anaconda.org/conda-forge/datastock)
 [![](https://anaconda.org/conda-forge/datastock/badges/license.svg)](https://github.com/conda-forge/datastock/blob/master/LICENSE.txt)
 [![](https://anaconda.org/conda-forge/datastock/badges/installer/conda.svg)](https://anaconda.org/conda-forge/datastock)
-[![](https://codecov.io/gh/ToFuProject/datastock/branch/master/graph/badge.svg)](https://codecov.io/gh/ToFuProject/datastock)
 [![](https://badge.fury.io/py/datastock.svg)](https://badge.fury.io/py/datastock)
 
-
-# datacollection
-Provides a generic DataStock class, useful for containing classes and multiple data arrays, with interactive plots
 
 
 datastock
@@ -87,11 +83,15 @@ import datastock as ds
 # -----------
 # Define data
 # Here: time-varying profiles representing velocity measurement across the radius of a tube
+# we assume 5 measurement campaigns were conducted, each yielding a different number of measurements, all sampled on 80 radial points
 
-nt, nx = 100, 80
-t = np.linspace(0, 10, nt)
+nc = 5
+nx = 80
+lnt = [100, 90, 80, 120, 110]
+
 x = np.linspace(1, 2, nx)
-prof = (1 + np.cos(t)[:, None]) * x[None, :]
+lt = [np.linspace(0, 10, nt) for nt in lnt]
+lprof = [(1 + np.cos(t)[:, None]) * x[None, :] for t in lt]
 
 # ------------------
 # Populate DataStock
@@ -100,34 +100,57 @@ prof = (1 + np.cos(t)[:, None]) * x[None, :]
 st = ds.DataStock()
 
 # add references (i.e.: store size of each dimension under a unique key)
-st.add_ref(key='nt', size=nt)
+st.add_ref(key='nc', size=nc)
 st.add_ref(key='nx', size=nx)
+for ii, nt in enumerate(lnt):
+    st.add_ref(key=f'nt{ii}', size=nt)
 
 # add data dependening on these references
 # you can, optionally, specify units, physical dimensionality (ex: distance, time...), quantity (ex: radius, height, ...) and name (to your liking)
-st.add_data(key='t', data=t, dimension='time', units='s')
-st.add_data(key='x', data=x, dimension='distance', quant='radius', units='m')
-st.add_data(key='prof', data=prof, dimension='velocity', units='m/s')
+# you can also add any arbitraty kwdarg as a parameter, here we tag the campaign
+
+st.add_data(key='x', data=x, dimension='distance', quant='radius', units='m', ref='nx')
+for ii, nt in enumerate(lnt):
+    st.add_data(key=f't{ii}', data=lt[ii], dimension='time', units='s', ref=f'nt{ii}', campaign=f'c{ii}')
+    st.add_data(key=f'prof{ii}', data=lprof[ii], dimension='velocity', units='m/s', ref=(f'nt{ii}', 'x'), campaign=f'c{ii}')
 
 # print in the console the content of st
 st
-
-# plot any array interactively
-dax = st.plot_as_array('t')
-dax = st.plot_as_array('x')
-dax = st.plot_as_array('prof')
-dax = st.plot_as_array('prof', keyX='t', keyY='x')
 ```
 
-DataStock can then be used to store any object category
+You can see that DataStock stores the relationships between each array and each reference
+Specifying explicitly the references is only necessary if there is an ambiguity (i.e.: several references have the same size, like nx and nt2 in our case)
+
+
+```
+# plot any array interactively
+dax = st.plot_as_array('x')
+dax = st.plot_as_array('t0')
+dax = st.plot_as_array('prof0')
+dax = st.plot_as_array('prof0', keyX='t0', keyY='x')
+```
+
+You can then decide to store any object category
+Let's create a 'campaign' category to store the characteristics of each measurements campaign
+and let's add a 'campaign' parameter to each profile data
 
 ```
 # add arbitrary object category as sub-dict of self.dobj
-st.add_obj(which='')
+for ii in range(nc):
+    st.add_obj(
+        which='campaign',
+	key=f'c{ii}',
+	start_date=f'{ii}.04.2022',
+	end_date=f'{ii+5}.05.2022',
+	operator='Barnaby' if ii > 2 else 'Jack Sparrow',
+	comment='leak on tube' if ii == 1 else 'none',
+)
 
+# print in the console the content of st
+st
 ```
 
-
+You can also decide to sub-class DataStock to implement methods and visualizations specific to your needs
 
 
 
