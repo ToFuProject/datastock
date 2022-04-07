@@ -49,7 +49,7 @@ The interactive commands are automatically printed in your python console
 
 
 <p align="center">
-<img align="middle" src="https://github.com/ToFuProject/datastock/blob/main/README_figures/DirectVisualization_3d.png" width="600" alt="Direct 3d array visualization"/>
+<img align="middle" src="https://github.com/ToFuProject/datastock/blob/Issue020_README/README_figures/DirectVisualization_3d.png" width="600" alt="Direct 3d array visualization"/>
 </p>
 
 
