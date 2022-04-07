@@ -1,3 +1,13 @@
+[![Conda]( https://anaconda.org/conda-forge/datastock/badges/version.svg)](https://anaconda.org/conda-forge/datastock)
+[![](https://anaconda.org/conda-forge/datastock/badges/downloads.svg)](https://anaconda.org/conda-forge/datastock)
+[![](https://anaconda.org/conda-forge/datastock/badges/latest_release_date.svg)](https://anaconda.org/conda-forge/datastock)
+[![](https://anaconda.org/conda-forge/datastock/badges/platforms.svg)](https://anaconda.org/conda-forge/datastock)
+[![](https://anaconda.org/conda-forge/datastock/badges/license.svg)](https://github.com/conda-forge/datastock/blob/master/LICENSE.txt)
+[![](https://anaconda.org/conda-forge/datastock/badges/installer/conda.svg)](https://anaconda.org/conda-forge/datastock)
+[![](https://codecov.io/gh/ToFuProject/datastock/branch/master/graph/badge.svg)](https://codecov.io/gh/ToFuProject/datastock)
+[![](https://badge.fury.io/py/datastock.svg)](https://badge.fury.io/py/datastock)
+
+
 # datacollection
 Provides a generic DataStock class, useful for containing classes and multiple data arrays, with interactive plots
 
