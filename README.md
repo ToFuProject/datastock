@@ -53,7 +53,6 @@ dax = ds.plot_as_array(aa)
 
 Now do **shift + left clic** on any axes, the rest of the interactive commands are automatically printed in your python console
 
-
 <p align="center">
 <img align="middle" src="https://github.com/ToFuProject/datastock/blob/devel/README_figures/DirectVisualization_3d.png" width="600" alt="Direct 3d array visualization"/>
 </p>
@@ -116,6 +115,10 @@ for ii, nt in enumerate(lnt):
 # print in the console the content of st
 st
 ```
+
+<p align="center">
+<img align="middle" src="https://github.com/ToFuProject/datastock/blob/devel/README_figures/DataStock_refdata.png" width="600" alt="Direct 3d array visualization"/>
+</p>
 
 You can see that DataStock stores the relationships between each array and each reference
 Specifying explicitly the references is only necessary if there is an ambiguity (i.e.: several references have the same size, like nx and nt2 in our case)
