@@ -4,6 +4,7 @@ import warnings
 
 
 import numpy as np
+import scipy.sparse as scpsparse
 import matplotlib.pyplot as plt
 
 
@@ -841,13 +842,15 @@ class DataStock2(DataStock1):
         # --- Redraw all objects (due to background restore) --- 25 ms
         for k0, v0 in self._dobj['mobile'].items():
             v0['handle'].set_visible(v0['visible'])
-            try:
-                self._dobj['axes'][v0['axes']]['handle'].draw_artist(v0['handle'])
-            except Exception:
-                print(0, k0)        # DB
-                print(1, v0['axes'])    # DB
-                print(2, self._dobj['axes'][v0['axes']]['handle'])  # DB
-                print(3, v0['handle'])  # DB
+            # try:
+            self._dobj['axes'][v0['axes']]['handle'].draw_artist(v0['handle'])
+            # except Exception as err:
+                # print(0, k0)        # DB
+                # print(1, v0['axes'])    # DB
+                # print(2, self._dobj['axes'][v0['axes']]['handle'])  # DB
+                # print(3, v0['handle'])  # DB
+                # print(err)
+                # print()
 
         # ---- blit axes ------ 5 ms
         for aa in lax:
@@ -949,6 +952,11 @@ class DataStock2(DataStock1):
             cdy = self._ddata[cur_datay]['data']
             dx = np.diff(ax.get_xlim())
             dy = np.diff(ax.get_ylim())
+
+            if scpsparse.issparse(cdx) or scpsparse.issparse(cdy):
+                msg = "No handling of pts selection for sparse data yet!"
+                raise Exception(msg)
+
             dist = ((cdx - event.xdata)/dx)**2 + ((cdy - event.ydata)/dy)**2
             if dist.ndim == 1:
                 ix = np.nanargmin(dist)

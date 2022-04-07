@@ -676,6 +676,20 @@ def _check_data(data=None, key=None, max_ndim=None):
     if c0_array:
         if data.dtype.type == np.str_:
             monotonous = tuple([False for ii in data.shape])
+        elif scpsp.issparse(data):
+            monot = np.all(np.isfinite(data.data))
+            data_temp = data.toarray()
+            monotonous = tuple([
+                bool(
+                    monot
+                    and (
+                        np.all(np.diff(data_temp, axis=aa) > 0.)
+                        or np.all(np.diff(data_temp, axis=aa) < 0.)
+                    )
+                )
+                for aa in range(data.ndim)
+            ])
+            del data_temp
         else:
             monot = np.all(np.isfinite(data))
             monotonous = tuple([

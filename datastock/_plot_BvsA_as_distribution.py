@@ -8,6 +8,7 @@
 
 # Common
 import numpy as np
+import scipy.sparse as scpsparse
 import scipy.stats as scpstats
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
@@ -504,7 +505,10 @@ def _compute_dist(
     Bgridplot = np.tile(Bgridplot, (nBbin-1, 1))
     extent = (Amin, Amax, Bmin, Bmax)
 
+    # iok
     iok = np.isfinite(dataA) & np.isfinite(dataB)
+
+    # databin
     databin = scpstats.binned_statistic_2d(
         dataA[iok],
         dataB[iok],

@@ -1,6 +1,7 @@
 
 
 import numpy as np
+import scipy.sparse as scpsparse
 
 
 _INCREMENTS = [1, 10]
@@ -383,6 +384,17 @@ def _update_mobile(k0=None, dmobile=None, dref=None, ddata=None):
         if c0:
             dmobile[k0]['func_set_data'][0](*iref)
 
+        elif scpsparse.issparse(ddata[dmobile[k0]['data'][0]]['data']):
+            if ddata[dmobile[k0]['data'][0]]['data'].ndim <= 2:
+                dmobile[k0]['func_set_data'][0](
+                    ddata[dmobile[k0]['data'][0]]['data'][
+                        dmobile[k0]['func_slice'][0](*iref)
+                    ].data
+                )
+            else:
+                msg = "Sparse data of dim > 2: not handled yet"
+                raise Exception(msg)
+
         else:
             dmobile[k0]['func_set_data'][0](
                 ddata[dmobile[k0]['data'][0]]['data'][
@@ -398,6 +410,18 @@ def _update_mobile(k0=None, dmobile=None, dref=None, ddata=None):
             )
             if c0:
                 dmobile[k0]['func_set_data'][ii](iref[ii])
+
+            elif scpsparse.issparse(ddata[dmobile[k0]['data'][ii]]['data']):
+                if ddata[dmobile[k0]['data'][ii]]['data'].ndim <= 2:
+                    dmobile[k0]['func_set_data'][ii](
+                        ddata[dmobile[k0]['data'][ii]]['data'][
+                            dmobile[k0]['func_slice'][ii](iref[ii])
+                        ].data
+                    )
+                else:
+                    msg = "Sparse data of dim > 2: not handled yet"
+                    raise Exception(msg)
+
             else:
                 dmobile[k0]['func_set_data'][ii](
                     ddata[dmobile[k0]['data'][ii]]['data'][
