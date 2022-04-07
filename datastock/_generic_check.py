@@ -201,7 +201,7 @@ def _check_inplace(coll=None, keys=None, inplace=None):
         default=None,
         types=list,
         types_iter=str,
-        allowed=coll.ddata.keys(),
+        allowed=list(coll.ddata.keys()),
     )
 
     # inplace

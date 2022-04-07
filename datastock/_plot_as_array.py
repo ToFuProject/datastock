@@ -87,7 +87,7 @@ def plot_as_array(
     # check key, inplace flag and extract sub-collection
     key, inplace, coll2 = _generic_check._check_inplace(
         coll=coll,
-        keys=[key],
+        keys=None if key is None else [key],
         inplace=inplace,
     )
     key = key[0]
@@ -247,6 +247,8 @@ def plot_as_array(
         coll2.setup_interactivity(kinter='inter0', dgroup=dgroup, dinc=dinc)
         coll2.disconnect_old()
         coll2.connect()
+
+        coll2.show_commands()
         return coll2
     else:
         return coll2, dgroup
