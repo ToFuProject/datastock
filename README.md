@@ -68,9 +68,9 @@ You will want to instanciate the DataStock class (which is the cor of datastock)
 
 
 DataStock has 3 main dict attributes:
-* dref: to store the size of each dimension, each under a unique key
-* ddata: to store all numpy arrays, each under a unique key
-* dobj: to store any number of arbitrary sub-dict, each containing a category of object
+* `dref`: to store the size of each dimension, each under a unique key
+* `ddata`: to store all numpy arrays, each under a unique key
+* `dobj`: to store any number of arbitrary sub-dict, each containing a category of object
 
 Thanks to dref, the class knows the relationaships between all numpy arrays.
 In particular it knows which arrays share the same references / dimensions
