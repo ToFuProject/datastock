@@ -45,7 +45,7 @@ aa = np.np.random.random((100, 100, 100))
 dax = ds.plot_as_array(aa)
 ```
 
-The interactive commands are automatically printed in your python console
+Now do **shift + left clic** on any axes, the rest of the interactive commands are automatically printed in your python console
 
 
 <p align="center">
@@ -53,6 +53,69 @@ The interactive commands are automatically printed in your python console
 </p>
 
 
+The DataStock class:
+--------------------
+
+You will want to instanciate the DataStock class (which is the cor of datastock) if:
+* You have many numpy arrays, not just one, especially if they do not have the same shape
+* You want to define a variety of objects from these data arrays (DataStock can be seen as a class storing many sub-classes)
+
+
+DataStock has 3 main dict attributes:
+* dref: to store the size of each dimension, each under a unique key
+* ddata: to store all numpy arrays, each under a unique key
+* dobj: to store any number of arbitrary sub-dict, each containing a category of object
+
+Thanks to dref, the class knows the relationaships between all numpy arrays.
+In particular it knows which arrays share the same references / dimensions
+
+
+```
+import numpy as np
+import datastock as ds
+
+# -----------
+# Define data
+# Here: time-varying profiles representing velocity measurement across the radius of a tube
+
+nt, nx = 100, 80
+t = np.linspace(0, 10, nt)
+x = np.linspace(1, 2, nx)
+prof = (1 + np.cos(t)[:, None]) * x[None, :]
+
+# ------------------
+# Populate DataStock
+
+# instanciate 
+st = ds.DataStock()
+
+# add references (i.e.: store size of each dimension under a unique key)
+st.add_ref(key='nt', size=nt)
+st.add_ref(key='nx', size=nx)
+
+# add data dependening on these references
+# you can, optionally, specify units, physical dimensionality (ex: distance, time...), quantity (ex: radius, height, ...) and name (to your liking)
+st.add_data(key='t', data=t, dimension='time', units='s')
+st.add_data(key='x', data=x, dimension='distance', quant='radius', units='m')
+st.add_data(key='prof', data=prof, dimension='velocity', units='m/s')
+
+# print in the console the content of st
+st
+
+# plot any array interactively
+dax = st.plot_as_array('t')
+dax = st.plot_as_array('x')
+dax = st.plot_as_array('prof')
+dax = st.plot_as_array('prof', keyX='t', keyY='x')
+```
+
+DataStock can then be used to store any object category
+
+```
+# add arbitrary object category as sub-dict of self.dobj
+st.add_obj(which='')
+
+```
 
 
 
