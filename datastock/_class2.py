@@ -278,7 +278,7 @@ class DataStock2(DataStock1):
 
     @property
     def dinteractivity(self):
-        return self._dinteractivity
+        return self.dobj.get('interactivity', {})
 
     # ------------------
     # show basic commands

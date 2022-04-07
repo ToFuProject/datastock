@@ -107,12 +107,11 @@ for ii, nt in enumerate(lnt):
 
 # add data dependening on these references
 # you can, optionally, specify units, physical dimensionality (ex: distance, time...), quantity (ex: radius, height, ...) and name (to your liking)
-# you can also add any arbitraty kwdarg as a parameter, here we tag the campaign
 
 st.add_data(key='x', data=x, dimension='distance', quant='radius', units='m', ref='nx')
 for ii, nt in enumerate(lnt):
-    st.add_data(key=f't{ii}', data=lt[ii], dimension='time', units='s', ref=f'nt{ii}', campaign=f'c{ii}')
-    st.add_data(key=f'prof{ii}', data=lprof[ii], dimension='velocity', units='m/s', ref=(f'nt{ii}', 'x'), campaign=f'c{ii}')
+    st.add_data(key=f't{ii}', data=lt[ii], dimension='time', units='s', ref=f'nt{ii}')
+    st.add_data(key=f'prof{ii}', data=lprof[ii], dimension='velocity', units='m/s', ref=(f'nt{ii}', 'x'))
 
 # print in the console the content of st
 st
@@ -127,7 +126,7 @@ Specifying explicitly the references is only necessary if there is an ambiguity 
 dax = st.plot_as_array('x')
 dax = st.plot_as_array('t0')
 dax = st.plot_as_array('prof0')
-dax = st.plot_as_array('prof0', keyX='t0', keyY='x')
+dax = st.plot_as_array('prof0', keyX='t0', keyY='x', aspect='auto')
 ```
 
 You can then decide to store any object category
@@ -146,11 +145,29 @@ for ii in range(nc):
 	comment='leak on tube' if ii == 1 else 'none',
 )
 
+# create new 'campaign' parameter for data arrays
+st.add_param('campaign', which='data')
+
+# tag each data with its campaign
+for ii in range(nc):
+    st.set_param(which='data', key=f't{ii}', param='campaign', value=f'c{ii}')	
+    st.set_param(which='data', key=f'prof{ii}', param='campaign', value=f'c{ii}')	
+
 # print in the console the content of st
 st
 ```
 
 You can also decide to sub-class DataStock to implement methods and visualizations specific to your needs
 
+
+Other useful built-in methods:
+-----------------------------
+
+DataStock provides built-in methods like:
+* `get_nbytes()`: return a tuple (size, dsize) where:
+    - size is the total size of all data stored in the instance in bytes
+    - dsize is a dict with the detail (size for each item in each sub-dict of the instance)
+* `save()`: will save the instance
+* `ds.load()`: will load a saved instance
 
 
