@@ -452,7 +452,8 @@ class DataStock1(DataStock0):
         which, dd = self.__check_which(which, return_dict=True)
         return _class1_check._select(
             dd=dd, dd_name=which,
-            log=log, returnas=returnas, **kwdargs,
+            log=log, returnas=returnas,
+            **kwdargs,
         )
 
     def _ind_tofrom_key(
