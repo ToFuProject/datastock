@@ -1766,10 +1766,10 @@ def _select(dd=None, dd_name=None, log=None, returnas=None, **kwdargs):
     # Get raw bool indices
 
     # Get list of accessible param
-    ltypes = [float, np.float_]
+    ltypes = (int, np.int_, float, np.float_)
     lquant = [
         kk for kk in kwdargs.keys()
-        if any([type(dd[k0][kk]) in ltypes for k0 in dd.keys()])
+        if any([isinstance(dd[k0][kk], ltypes) for k0 in dd.keys()])
     ]
 
     # Prepare array of bool indices and populate

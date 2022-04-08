@@ -209,11 +209,11 @@ class Test02_Manipulate():
         assert len(out) == 5, out
 
         # test quantitative param selection
-        # out = self.st.select(which='campaign', index=[2, 4])
-        # assert len(out) == 2
+        out = self.st.select(which='campaign', index=[2, 4])
+        assert len(out) == 3
 
-        # out = self.st.select(which='campaign', lambda0=(2, 4))
-        # assert len(out) == 1
+        out = self.st.select(which='campaign', index=(2, 4))
+        assert len(out) == 2
 
     def test07_sortby(self):
         self.st.sortby(which='data', param='units')
