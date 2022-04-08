@@ -36,12 +36,16 @@ class DataStock1(DataStock0):
     # Fixed (class-wise) dictionary of default properties
     _ddef = {
         'params': {
+            'dref': {
+            },
             'ddata': {
                 'units':  (str, 'a.u.'),
                 'dim':    (str, 'unknown'),
                 'quant':  (str, 'unknown'),
                 'name':   (str, 'unknown'),
                 'source': (str, 'unknown'),
+            },
+            'dobj': {
             },
          },
     }
@@ -137,8 +141,8 @@ class DataStock1(DataStock0):
             dobj0=self._dobj,
             propagate=propagate,
             reserved_keys=self._reserved_keys,
-            ddefparams_data=self._ddef['params']['ddata'],
-            ddefparams_obj=self._ddef['params']['dobj'],
+            ddefparams_data=self._ddef['params'].get('ddata'),
+            ddefparams_obj=self._ddef['params'].get('dobj'),
             data_none=self._data_none,
             max_ndim=self._max_ndim,
         )
@@ -153,8 +157,8 @@ class DataStock1(DataStock0):
             dobj0=self._dobj,
             propagate=propagate,
             reserved_keys=self._reserved_keys,
-            ddefparams_data=self._ddef['params']['ddata'],
-            ddefparams_obj=self._ddef['params']['dobj'],
+            ddefparams_data=self._ddef['params'].get('ddata'),
+            ddefparams_obj=self._ddef['params'].get('dobj'),
             data_none=self._data_none,
             max_ndim=self._max_ndim,
         )
@@ -170,8 +174,8 @@ class DataStock1(DataStock0):
             ddata0=self._ddata,
             dref0=self._dref,
             reserved_keys=self._reserved_keys,
-            ddefparams_data=self._ddef['params']['ddata'],
-            ddefparams_obj=self._ddef['params']['dobj'],
+            ddefparams_data=self._ddef['params'].get('ddata'),
+            ddefparams_obj=self._ddef['params'].get('dobj'),
             data_none=self._data_none,
             max_ndim=self._max_ndim,
         )
