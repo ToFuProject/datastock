@@ -590,16 +590,15 @@ class DataStock2(DataStock1):
             # requires re-initializing because home is a Qt Action
             # only created by toolbar.addAction()
             v0['handle'].manager.toolbar.home = self.new_home
-            try:
-                # if _init_toolbar() implemented (matplotlib > )
+
+            # if _init_toolbar() implemented (matplotlib > )
+            if hasattr(v0['handle'].manager.toolbar, '_init_toolbar'):
                 v0['handle'].manager.toolbar._init_toolbar()
-            except NotImplementedError:
+            else:
                 v0['handle'].manager.toolbar.__init__(
                     v0['handle'],
                     v0['handle'].parent(),
                 )
-            except Exception as err:
-                raise err
 
             self._dobj['canvas'][k0]['cid'] = {
                 'keyp': keyp,
