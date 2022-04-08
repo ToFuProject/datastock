@@ -614,8 +614,8 @@ class DataStock2(DataStock1):
             if error is not False:
                 import platform
                 import sys
-                lstr0 = [f"\t- {}" for k0 in dir(v0['handle'])]
-                lstr1 = [f"\t- {}" for k0 in dir(v0['handle'].manager.toolbar)]
+                lstr0 = [f"\t- {k1}" for k1 in dir(v0['handle'])]
+                lstr1 = [f"\t- {k1}" for k1 in dir(v0['handle'].manager.toolbar)]
                 msg = (i
                     f"platform: {platform.platform()}\n"
                     f"python: {sys.version}\n"
