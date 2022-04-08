@@ -1,7 +1,12 @@
 [build-system]
 requires = ["setuptools>=40.8.0",
 	    "wheel",
-	    "numpy",
-	    "scipy",
-	    "matplotlib",
 	    ]
+
+[project]
+name = "datastock"
+description = "Multiple data-handling and visualization library"
+readme = "README.md"
+keywords = ["data", "class", "interactive", "visualization"]
+dependencies = ["numpy", "scipy", "matplotlib"]
+
