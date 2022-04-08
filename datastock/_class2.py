@@ -592,13 +592,42 @@ class DataStock2(DataStock1):
             v0['handle'].manager.toolbar.home = self.new_home
 
             # if _init_toolbar() implemented (matplotlib > )
+            error = False
             if hasattr(v0['handle'].manager.toolbar, '_init_toolbar'):
-                v0['handle'].manager.toolbar._init_toolbar()
-            else:
+                try:
+                    v0['handle'].manager.toolbar._init_toolbar()
+                except NotImplementedError:
+                    v0['handle'].manager.toolbar.__init__(
+                        v0['handle'],
+                        v0['handle'].parent(),
+                    )
+                except Exception as err:
+                    error = err
+            elif hasattr(v0['handle'], 'parent'):
                 v0['handle'].manager.toolbar.__init__(
                     v0['handle'],
                     v0['handle'].parent(),
                 )
+            else:
+                error = True
+
+            if error is not False:
+                import platform
+                import sys
+                lstr0 = [f"\t- {k1}" for k1 in dir(v0['handle'])]
+                lstr1 = [f"\t- {k1}" for k1 in dir(v0['handle'].manager.toolbar)]
+                msg = (
+                    f"platform: {platform.platform()}\n"
+                    f"python: {sys.version}\n"
+                    f"backend: {plt.get_backend()}\n"
+                    "canvas attributes:\n"
+                    + "\n".join(lstr0)
+                    + "\ntoolbar attributes:\n"
+                    + "\n".join(lstr1)
+                )
+                if error is not True:
+                    msg += '\n' + str(err)
+                raise Exception(msg)
 
             self._dobj['canvas'][k0]['cid'] = {
                 'keyp': keyp,
