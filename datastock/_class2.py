@@ -616,7 +616,7 @@ class DataStock2(DataStock1):
                 import sys
                 lstr0 = [f"\t- {k1}" for k1 in dir(v0['handle'])]
                 lstr1 = [f"\t- {k1}" for k1 in dir(v0['handle'].manager.toolbar)]
-                msg = (i
+                msg = (
                     f"platform: {platform.platform()}\n"
                     f"python: {sys.version}\n"
                     f"backend: {plt.get_backend()}\n"
