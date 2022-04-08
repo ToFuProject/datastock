@@ -141,12 +141,13 @@ and let's add a 'campaign' parameter to each profile data
 for ii in range(nc):
     st.add_obj(
         which='campaign',
-	key=f'c{ii}',
-	start_date=f'{ii}.04.2022',
-	end_date=f'{ii+5}.05.2022',
-	operator='Barnaby' if ii > 2 else 'Jack Sparrow',
-	comment='leak on tube' if ii == 1 else 'none',
-)
+	    key=f'c{ii}',
+        start_date=f'{ii}.04.2022',
+        end_date=f'{ii+5}.05.2022',
+        operator='Barnaby' if ii > 2 else 'Jack Sparrow',
+        comment='leak on tube' if ii == 1 else 'none',
+        index=ii,
+    )
 
 # create new 'campaign' parameter for data arrays
 st.add_param('campaign', which='data')
@@ -159,6 +160,10 @@ for ii in range(nc):
 # print in the console the content of st
 st
 ```
+
+<p align="center">
+<img align="middle" src="https://github.com/ToFuProject/datastock/blob/devel/README_figures/DataStock_Obj.png" width="600" alt="Direct 3d array visualization"/>
+</p>
 
 You can also decide to sub-class DataStock to implement methods and visualizations specific to your needs
 
