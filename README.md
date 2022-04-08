@@ -165,6 +165,35 @@ st
 <img align="middle" src="https://github.com/ToFuProject/datastock/blob/devel/README_figures/DataStock_Obj.png" width="600" alt="Direct 3d array visualization"/>
 </p>
 
+DataStock also provides built-in object selection method to allow return all
+objects matching a criterion, as lits of int indices, bool indices or keys.
+
+```
+In [9]: st.select(which='campaign', index=2, returnas=int)
+Out[9]: array([2])
+
+# list of 2 => return all matches inside the interval
+In [10]: st.select(which='campaign', index=[2, 4], returnas=int)
+Out[10]: array([2, 3, 4])
+
+# tuple of 2 => return all matches outside the interval
+In [11]: st.select(which='campaign', index=(2, 4), returnas=int)
+Out[11]: array([0, 1])
+
+# return as keys
+In [12]: st.select(which='campaign', index=(2, 4), returnas=str)
+Out[12]: array(['c0', 'c1'], dtype='<U2')
+
+# return as bool indices
+In [13]: st.select(which='campaign', index=(2, 4), returnas=bool)
+Out[13]: array([ True,  True, False, False, False])
+
+# You can combine as many constraints as needed
+In [17]: st.select(which='campaign', index=[2, 4], operator='Barnaby', returnas=str)
+Out[17]: array(['c3', 'c4'], dtype='<U2')
+
+```
+
 You can also decide to sub-class DataStock to implement methods and visualizations specific to your needs
 
 
