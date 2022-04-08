@@ -8,6 +8,7 @@
 
 # Common
 import numpy as np
+import scipy.sparse as scpsparse
 import scipy.stats as scpstats
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
@@ -470,7 +471,10 @@ def plot_BvsA_as_distribution(
         coll2.disconnect_old()
         coll2.connect()
 
-    return coll2
+        coll2.show_commands()
+        return coll2
+    else:
+        return coll2, dgroup
 
 
 # #############################################################################
@@ -503,7 +507,10 @@ def _compute_dist(
     Bgridplot = np.tile(Bgridplot, (nBbin-1, 1))
     extent = (Amin, Amax, Bmin, Bmax)
 
+    # iok
     iok = np.isfinite(dataA) & np.isfinite(dataB)
+
+    # databin
     databin = scpstats.binned_statistic_2d(
         dataA[iok],
         dataB[iok],

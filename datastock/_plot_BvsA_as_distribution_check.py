@@ -1,6 +1,7 @@
 
 
 import numpy as np
+import scipy.sparse as scpsparse
 import matplotlib.colors as mcolors
 
 
@@ -327,13 +328,13 @@ def _plot_BvsA_check(
 
     # Amin, Amax, Bmin, Bmax
     if Amin is None:
-        Amin = np.nanmin(coll2._ddata[keyA]['data'])
+        Amin = np.nanmin(dataA)
     if Amax is None:
-        Amax = np.nanmax(coll2._ddata[keyA]['data'])
+        Amax = np.nanmax(dataA)
     if Bmin is None:
-        Bmin = np.nanmin(coll2._ddata[keyB]['data'])
+        Bmin = np.nanmin(dataB)
     if Bmax is None:
-        Bmax = np.nanmax(coll2._ddata[keyB]['data'])
+        Bmax = np.nanmax(dataB)
 
     # distribution binning
     if nAbin is None:

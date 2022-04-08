@@ -676,6 +676,20 @@ def _check_data(data=None, key=None, max_ndim=None):
     if c0_array:
         if data.dtype.type == np.str_:
             monotonous = tuple([False for ii in data.shape])
+        elif scpsp.issparse(data):
+            monot = np.all(np.isfinite(data.data))
+            data_temp = data.toarray()
+            monotonous = tuple([
+                bool(
+                    monot
+                    and (
+                        np.all(np.diff(data_temp, axis=aa) > 0.)
+                        or np.all(np.diff(data_temp, axis=aa) < 0.)
+                    )
+                )
+                for aa in range(data.ndim)
+            ])
+            del data_temp
         else:
             monot = np.all(np.isfinite(data))
             monotonous = tuple([
@@ -1692,3 +1706,143 @@ def _ind_tofrom_key(
         else:
             out = lk
     return out
+
+
+#############################################
+#############################################
+#       select
+#############################################
+
+
+def _select(dd=None, dd_name=None, log=None, returnas=None, **kwdargs):
+    """ Return the indices / keys of data matching criteria
+
+    The selection is done comparing the value of all provided parameters
+    The result is a boolean indices array, optionally with the keys list
+    It can include:
+        - log = 'all': only the data matching all criteria
+        - log = 'any': the data matching any criterion
+
+    If log = 'raw', a dict of indices arrays is returned, showing the
+    details for each criterion
+
+    """
+
+    # -----------
+    # check input
+
+    # log
+    log = _generic_check._check_var(
+        log,
+        'log',
+        types=str,
+        default='all',
+        allowed=['all', 'any', 'raw'],
+    )
+
+    # returnas
+    # 'raw' => return the full 2d array of boolean indices
+    returnas = _generic_check._check_var(
+        returnas,
+        'returnas',
+        default=bool if log == 'raw' else int,
+        allowed=[int, bool, str, 'key'],
+    )
+
+    kwdargs = {k0: v0 for k0, v0 in kwdargs.items() if v0 is not None}
+
+    # Get list of relevant criteria
+    lp = [kk for kk in list(dd.values())[0].keys() if kk != 'data']
+    lk = list(kwdargs.keys())
+    lk = _generic_check._check_var_iter(
+        lk,
+        'lk',
+        types_iter=str,
+        default=lp,
+        allowed=lp,
+    )
+
+    # --------------------
+    # Get raw bool indices
+
+    # Get list of accessible param
+    ltypes = (int, np.int_, float, np.float_)
+    lquant = [
+        kk for kk in kwdargs.keys()
+        if any([isinstance(dd[k0][kk], ltypes) for k0 in dd.keys()])
+    ]
+
+    # Prepare array of bool indices and populate
+    ind = np.zeros((len(kwdargs), len(dd)), dtype=bool)
+    for ii, kk in enumerate(kwdargs.keys()):
+        try:
+            par = _get_param(
+                dd=dd, dd_name=dd_name,
+                param=kk,
+                returnas=np.ndarray,
+            )[kk]
+            if kk in lquant:
+                # list => in interval
+                if isinstance(kwdargs[kk], list) and len(kwdargs[kk]) == 2:
+                    ind[ii, :] = (
+                        (kwdargs[kk][0] <= par) & (par <= kwdargs[kk][1])
+                    )
+
+                # tuple => out of interval
+                elif isinstance(kwdargs[kk], tuple) and len(kwdargs[kk]) == 2:
+                    ind[ii, :] = (
+                        (kwdargs[kk][0] > par) | (par > kwdargs[kk][1])
+                    )
+
+                # float / int => equal
+                else:
+                    ind[ii, :] = par == kwdargs[kk]
+            else:
+                ind[ii, :] = par == kwdargs[kk]
+        except Exception as err:
+            try:
+                ind[ii, :] = [
+                    dd[k0][kk] == kwdargs[kk] for k0 in dd.keys()
+                ]
+            except Exception as err:
+                msg = (
+                    "Could not determine whether:\n"
+                    + "\t- {}['{}'] == {}".format(
+                        dd_name, kk, kwdargs[kk],
+                    )
+                )
+                raise Exception(msg)
+
+    # -----------------
+    # Format output ind
+
+    # return raw 2d array of bool indices
+    if log == 'raw':
+        if returnas in [str, 'key']:
+            ind = {
+                kk: [k0 for jj, k0 in enumerate(dd.keys()) if ind[ii, jj]]
+                for ii, kk in enumerate(kwdargs.keys())
+            }
+        if returnas == int:
+            ind = {
+                kk: ind[ii, :].nonzero()[0]
+                for ii, kk in enumerate(kwdargs.keys())
+            }
+        else:
+            ind = {kk: ind[ii, :] for ii, kk in enumerate(kwdargs.keys())}
+
+    else:
+        # return all or any
+        if log == 'all':
+            ind = np.all(ind, axis=0)
+        else:
+            ind = np.any(ind, axis=0)
+
+        if returnas == int:
+            ind = ind.nonzero()[0]
+        elif returnas in [str, 'key']:
+            ind = np.array(
+                [k0 for jj, k0 in enumerate(dd.keys()) if ind[jj]],
+                dtype=str,
+            )
+    return ind

@@ -1,6 +1,11 @@
 
 
 import numpy as np
+import scipy.sparse as scpsparse
+
+
+from . import _generic_check
+from . import _generic_utils
 
 
 _INCREMENTS = [1, 10]
@@ -14,6 +19,76 @@ _DKEYS = {
     'up': {'val': False, 'action': 'move'},
     'down': {'val': False, 'action': 'move'},
 }
+
+
+_DCOMMANDS = {
+    'shift + left clic': 'add a slice at selected location',
+    'left clic': 'move currently selected slice to selected location',
+    'ctrl + left clic': 'remove all visible slices',
+    '0, 1, 2...': 'select slice number 0, 1, 2...',
+    'f1, f2, f3...': 'select group of slice number 1, 2, 3...',
+    'left/right/up/down arrows': 'increment current slice index by 1',
+    'alt + left/right/up/down arrows': 'increment current slice index by 10',
+}
+
+
+# #############################################################################
+# #############################################################################
+#            show commands
+# #############################################################################
+
+
+def show_commands(
+    verb=None,
+    returnas=None,
+):
+
+    # ------------
+    # check inputs
+
+    verb = _generic_check._check_var(
+        verb, 'verb',
+        default=True,
+        types=bool,
+    )
+
+    returnas = _generic_check._check_var(
+        returnas, 'returnas',
+        default=False,
+        allowed=[False, str, dict],
+    )
+
+    # ------------
+    # get dcommands
+
+    dcom = dict(_DCOMMANDS)
+
+    # --------------
+    # col and ar
+
+    lcol = [['command', 'description']]
+    lar = [[
+        [
+            k0,
+            v0,
+        ]
+        for k0, v0 in dcom.items()
+    ]]
+
+    # -------
+    # return
+
+    out = _generic_utils.pretty_print(
+        headers=lcol,
+        content=lar,
+        verb=verb,
+        returnas=False if returnas is dict else returnas,
+    )
+    if returnas is dict:
+        return dcom
+    else:
+        return out
+
 
 
 # #############################################################################
@@ -383,6 +458,17 @@ def _update_mobile(k0=None, dmobile=None, dref=None, ddata=None):
         if c0:
             dmobile[k0]['func_set_data'][0](*iref)
 
+        elif scpsparse.issparse(ddata[dmobile[k0]['data'][0]]['data']):
+            if ddata[dmobile[k0]['data'][0]]['data'].ndim <= 2:
+                dmobile[k0]['func_set_data'][0](
+                    ddata[dmobile[k0]['data'][0]]['data'][
+                        dmobile[k0]['func_slice'][0](*iref)
+                    ].data
+                )
+            else:
+                msg = "Sparse data of dim > 2: not handled yet"
+                raise Exception(msg)
+
         else:
             dmobile[k0]['func_set_data'][0](
                 ddata[dmobile[k0]['data'][0]]['data'][
@@ -398,6 +484,18 @@ def _update_mobile(k0=None, dmobile=None, dref=None, ddata=None):
             )
             if c0:
                 dmobile[k0]['func_set_data'][ii](iref[ii])
+
+            elif scpsparse.issparse(ddata[dmobile[k0]['data'][ii]]['data']):
+                if ddata[dmobile[k0]['data'][ii]]['data'].ndim <= 2:
+                    dmobile[k0]['func_set_data'][ii](
+                        ddata[dmobile[k0]['data'][ii]]['data'][
+                            dmobile[k0]['func_slice'][ii](iref[ii])
+                        ].data
+                    )
+                else:
+                    msg = "Sparse data of dim > 2: not handled yet"
+                    raise Exception(msg)
+
             else:
                 dmobile[k0]['func_set_data'][ii](
                     ddata[dmobile[k0]['data'][ii]]['data'][
