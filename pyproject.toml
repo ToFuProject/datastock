@@ -2,11 +2,3 @@
 requires = ["setuptools>=40.8.0",
 	    "wheel",
 	    ]
-
-[project]
-name = "datastock"
-description = "Multiple data-handling and visualization library"
-readme = "README.md"
-keywords = ["data", "class", "interactive", "visualization"]
-dependencies = ["numpy", "scipy", "matplotlib"]
-
