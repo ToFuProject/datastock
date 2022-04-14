@@ -1132,7 +1132,7 @@ def _harmonize_params(
                     if any([k2 not in dobj0[k1].keys() for k2 in v0[k1]]):
                         out = True
                 elif isinstance(v0[k1], str):
-                    if v0[k1] not in dobj0[k1]:
+                    if v0[k1] not in dobj0[k1] and v0[k1] != '':
                         out = True
                 else:
                     msg = (
