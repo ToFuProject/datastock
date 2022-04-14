@@ -56,6 +56,7 @@ class DataStock0(object):
             for k0 in dir(self)
             if isinstance(getattr(self, k0), dict)
             and k0 != '__dict__'
+            and '__dlinks' not in k0
             and not (
                 hasattr(self.__class__, k0)
                 and isinstance(getattr(self.__class__, k0), property)
