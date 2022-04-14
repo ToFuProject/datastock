@@ -174,7 +174,7 @@ class Test02_Manipulate():
     #   Add / remove
     # ------------------------
 
-    def test04_add_param(self):
+    def test01_add_param(self):
         # create new 'campaign' parameter for data arrays
         self.st.add_param('campaign', which='data')
 
@@ -193,7 +193,7 @@ class Test02_Manipulate():
                 value=f'c{ii}',
             )
 
-    def test05_remove_param(self):
+    def test02_remove_param(self):
         self.st.add_param('blabla', which='campaign')
         self.st.remove_param('blabla', which='campaign')
 
@@ -201,7 +201,7 @@ class Test02_Manipulate():
     #   Selection / sorting
     # ------------------------
 
-    def test06_select(self):
+    def test03_select(self):
         key = self.st.select(which='data', units='s', returnas=str)
         assert key.tolist() == ['t0', 't1', 't2', 't3', 't4']
 
@@ -215,21 +215,21 @@ class Test02_Manipulate():
         out = self.st.select(which='campaign', index=(2, 4))
         assert len(out) == 2
 
-    def test07_sortby(self):
+    def test04_sortby(self):
         self.st.sortby(which='data', param='units')
 
     # ------------------------
     #   show
     # ------------------------
 
-    def test08_show(self):
+    def test05_show(self):
         self.st.show()
 
     # ------------------------
     #   Interpolate
     # ------------------------
 
-    def test09_interpolate(self):
+    def test06_interpolate(self):
         out = self.st.interpolate(
             keys='prof0',
             ref_keys=None,
@@ -250,13 +250,13 @@ class Test02_Manipulate():
     #   Plotting
     # ------------------------
 
-    def test10_plot_as_array(self):
+    def test07_plot_as_array(self):
         dax = self.st.plot_as_array(key='t0')
         dax = self.st.plot_as_array(key='prof0')
         dax = self.st.plot_as_array(key='3d')
         plt.close('all')
 
-    def test11_plot_BvsA_as_distribution(self):
+    def test08_plot_BvsA_as_distribution(self):
         dax = self.st.plot_BvsA_as_distribution(keyA='prof0', keyB='prof0-bis')
         plt.close('all')
 
@@ -264,17 +264,23 @@ class Test02_Manipulate():
     #   File handling
     # ------------------------
 
-    def test20_copy_equal(self):
+    def test09_copy_equal(self):
         st2 = self.st.copy()
-        assert st2 == self.st
         assert st2 is not self.st
 
-    def test21_get_nbytes(self):
+        msg = st2.__eq__(self.st, returnas=str)
+        if msg is not True:
+            raise Exception(msg)
+
+
+    def test10_get_nbytes(self):
         nb, dnb = self.st.get_nbytes()
 
-    def test23_saveload(self, verb=False):
-            pfe = self.st.save(path=_PATH_OUTPUT, verb=verb, return_pfe=True)
-            st2 = load(pfe, verb=verb)
-            # Just to check the loaded version works fine
-            assert st2 == self.st
-            os.remove(pfe)
+    def test11_saveload(self, verb=False):
+        pfe = self.st.save(path=_PATH_OUTPUT, verb=verb, return_pfe=True)
+        st2 = load(pfe, verb=verb)
+        # Just to check the loaded version works fine
+        msg = st2.__eq__(self.st, returnas=str)
+        if msg is not True:
+            raise Exception(msg)
+        os.remove(pfe)
