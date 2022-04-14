@@ -94,6 +94,11 @@ class DataStock0(object):
 
         obj = cls()
         for k0 in din.keys():
+            if k0 == '_ddef':
+                if 'dobj' not in din[k0]['params'].keys():
+                    din[k0]['params']['dobj'] = {}
+                if 'dref' not in din[k0]['params'].keys():
+                    din[k0]['params']['dref'] = {}
             setattr(obj, k0, din[k0])
 
         return obj
