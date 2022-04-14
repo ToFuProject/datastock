@@ -3,6 +3,7 @@ Where the matplotlib interactivity is implemented
 
 """
 
+
 import warnings
 
 
@@ -615,29 +616,23 @@ class DataStock2(DataStock1):
                 error = True
 
             if error is not False:
-                try:
-                    v0['handle'].manager.toolbar.__init__(
-                        v0['handle'],
-                        v0['handle'].figure,
-                    )
-                except:
-                    import platform
-                    import sys
-                    import inspect
-                    lstr0 = [f"\t- {k1}" for k1 in dir(v0['handle'])]
-                    lstr1 = [f"\t- {k1}" for k1 in dir(v0['handle'].manager.toolbar)]
-                    msg = (
-                        f"platform: {platform.platform()}\n"
-                        f"python: {sys.version}\n"
-                        f"backend: {plt.get_backend()}\n"
-                        "canvas attributes:\n"
-                        + "\n".join(lstr0)
-                        + "\ntoolbar attributes:\n"
-                        + "\n".join(lstr1)
-                    )
-                    if error is not True:
-                        msg += '\n' + str(err)
-                    raise Exception(msg)
+                import platform
+                import sys
+                import inspect
+                lstr0 = [f"\t- {k1}" for k1 in dir(v0['handle'])]
+                lstr1 = [f"\t- {k1}" for k1 in dir(v0['handle'].manager.toolbar)]
+                msg = (
+                    f"platform: {platform.platform()}\n"
+                    f"python: {sys.version}\n"
+                    f"backend: {plt.get_backend()}\n"
+                    "canvas attributes:\n"
+                    + "\n".join(lstr0)
+                    + "\ntoolbar attributes:\n"
+                    + "\n".join(lstr1)
+                )
+                if error is not True:
+                    msg += '\n' + str(err)
+                warnings.warn(msg)
 
             self._dobj['canvas'][k0]['cid'] = {
                 'keyp': keyp,
