@@ -259,11 +259,15 @@ class DataStock1(DataStock0):
 
         """
         which, dd = self.__check_which(which, return_dict=True)
-        _class1_check._set_param(
+        param = _class1_check._set_param(
             dd=dd, dd_name=which,
             param=param, value=value, ind=ind, key=key,
             distribute=distribute,
         )
+
+        # if param refers to an object => update
+        if param in self._dobj.keys():
+            self.update()
 
     def add_param(
         self,
@@ -273,12 +277,16 @@ class DataStock1(DataStock0):
     ):
         """ Add a parameter, optionnally also set its value """
         which, dd = self.__check_which(which, return_dict=True)
-        _class1_check._add_param(
+        param = _class1_check._add_param(
             dd=dd,
             dd_name=which,
             param=param,
             value=value,
         )
+
+        # if param refers to an object => update
+        if param in self._dobj.keys():
+            self.update()
 
     def remove_param(
         self,

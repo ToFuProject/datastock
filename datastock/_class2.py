@@ -3,6 +3,7 @@ Where the matplotlib interactivity is implemented
 
 """
 
+
 import warnings
 
 
@@ -604,16 +605,20 @@ class DataStock2(DataStock1):
                 except Exception as err:
                     error = err
             elif hasattr(v0['handle'], 'parent'):
-                v0['handle'].manager.toolbar.__init__(
-                    v0['handle'],
-                    v0['handle'].parent(),
-                )
+                try:
+                    v0['handle'].manager.toolbar.__init__(
+                        v0['handle'],
+                        v0['handle'].parent(),
+                    )
+                except Exception as err:
+                    error = True
             else:
                 error = True
 
             if error is not False:
                 import platform
                 import sys
+                import inspect
                 lstr0 = [f"\t- {k1}" for k1 in dir(v0['handle'])]
                 lstr1 = [f"\t- {k1}" for k1 in dir(v0['handle'].manager.toolbar)]
                 msg = (
@@ -627,7 +632,7 @@ class DataStock2(DataStock1):
                 )
                 if error is not True:
                     msg += '\n' + str(err)
-                raise Exception(msg)
+                warnings.warn(msg)
 
             self._dobj['canvas'][k0]['cid'] = {
                 'keyp': keyp,

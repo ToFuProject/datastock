@@ -1132,7 +1132,7 @@ def _harmonize_params(
                     if any([k2 not in dobj0[k1].keys() for k2 in v0[k1]]):
                         out = True
                 elif isinstance(v0[k1], str):
-                    if v0[k1] not in dobj0[k1]:
+                    if v0[k1] not in dobj0[k1] and v0[k1] != '':
                         out = True
                 else:
                     msg = (
@@ -1174,7 +1174,7 @@ def _update_dobj0(ddata0=None, dobj0=None):
             if any([ddata0[k3].get(k0) == k2 for k3 in ddata0.keys()])
         }
         if len(dd) > 0:
-            ss = 'nb. data'
+            ss = 'nb data'
             for k2, v2 in v0.items():
                 dobj0[k0][k2][ss] = int(dd.get(k2, 0))
 
@@ -1186,7 +1186,7 @@ def _update_dobj0(ddata0=None, dobj0=None):
                 if any([v1[k3].get(k0) == k2 for k3 in v1.keys()])
             }
             if len(dd) > 0:
-                ss = f'nb. {k1}'
+                ss = f'nb {k1}'
                 for k2, v2 in v0.items():
                     dobj0[k0][k2][ss] = int(dd.get(k2, 0))
 
@@ -1563,6 +1563,8 @@ def _set_param(
         for kk, vv in value.items():
             dd[kk][param] = vv
 
+    return param
+
 
 def _add_param(
     dd=None, dd_name=None,
@@ -1590,6 +1592,7 @@ def _add_param(
         dd[kk][param] = None
     _set_param(dd=dd, param=param, value=value)
 
+    return param
 
 def _remove_param(dd=None, dd_name=None, param=None):
     """ Remove a parameter, none by default, all if param = 'all' """
