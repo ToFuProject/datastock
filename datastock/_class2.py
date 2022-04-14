@@ -593,6 +593,7 @@ class DataStock2(DataStock1):
 
             # if _init_toolbar() implemented (matplotlib > )
             error = False
+            import pdb; pdb.set_trace()     # DB
             if hasattr(v0['handle'].manager.toolbar, '_init_toolbar'):
                 try:
                     v0['handle'].manager.toolbar._init_toolbar()
@@ -604,30 +605,40 @@ class DataStock2(DataStock1):
                 except Exception as err:
                     error = err
             elif hasattr(v0['handle'], 'parent'):
-                v0['handle'].manager.toolbar.__init__(
-                    v0['handle'],
-                    v0['handle'].parent(),
-                )
+                try:
+                    v0['handle'].manager.toolbar.__init__(
+                        v0['handle'],
+                        v0['handle'].parent(),
+                    )
+                except Exception as err:
+                    error = True
             else:
                 error = True
 
             if error is not False:
-                import platform
-                import sys
-                lstr0 = [f"\t- {k1}" for k1 in dir(v0['handle'])]
-                lstr1 = [f"\t- {k1}" for k1 in dir(v0['handle'].manager.toolbar)]
-                msg = (
-                    f"platform: {platform.platform()}\n"
-                    f"python: {sys.version}\n"
-                    f"backend: {plt.get_backend()}\n"
-                    "canvas attributes:\n"
-                    + "\n".join(lstr0)
-                    + "\ntoolbar attributes:\n"
-                    + "\n".join(lstr1)
-                )
-                if error is not True:
-                    msg += '\n' + str(err)
-                raise Exception(msg)
+                try:
+                    v0['handle'].manager.toolbar.__init__(
+                        v0['handle'],
+                        v0['handle'].figure,
+                    )
+                except:
+                    import platform
+                    import sys
+                    import inspect
+                    lstr0 = [f"\t- {k1}" for k1 in dir(v0['handle'])]
+                    lstr1 = [f"\t- {k1}" for k1 in dir(v0['handle'].manager.toolbar)]
+                    msg = (
+                        f"platform: {platform.platform()}\n"
+                        f"python: {sys.version}\n"
+                        f"backend: {plt.get_backend()}\n"
+                        "canvas attributes:\n"
+                        + "\n".join(lstr0)
+                        + "\ntoolbar attributes:\n"
+                        + "\n".join(lstr1)
+                    )
+                    if error is not True:
+                        msg += '\n' + str(err)
+                    raise Exception(msg)
 
             self._dobj['canvas'][k0]['cid'] = {
                 'keyp': keyp,
