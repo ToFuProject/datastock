@@ -593,7 +593,6 @@ class DataStock2(DataStock1):
 
             # if _init_toolbar() implemented (matplotlib > )
             error = False
-            import pdb; pdb.set_trace()     # DB
             if hasattr(v0['handle'].manager.toolbar, '_init_toolbar'):
                 try:
                     v0['handle'].manager.toolbar._init_toolbar()
