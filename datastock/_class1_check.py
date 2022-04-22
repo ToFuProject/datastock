@@ -25,11 +25,11 @@ _LRESERVED_KEYS = list(set(itt.chain.from_iterable([
 
 _DDEF_PARAMS = {
     'ddata': {
-        'source': (str, 'unknown'),
-        'dim':    (str, 'unknown'),
-        'quant':  (str, 'unknown'),
-        'name':   (str, 'unknown'),
-        'units':  (str, 'a.u.'),
+        'source': (str, ''),
+        'dim':    (str, ''),
+        'quant':  (str, ''),
+        'name':   (str, ''),
+        'units':  (str, ''),
     },
     'dobj': {
     },
@@ -1110,7 +1110,7 @@ def _harmonize_params(
             elif not isinstance(dd[k1][k0], v0[0]):
                 dfail[k0] = (
                     f" expected {v0[0]} vs "
-                    f"type({dd_name2}[{k1}][{k0}]) = {type(dd[k1][k0])}"
+                    f"type({dd_name2}['{k1}']['{k0}']) = {type(dd[k1][k0])}"
                 )
 
     # raise error if any mismatch
