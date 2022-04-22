@@ -1,18 +1,10 @@
 # coding utf-8
 
 
-# Built-in
-import itertools as itt
-import warnings
-
-
 # Common
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
-import matplotlib as mpl
-import matplotlib.transforms as transforms
-import matplotlib.lines as mlines
 import matplotlib.colors as mcolors
 
 
@@ -252,6 +244,7 @@ def plot_as_array(
         return coll2
     else:
         return coll2, dgroup
+
 
 # #############################################################################
 # #############################################################################
