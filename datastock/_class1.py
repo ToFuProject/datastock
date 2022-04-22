@@ -39,11 +39,11 @@ class DataStock1(DataStock0):
             'dref': {
             },
             'ddata': {
-                'units':  (str, 'a.u.'),
-                'dim':    (str, 'unknown'),
-                'quant':  (str, 'unknown'),
-                'name':   (str, 'unknown'),
-                'source': (str, 'unknown'),
+                'units':  (str, ''),
+                'dim':    (str, ''),
+                'quant':  (str, ''),
+                'name':   (str, ''),
+                'source': (str, ''),
             },
             'dobj': {
             },
@@ -112,18 +112,18 @@ class DataStock1(DataStock0):
     # Adding ref / quantity one by one
     # ---------------------
 
-    def add_ref(self, size=None, key=None, data=None, **kwdargs):
-        dref = {key: {'data': data, 'size': size, **kwdargs}}
+    def add_ref(self, size=None, key=None, data=None, harmonize=None, **kwds):
+        dref = {key: {'data': data, 'size': size, **kwds}}
         # Check consistency
-        self.update(ddata=None, dref=dref, harmonize=True)
+        self.update(ddata=None, dref=dref, harmonize=harmonize)
 
-    def add_data(self, data=None, key=None, ref=None, **kwdargs):
-        ddata = {key: {'data': data, 'ref': ref, **kwdargs}}
+    def add_data(self, data=None, key=None, ref=None, harmonize=None, **kwds):
+        ddata = {key: {'data': data, 'ref': ref, **kwds}}
         # Check consistency
-        self.update(ddata=ddata, dref=None, harmonize=True)
+        self.update(ddata=ddata, dref=None, harmonize=harmonize)
 
-    def add_obj(self, which=None, key=None, harmonize=None, **kwdargs):
-        dobj = {which: {key: kwdargs}}
+    def add_obj(self, which=None, key=None, harmonize=None, **kwds):
+        dobj = {which: {key: kwds}}
         # Check consistency
         self.update(dobj=dobj, dref=None, harmonize=harmonize)
 

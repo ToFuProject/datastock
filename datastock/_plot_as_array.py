@@ -262,7 +262,7 @@ def _check_keyXYZ(coll=None, refs=None, keyX=None, ndim=None, dimlim=None):
             if keyX in coll._ddata.keys():
                 lok = [
                     k0 for k0, v0 in coll._ddata.items()
-                    if len( v0['ref']) == 1
+                    if len(v0['ref']) == 1
                     and v0['ref'][0] in refs
                     and (
                         v0['data'].dtype.type == np.str_
@@ -285,6 +285,7 @@ def _check_keyXYZ(coll=None, refs=None, keyX=None, ndim=None, dimlim=None):
                         )
                     )
                 ]
+
                 keyX = _generic_check._check_var(
                     keyX, 'keyX',
                     allowed=lok,
