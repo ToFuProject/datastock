@@ -39,11 +39,11 @@ class DataStock1(DataStock0):
             'dref': {
             },
             'ddata': {
-                'units':  (str, 'a.u.'),
-                'dim':    (str, 'unknown'),
-                'quant':  (str, 'unknown'),
-                'name':   (str, 'unknown'),
-                'source': (str, 'unknown'),
+                'units':  (str, ''),
+                'dim':    (str, ''),
+                'quant':  (str, ''),
+                'name':   (str, ''),
+                'source': (str, ''),
             },
             'dobj': {
             },

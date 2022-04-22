@@ -1098,24 +1098,31 @@ def _harmonize_params(
     # ----------------------------------------
     # check param types and set default values
 
+    dfail = {}
     for k0, v0 in ddefparams.items():
         for k1, v1 in dd.items():
-            if k0 not in v1.keys():
-                dd[k1][k0] = v0[1]
-            else:
-                # Check type if already included
-                if not isinstance(dd[k1][k0], v0[0]):
-                    msg = (
-                        """
-                        Wrong type for parameter:
-                            - type({}[{}][{}]) = {}
-                        - Expected: {}
-                        """.format(
-                            dd_name2, k1, k0, type(dd[k1][k0]), v0[0],
-                        )
-                    )
-                    raise Exception(msg)
 
+            # Set to default if None
+            if v1.get(k0) is None:
+                dd[k1][k0] = v0[1]
+
+            # Check type if already included
+            elif not isinstance(dd[k1][k0], v0[0]):
+                dfail[k0] = (
+                    f" expected {v0[0]} vs "
+                    f"type({dd_name2}[{k1}][{k0}]) = {type(dd[k1][k0])}"
+                )
+
+    # raise error if any mismatch
+    if len(dfail) > 0:
+        lstr = [f"\t- {k0}: {v0}" for k0, v0 in dfail.items()]
+        msg = (
+            "The following parameters have the wrong type:\n"
+            + "\n".join(lstr)
+        )
+        raise Exception(msg)
+
+    # set 
     for k0 in lparams:
         for k1, v1 in dd.items():
             dd[k1][k0] = dd[k1].get(k0)
