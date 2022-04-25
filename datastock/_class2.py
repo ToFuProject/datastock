@@ -1016,49 +1016,39 @@ class DataStock2(DataStock1):
 
         else:
 
+            # x
             c0x = (
                 cur_refx is not None
                 and self._dobj['axes'][kax]['refx'] is not None
                 and cur_refx in self._dobj['axes'][kax]['refx']
             )
             if c0x:
-                monot = None
-                c0 = (
-                    cur_datax == 'index'
-                    or self._ddata[cur_datax]['data'].dtype.type == np.str_
+                ix = _class2_interactivity._get_ix_for_refx_only_1or2d(
+                    cur_data=cur_datax,
+                    cur_ref=cur_refx,
+                    eventdata=event.xdata,
+                    # resources
+                    ddata=self._ddata,
+                    dref=self._dref,
+                    dgroup=self._dobj['group'],
                 )
-                if c0:
-                    cdx = 'index'
-                else:
-                    monot = self._ddata[cur_datax]['monot'] == (True,)
-                    cdx = self._ddata[cur_datax]['data']
-                ix = _class1_compute._get_index_from_data(
-                    data=cdx,
-                    data_pick=np.r_[event.xdata],
-                    monot=monot,
-                )[0]
 
+            # y
             c0y = (
                 cur_refy is not None
                 and self._dobj['axes'][kax]['refy'] is not None
                 and cur_refy in self._dobj['axes'][kax]['refy']
             )
             if c0y:
-                monot = None
-                c0 = (
-                    cur_datay == 'index'
-                    or self._ddata[cur_datay]['data'].dtype.type == np.str_
+                iy = _class2_interactivity._get_ix_for_refx_only_1or2d(
+                    cur_data=cur_datay,
+                    cur_ref=cur_refy,
+                    eventdata=event.ydata,
+                    # resources
+                    ddata=self._ddata,
+                    dref=self._dref,
+                    dgroup=self._dobj['group'],
                 )
-                if c0:
-                    cdy = 'index'
-                else:
-                    monot = self._ddata[cur_datay]['monot'] == (True,)
-                    cdy = self._ddata[cur_datay]['data']
-                iy = _class1_compute._get_index_from_data(
-                    data=cdy,
-                    data_pick=np.r_[event.ydata],
-                    monot=monot,
-                )[0]
 
         # Update ref indices
         if c0x:
