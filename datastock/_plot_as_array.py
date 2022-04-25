@@ -252,8 +252,46 @@ def plot_as_array(
 # #############################################################################
 
 
-def _check_keyXYZ(coll=None, refs=None, keyX=None, ndim=None, dimlim=None):
-    """   """
+def _check_uniform(k0=None, ddata=None):
+
+    v0 = ddata[k0]
+
+    c0 = (
+        v0['data'].dtype.type != np.str_
+        and v0['monot'] == (True,)
+        and (
+            np.allclose(
+                np.diff(v0['data']),
+                v0['data'][1] - v0['data'][0],
+                equal_nan=False,
+            )
+            or (
+                np.all(v0['data'] > 0.)
+                and np.allclose(
+                    np.diff(np.log(v0['data'])),
+                    np.log(v0['data'][1]) - np.log(v0['data'][0]),
+                    equal_nan=False,
+                )
+            )
+        )
+    )
+    return c0
+
+
+def _check_keyXYZ(
+    coll=None,
+    refs=None,
+    keyX=None,
+    ndim=None,
+    dimlim=None,
+    uniform=None,
+):
+    """ Ensure keyX refers to a monotonic and (optionally) uniform data
+
+    """
+
+    if uniform is None:
+        uniform = True
 
     refX = None
     islog = False
@@ -266,30 +304,22 @@ def _check_keyXYZ(coll=None, refs=None, keyX=None, ndim=None, dimlim=None):
                     and v0['ref'][0] in refs
                     and (
                         v0['data'].dtype.type == np.str_
-                        or (
-                            v0['monot'] == (True,)
-                            and np.allclose(
-                                np.diff(v0['data']),
-                                v0['data'][1] - v0['data'][0],
-                                equal_nan=False,
-                            )
-                        )
-                        or (
-                            v0['monot'] == (True,)
-                            and np.all(v0['data'] > 0.)
-                            and np.allclose(
-                                np.diff(np.log(v0['data'])),
-                                np.log(v0['data'][1]) - np.log(v0['data'][0]),
-                                equal_nan=False,
-                            )
-                        )
+                        or v0['monot'] == (True,)
                     )
                 ]
+
+                # optional uniformity
+                if uniform:
+                    lok = [
+                        k0 for k0 in lok
+                        if _check_uniform(k0=k0, ddata=coll._ddata)
+                    ]
 
                 keyX = _generic_check._check_var(
                     keyX, 'keyX',
                     allowed=lok,
                 )
+
                 refX = coll._ddata[keyX]['ref'][0]
 
                 # islog
