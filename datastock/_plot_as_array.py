@@ -1,25 +1,17 @@
 # coding utf-8
 
 
-# Built-in
-import itertools as itt
-import warnings
-
-
 # Common
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
-import matplotlib as mpl
-import matplotlib.transforms as transforms
-import matplotlib.lines as mlines
 import matplotlib.colors as mcolors
 
 
 # library-specific
 from . import _generic_check
 from . import _plot_text
-from . import _class2_interactivity
+from . import _class1_compute
 
 
 __all__ = ['plot_as_array']
@@ -253,14 +245,60 @@ def plot_as_array(
     else:
         return coll2, dgroup
 
+
 # #############################################################################
 # #############################################################################
 #                       check
 # #############################################################################
 
 
-def _check_keyXYZ(coll=None, refs=None, keyX=None, ndim=None, dimlim=None):
-    """   """
+def _check_uniform_lin(k0=None, ddata=None):
+
+    v0 = ddata[k0]
+
+    c0 = (
+        v0['data'].dtype.type != np.str_
+        and v0['monot'] == (True,)
+        and np.allclose(
+            np.diff(v0['data']),
+            v0['data'][1] - v0['data'][0],
+            equal_nan=False,
+        )
+    )
+    return c0
+
+
+def _check_uniform_log(k0=None, ddata=None):
+
+    v0 = ddata[k0]
+
+    c0 = (
+        v0['data'].dtype.type != np.str_
+        and v0['monot'] == (True,)
+        and np.all(v0['data'] > 0.)
+        and np.allclose(
+            np.diff(np.log(v0['data'])),
+            np.log(v0['data'][1]) - np.log(v0['data'][0]),
+            equal_nan=False,
+        )
+    )
+    return c0
+
+
+def _check_keyXYZ(
+    coll=None,
+    refs=None,
+    keyX=None,
+    ndim=None,
+    dimlim=None,
+    uniform=None,
+):
+    """ Ensure keyX refers to a monotonic and (optionally) uniform data
+
+    """
+
+    if uniform is None:
+        uniform = True
 
     refX = None
     islog = False
@@ -273,44 +311,27 @@ def _check_keyXYZ(coll=None, refs=None, keyX=None, ndim=None, dimlim=None):
                     and v0['ref'][0] in refs
                     and (
                         v0['data'].dtype.type == np.str_
-                        or (
-                            v0['monot'] == (True,)
-                            and np.allclose(
-                                np.diff(v0['data']),
-                                v0['data'][1] - v0['data'][0],
-                                equal_nan=False,
-                            )
-                        )
-                        or (
-                            v0['monot'] == (True,)
-                            and np.all(v0['data'] > 0.)
-                            and np.allclose(
-                                np.diff(np.log(v0['data'])),
-                                np.log(v0['data'][1]) - np.log(v0['data'][0]),
-                                equal_nan=False,
-                            )
-                        )
+                        or v0['monot'] == (True,)
                     )
                 ]
+
+                # optional uniformity
+                if uniform:
+                    lok = [
+                        k0 for k0 in lok
+                        if _check_uniform_lin(k0=k0, ddata=coll._ddata)
+                        or _check_uniform_log(k0=k0, ddata=coll._ddata)
+                    ]
 
                 keyX = _generic_check._check_var(
                     keyX, 'keyX',
                     allowed=lok,
                 )
+
                 refX = coll._ddata[keyX]['ref'][0]
 
                 # islog
-                c0 = (
-                    np.all(coll._ddata[keyX]['data'] > 0.)
-                    and np.allclose(
-                        np.diff(np.log(coll._ddata[keyX]['data'])),
-                        np.log(coll._ddata[keyX]['data'][1])
-                        - np.log(coll._ddata[keyX]['data'][0]),
-                        equal_nan=False,
-                    )
-                )
-                if c0:
-                    islog = True
+                islog = _check_uniform_log(k0=keyX, ddata=coll._ddata)
 
             elif keyX in refs:
                 keyX, refX = 'index', keyX
@@ -828,8 +849,8 @@ def plot_as_array_2d(
     #  prepare slicing
 
     # here slice X => slice in dim Y and vice-versa
-    sliX = _class2_interactivity._get_slice(laxis=[1-axisX], ndim=2)
-    sliY = _class2_interactivity._get_slice(laxis=[1-axisY], ndim=2)
+    sliX = _class1_compute._get_slice(laxis=[1-axisX], ndim=2)
+    sliY = _class1_compute._get_slice(laxis=[1-axisY], ndim=2)
 
     # ----------------------
     #  labels and data
@@ -1244,10 +1265,10 @@ def plot_as_array_3d(
     #  prepare slicing
 
     # here slice X => slice in dim Y and vice-versa
-    sliX = _class2_interactivity._get_slice(laxis=[axY, axZ], ndim=3)
-    sliY = _class2_interactivity._get_slice(laxis=[axX, axZ], ndim=3)
-    sliZ = _class2_interactivity._get_slice(laxis=[axX, axY], ndim=3)
-    sliZ2 = _class2_interactivity._get_slice(laxis=[axZ], ndim=3)
+    sliX = _class1_compute._get_slice(laxis=[axY, axZ], ndim=3)
+    sliY = _class1_compute._get_slice(laxis=[axX, axZ], ndim=3)
+    sliZ = _class1_compute._get_slice(laxis=[axX, axY], ndim=3)
+    sliZ2 = _class1_compute._get_slice(laxis=[axZ], ndim=3)
 
     if axX < axY:
         datatype = 'data.T'

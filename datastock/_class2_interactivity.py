@@ -6,6 +6,7 @@ import scipy.sparse as scpsparse
 
 from . import _generic_check
 from . import _generic_utils
+from . import _class1_compute
 
 
 _INCREMENTS = [1, 10]
@@ -248,7 +249,7 @@ def _setup_mobile(
         ]
 
         # functions for slicing
-        dmobile[k0]['func_slice'] = get_slice(
+        dmobile[k0]['func_slice'] = _class1_compute.get_slice(
             nocc=nocc,
            laxis=dmobile[k0]['axis'],
            lndim=[
@@ -380,6 +381,71 @@ def _update_indices_nb(group=None, dgroup=None, ctrl=None, shift=None):
 
 # #############################################################################
 # #############################################################################
+#            mouseclic utility
+# #############################################################################
+
+
+def _get_ix_for_refx_only_1or2d(
+    cur_data=None,
+    cur_ref=None,
+    eventdata=None,
+    # resources
+    ddata=None,
+    dref=None,
+    dgroup=None,
+):
+    """
+    Return the index coreesponding to:
+
+        - event data (mouseclic)
+        - desired cur_data
+        - desired cur_ref
+
+    Handles 1d or 2d arrays (useful for profile1d)
+
+    """
+
+    monot = None
+    c0 = (
+        cur_data == 'index'
+        or ddata[cur_data]['data'].dtype.type == np.str_
+    )
+    if c0:
+        cd = 'index'
+    else:
+        monot = ddata[cur_data]['monot'] == (True,)
+        cd = ddata[cur_data]['data']
+
+    # prepare input for >= 2d data
+    if cd.ndim == 1:
+        laxis, linds = None, None
+
+    elif cd.ndim == 2:
+        laxis = [
+            (
+                ii,
+                dref[rr]['indices'][dgroup[dref[cur_ref]['group']]['indcur']],
+            )
+            for ii, rr in enumerate(ddata[cur_data]['ref'])
+            if rr != cur_ref
+        ]
+        laxis, linds = zip(*laxis)
+    else:
+        raise NotImplementedError()
+
+    # get index of datax corresponding to clicked point
+    return _class1_compute._get_index_from_data(
+        data=cd,
+        data_pick=np.r_[eventdata],
+        monot=monot,
+        # for >= 2d data
+        laxis=laxis,
+        linds=linds,
+    )[0]
+
+
+# #############################################################################
+# #############################################################################
 #           data of mobile based on indices
 # #############################################################################
 
@@ -401,37 +467,6 @@ def get_fupdate(handle=None, dtype=None, norm=None, bstr=None):
         msg = f'Unknown mobile dtype: {dtype}'
         raise Exception(msg)
     return func
-
-
-def _get_slice(laxis=None, ndim=None):
-
-    nax = len(laxis)
-    assert nax in range(1, ndim + 1)
-
-    if ndim == nax:
-        def fslice(*args):
-            return args
-
-    else:
-        def fslice(*args, laxis=laxis):
-            ind = [slice(None) for ii in range(ndim)]
-            for ii, aa in enumerate(args):
-                ind[laxis[ii]] = aa
-            return tuple(ind)
-
-    return fslice
-
-
-def get_slice(nocc=None, laxis=None, lndim=None):
-
-    if nocc == 1:
-        return [_get_slice(laxis=laxis, ndim=lndim[0])]
-
-    elif nocc == 2:
-        return [
-            _get_slice(laxis=[laxis[0]], ndim=lndim[0]),
-            _get_slice(laxis=[laxis[1]], ndim=lndim[1]),
-        ]
 
 
 def _update_mobile(k0=None, dmobile=None, dref=None, ddata=None):

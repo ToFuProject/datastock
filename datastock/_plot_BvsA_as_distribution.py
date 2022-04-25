@@ -18,7 +18,7 @@ from matplotlib import gridspec
 from . import _generic_check
 from . import _plot_BvsA_as_distribution_check
 from . import _plot_text
-from . import _class2_interactivity
+from . import _class1_compute
 
 
 __all__ = ['plot_BvsA_as_distribution']
@@ -186,7 +186,7 @@ def plot_BvsA_as_distribution(
     if ndim == 1:
         sli = lambda ind: ind
     else:
-        sli = _class2_interactivity._get_slice(laxis=[1-axis], ndim=2)
+        sli = _class1_compute._get_slice(laxis=[1-axis], ndim=2)
 
     # --------------
     #  Prepare data

@@ -260,11 +260,20 @@ class Test02_Manipulate():
         dax = self.st.plot_BvsA_as_distribution(keyA='prof0', keyB='prof0-bis')
         plt.close('all')
 
+    def test09_plot_as_profile1d(self):
+        dax = self.st.plot_as_profile1d(
+            key='prof0',
+            key_time='t0',
+            keyX='prof0-bis',
+            bck='lines',
+        )
+        plt.close('all')
+
     # ------------------------
     #   File handling
     # ------------------------
 
-    def test09_copy_equal(self):
+    def test10_copy_equal(self):
         st2 = self.st.copy()
         assert st2 is not self.st
 
@@ -272,11 +281,10 @@ class Test02_Manipulate():
         if msg is not True:
             raise Exception(msg)
 
-
-    def test10_get_nbytes(self):
+    def test11_get_nbytes(self):
         nb, dnb = self.st.get_nbytes()
 
-    def test11_saveload(self, verb=False):
+    def test12_saveload(self, verb=False):
         pfe = self.st.save(path=_PATH_OUTPUT, verb=verb, return_pfe=True)
         st2 = load(pfe, verb=verb)
         # Just to check the loaded version works fine
