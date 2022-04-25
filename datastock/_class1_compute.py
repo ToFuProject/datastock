@@ -19,11 +19,55 @@ _LCROSS_OK = ['spearman', 'pearson', 'distance']
 
 #############################################
 #############################################
+#       data slicing
+#############################################
+
+
+def _get_slice(laxis=None, ndim=None):
+
+    nax = len(laxis)
+    assert nax in range(1, ndim + 1)
+
+    if ndim == nax:
+        def fslice(*args):
+            return args
+
+    else:
+        def fslice(*args, laxis=laxis):
+            ind = [slice(None) for ii in range(ndim)]
+            for ii, aa in enumerate(args):
+                ind[laxis[ii]] = aa
+            return tuple(ind)
+
+    return fslice
+
+
+def get_slice(nocc=None, laxis=None, lndim=None):
+
+    if nocc == 1:
+        return [_get_slice(laxis=laxis, ndim=lndim[0])]
+
+    elif nocc == 2:
+        return [
+            _get_slice(laxis=[laxis[0]], ndim=lndim[0]),
+            _get_slice(laxis=[laxis[1]], ndim=lndim[1]),
+        ]
+
+
+#############################################
+#############################################
 #       ref indices propagation
 #############################################
 
 
-def _get_index_from_data(data=None, data_pick=None, monot=None):
+def _get_index_from_data(
+    data=None,
+    data_pick=None,
+    monot=None,
+    # for >= 2d data only
+    laxis=None,
+    linds=None,
+):
 
     if isinstance(data, str) and data == 'index':
         indices = np.round(data_pick)
@@ -53,9 +97,16 @@ def _get_index_from_data(data=None, data_pick=None, monot=None):
             for dd in data_pick
         ])
 
-    else:
-        msg = "Non-handled case yet"
-        raise Exception(msg)
+    elif data.ndim == 2:
+
+        # get slicing tool
+        slic = _get_slice(laxis=laxis, ndim=2)
+
+        # get nearest indices
+        indices = np.array([
+            np.nanargmin(np.abs(data[slic(linds)] - dd))
+            for dd in data_pick
+        ])
 
     return indices
 
@@ -212,6 +263,8 @@ def propagate_indices_per_ref(
                 data_pick = dref[rr]['indices']
             else:
                 data_pick = ddata[ldata[ii]]['data']
+
+            import pdb; pdb.set_trace()     # DB
             dref[rr]['indices'] = _get_index_from_data(
                 data=dataref,
                 data_pick=data_pick,
