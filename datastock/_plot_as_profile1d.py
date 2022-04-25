@@ -227,7 +227,7 @@ def _check_keyX(coll=None, refs=None, ref_time=None, keyX=None):
     if ref_time == refX:
         msg = (
             "Arg key_time and keyX have the same references!\n"
-            f"\t- key_time, ref_time: {key_time}, {ref_time}\n"
+            f"\t- ref_time: {ref_time}\n"
             f"\t- keyX, refX: {keyX}, {refX}\n"
         )
         raise Exception(msg)
