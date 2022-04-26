@@ -417,7 +417,7 @@ def _get_ix_for_refx_only_1or2d(
         cd = ddata[cur_data]['data']
 
     # prepare input for >= 2d data
-    if cd.ndim == 1:
+    if cd == 'index' or cd.ndim == 1:
         laxis, linds = None, None
 
     elif cd.ndim == 2:
