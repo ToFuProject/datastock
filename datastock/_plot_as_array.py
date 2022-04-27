@@ -93,7 +93,7 @@ def plot_as_array(
         keyX, refX, islogX,
         keyY, refY, islogY,
         keyZ, refZ, islogZ,
-        ind,
+        sameref, ind,
         cmap, vmin, vmax,
         ymin, ymax,
         aspect, nmax,
@@ -126,6 +126,15 @@ def plot_as_array(
         dleg=dleg,
         connect=connect,
     )
+
+    # --------------------------------
+    # Particular case: same references
+
+    if sameref:
+        from ._class import DataStock
+        cc = DataStock()
+        cc.add_data(key=key, data=coll2.ddata[key]['data'])
+        return cc.plot_as_array()
 
     # -------------------------
     #  call appropriate routine
@@ -341,10 +350,10 @@ def _check_keyXYZ(
                 msg = f"Arg keyX refers to unknow data:\n\t- Provided: {keyX}"
                 raise Exception(msg)
         else:
-            if already is None:
-                keyX, refX = 'index', refs[dimlim - 1]
+            keyX = 'index'
+            if already is None or all([kk in already for kk in refs]):
+                refX = refs[dimlim - 1]
             else:
-                keyX = 'index'
                 refX = [kk for kk in refs if kk not in already][0]
 
     return keyX, refX, islog
@@ -414,23 +423,26 @@ def _plot_as_array_check(
         already=[refX, refY]
     )
 
-    # unciitiy of refX vs refY
+    # unicity of refX vs refY
+    sameref = False
     if ndim == 2 and refX == refY:
-        msg = (
-            "Arg keyX and keyY have the same references!\n"
-            f"\t- keyX, refX: {keyX}, {refX}\n"
-            f"\t- keyY, refY: {keyY}, {refY}\n"
-        )
-        raise Exception(msg)
+        sameref = True
+        # msg = (
+            # "Arg keyX and keyY have the same references!\n"
+            # f"\t- keyX, refX: {keyX}, {refX}\n"
+            # f"\t- keyY, refY: {keyY}, {refY}\n"
+        # )
+        # raise Exception(msg)
 
     if ndim == 3 and len(set([refX, refY, refZ])) < 3:
-        msg = (
-            "Arg keyX, keyY, keyZ have the same references!\n"
-            f"\t- keyX, refX: {keyX}, {refX}\n"
-            f"\t- keyY, refY: {keyY}, {refY}\n"
-            f"\t- keyZ, refZ: {keyZ}, {refZ}\n"
-        )
-        raise Exception(msg)
+        sameref = True
+        # msg = (
+            # "Arg keyX, keyY, keyZ have the same references!\n"
+            # f"\t- keyX, refX: {keyX}, {refX}\n"
+            # f"\t- keyY, refY: {keyY}, {refY}\n"
+            # f"\t- keyZ, refZ: {keyZ}, {refZ}\n"
+        # )
+        # raise Exception(msg)
 
     # ind
     ind = _generic_check._check_var(
@@ -590,7 +602,7 @@ def _plot_as_array_check(
         keyX, refX, islogX,
         keyY, refY, islogY,
         keyZ, refZ, islogZ,
-        ind,
+        sameref, ind,
         cmap, vmin, vmax,
         ymin, ymax,
         aspect, nmax,
