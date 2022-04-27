@@ -779,7 +779,9 @@ def _check_data_ref(k0=None, ddata=None, dref0=None, dref_add=None):
     # length mismatch
     elif len(ddata[k0]['shape']) != len(ddata[k0]['ref']):
         msg = (
-            "Mismatching len(ref) and len(shape) for ddata['{k0}']"
+            f"Mismatching len(ref) and len(shape) for ddata['{k0}']\n"
+            f"\t- ref = {ddata[k0]['ref']}\n"
+            f"\t- shape = {ddata[k0]['shape']}\n"
         )
         raise Exception(msg)
 

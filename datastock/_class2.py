@@ -891,12 +891,18 @@ class DataStock2(DataStock1):
             # try:
             self._dobj['axes'][v0['axes']]['handle'].draw_artist(v0['handle'])
             # except Exception as err:
-                # print(0, k0)        # DB
+                # print()
+                # print(0, k0)            # DB
                 # print(1, v0['axes'])    # DB
                 # print(2, self._dobj['axes'][v0['axes']]['handle'])  # DB
                 # print(3, v0['handle'])  # DB
-                # print(err)
-                # print()
+                # print(
+                    # 4, 'x and y data shapes: ',
+                    # [vv.shape for vv in v0['handle'].get_data()]
+                # )   # DB
+                # print(5, 'data: ', v0['handle'].get_data())
+                # print(err)              # DB
+                # print()                 # DB
 
         # ---- blit axes ------ 5 ms
         for aa in lax:
