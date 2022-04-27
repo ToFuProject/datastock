@@ -452,15 +452,20 @@ def _get_ix_for_refx_only_1or2d(
 
 def get_fupdate(handle=None, dtype=None, norm=None, bstr=None):
     if dtype == 'xdata':
-        func = lambda val, handle=handle: handle.set_xdata(val)
+        def func(val, handle=handle):
+            handle.set_xdata(val)
     elif dtype == 'ydata':
-        func = lambda val, handle=handle: handle.set_ydata(val)
+        def func(val, handle=handle):
+            handle.set_ydata(val)
     elif dtype in ['data']:   # Also works for imshow
-        func = lambda val, handle=handle: handle.set_data(val)
+        def func(val, handle=handle):
+            handle.set_data(val)
     elif dtype in ['data.T']:   # Also works for imshow
-        func = lambda val, handle=handle: handle.set_data(val.T)
+        def func(val, handle=handle):
+            handle.set_data(val.T)
     elif dtype in ['alpha']:   # Also works for imshow
-        func = lambda val, handle=handle, norm=norm: handle.set_alpha(norm(val))
+        def func(val, handle=handle, norm=norm):
+            handle.set_alpha(norm(val))
     elif dtype == 'txt':
         func = lambda val, handle=handle, bstr=bstr: handle.set_text(bstr.format(val))
     else:
@@ -498,7 +503,7 @@ def _update_mobile(k0=None, dmobile=None, dref=None, ddata=None):
                 dmobile[k0]['func_set_data'][0](
                     ddata[dmobile[k0]['data'][0]]['data'][
                         dmobile[k0]['func_slice'][0](*iref)
-                    ].data
+                    ].todense()
                 )
             else:
                 msg = "Sparse data of dim > 2: not handled yet"
@@ -525,7 +530,7 @@ def _update_mobile(k0=None, dmobile=None, dref=None, ddata=None):
                     dmobile[k0]['func_set_data'][ii](
                         ddata[dmobile[k0]['data'][ii]]['data'][
                             dmobile[k0]['func_slice'][ii](iref[ii])
-                        ].data
+                        ].todense()
                     )
                 else:
                     msg = "Sparse data of dim > 2: not handled yet"

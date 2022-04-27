@@ -775,3 +775,4 @@ class DataStock1(DataStock0):
 __all__ = [
     sorted([k0 for k0 in locals() if k0.startswith('DataStock')])[-1]
 ]
+
