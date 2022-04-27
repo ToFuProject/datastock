@@ -292,6 +292,7 @@ def _check_keyXYZ(
     ndim=None,
     dimlim=None,
     uniform=None,
+    already=None,
 ):
     """ Ensure keyX refers to a monotonic and (optionally) uniform data
 
@@ -340,7 +341,11 @@ def _check_keyXYZ(
                 msg = f"Arg keyX refers to unknow data:\n\t- Provided: {keyX}"
                 raise Exception(msg)
         else:
-            keyX, refX = 'index', refs[dimlim - 1]
+            if already is None:
+                keyX, refX = 'index', refs[dimlim - 1]
+            else:
+                keyX = 'index'
+                refX = [kk for kk in refs if kk not in already][0]
 
     return keyX, refX, islog
 
@@ -384,15 +389,29 @@ def _plot_as_array_check(
         raise Exception(msg)
 
     # keyX, keyY, keyZ
+
+    if keyX is None and (keyY is not None or keyZ is not None):
+        lstr = [
+            f"\t- {k0}: {v0}"
+            for k0, v0 in [('keyX', keyX), ('keyY', keyY), ('keyZ', keyZ)]
+        ]
+        msg = (
+            "Please specify keyX, then keyY, then keyZ, in priority\n"
+            + "\n".join(lstr)
+        )
+        raise Exception(msg)
+
     refs = coll._ddata[key]['ref']
     keyX, refX, islogX = _check_keyXYZ(
         coll=coll, refs=refs, keyX=keyX, ndim=ndim, dimlim=1,
     )
     keyY, refY, islogY = _check_keyXYZ(
         coll=coll, refs=refs, keyX=keyY, ndim=ndim, dimlim=2,
+        already=[refX],
     )
     keyZ, refZ, islogZ = _check_keyXYZ(
         coll=coll, refs=refs, keyX=keyZ, ndim=ndim, dimlim=3,
+        already=[refX, refY]
     )
 
     # unciitiy of refX vs refY
@@ -981,9 +1000,8 @@ def plot_as_array_2d(
     # ---------------
     # plot fixed part
 
-    axtype = 'matrix'
-    lkax = [kk for kk, vv in dax.items() if vv['type'] == axtype]
-    for kax in lkax:
+    kax = 'matrix'
+    if dax.get(kax) is not None:
         ax = dax[kax]['handle']
 
         im = ax.imshow(
