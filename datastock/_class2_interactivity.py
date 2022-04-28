@@ -208,32 +208,35 @@ def _setup_mobile(
     for k0, v0 in dmobile.items():
 
         # group
-        dmobile[k0]['group'] = tuple([dref[rr]['group'] for rr in v0['ref']])
+        dmobile[k0]['group'] = tuple([
+            [dref[r1]['group'] for r1 in r0]
+            for r0 in v0['ref']
+        ])
 
         # group _vis
         if dmobile[k0]['group_vis'] is None:
             dmobile[k0]['group_vis'] = dmobile[k0]['group']
 
-        if isinstance(dmobile[k0]['group_vis'], str):
-           dmobile[k0]['group_vis'] = (dmobile[k0]['group_vis'],)
-        c0 = (
-            isinstance(dmobile[k0]['group_vis'], tuple)
-            and all([
-                isinstance(ss, str)
-                and ss in dmobile[k0]['group']
-                for ss in dmobile[k0]['group_vis']
-            ])
-        )
-        if not c0:
-            msg = (
-                f"dmobile['{k0}']['group_vis'] must be:\n"
-                f"\t- a tuple of groups in dmobile['{k0}']['group']\n"
-                "\t- specifies which groups determine visibility\n"
-                f"If None: set to dmobile['{k0}']['group']"
-                f" = {dmobile[k0]['group']}\n"
-                f"Provided: {dmobile[k0]['group_vis']}"
-            )
-            raise Exception(msg)
+        # if isinstance(dmobile[k0]['group_vis'], str):
+           # dmobile[k0]['group_vis'] = (dmobile[k0]['group_vis'],)
+        # c0 = (
+            # isinstance(dmobile[k0]['group_vis'], tuple)
+            # and all([
+                # isinstance(ss, str)
+                # and ss in dmobile[k0]['group']
+                # for ss in dmobile[k0]['group_vis']
+            # ])
+        # )
+        # if not c0:
+            # msg = (
+                # f"dmobile['{k0}']['group_vis'] must be:\n"
+                # f"\t- a tuple of groups in dmobile['{k0}']['group']\n"
+                # "\t- specifies which groups determine visibility\n"
+                # f"If None: set to dmobile['{k0}']['group']"
+                # f" = {dmobile[k0]['group']}\n"
+                # f"Provided: {dmobile[k0]['group_vis']}"
+            # )
+            # raise Exception(msg)
 
         # functions for updating
         nocc = len(set(dmobile[k0]['dtype']))
@@ -249,15 +252,17 @@ def _setup_mobile(
         ]
 
         # functions for slicing
-        dmobile[k0]['func_slice'] = _class1_compute.get_slice(
-            nocc=nocc,
-           laxis=dmobile[k0]['axis'],
-           lndim=[
-               1 if dd == 'index'
-               else ddata[dd]['data'].ndim
-               for dd in dmobile[k0]['data']
-           ],
-        )
+        dmobile[k0]['func_slice'] = [
+            _class1_compute._get_slice(
+                laxis=dmobile[k0]['axis'][ii],
+                ndim=(
+                    1 if dmobile[k0]['data'][ii] == 'index'
+                    else ddata[dmobile[k0]['data'][ii]]['data'].ndim
+                )
+            )
+            for ii in range(nocc)
+        ]
+
 
 def _setup_keys(dkeys=None, dgroup=None):
     """ return dkeys """
@@ -483,26 +488,30 @@ def _update_mobile(k0=None, dmobile=None, dref=None, ddata=None):
 
     # All ref do not necessarily have the same nb of indices
     iref = [
-        dref[rr]['indices'][
-            min(dmobile[k0]['ind'], len(dref[rr]['indices']) - 1)
+        [
+            dref[r1]['indices'][
+                min(dmobile[k0]['ind'], len(dref[r1]['indices']) - 1)
+            ]
+            for r1 in r0
         ]
-        for rr in dmobile[k0]['ref']
+        for r0 in dmobile[k0]['ref']
     ]
 
     nocc = len(set(dmobile[k0]['dtype']))
-    if nocc == 1:
+
+    for ii in range(nocc):
         c0 = (
             dmobile[k0]['data'][0] == 'index'
             or ddata[dmobile[k0]['data'][0]]['data'].dtype.type == np.str_
         )
         if c0:
-            dmobile[k0]['func_set_data'][0](*iref)
+            dmobile[k0]['func_set_data'][ii](*iref[ii])
 
-        elif scpsparse.issparse(ddata[dmobile[k0]['data'][0]]['data']):
-            if ddata[dmobile[k0]['data'][0]]['data'].ndim <= 2:
-                dmobile[k0]['func_set_data'][0](
-                    ddata[dmobile[k0]['data'][0]]['data'][
-                        dmobile[k0]['func_slice'][0](*iref)
+        elif scpsparse.issparse(ddata[dmobile[k0]['data'][ii]]['data']):
+            if ddata[dmobile[k0]['data'][ii]]['data'].ndim <= 2:
+                dmobile[k0]['func_set_data'][ii](
+                    ddata[dmobile[k0]['data'][ii]]['data'][
+                        dmobile[k0]['func_slice'][ii](*iref[ii])
                     ].todense()
                 )
             else:
@@ -510,35 +519,62 @@ def _update_mobile(k0=None, dmobile=None, dref=None, ddata=None):
                 raise Exception(msg)
 
         else:
-            dmobile[k0]['func_set_data'][0](
-                ddata[dmobile[k0]['data'][0]]['data'][
-                    dmobile[k0]['func_slice'][0](*iref)
+            dmobile[k0]['func_set_data'][ii](
+                ddata[dmobile[k0]['data'][ii]]['data'][
+                    dmobile[k0]['func_slice'][ii](*iref[ii])
                 ]
             )
 
-    else:
-        for ii in range(nocc):
-            c0 = (
-                dmobile[k0]['data'][0] == 'index'
-                or ddata[dmobile[k0]['data'][0]]['data'].dtype.type == np.str_
-            )
-            if c0:
-                dmobile[k0]['func_set_data'][ii](iref[ii])
 
-            elif scpsparse.issparse(ddata[dmobile[k0]['data'][ii]]['data']):
-                if ddata[dmobile[k0]['data'][ii]]['data'].ndim <= 2:
-                    dmobile[k0]['func_set_data'][ii](
-                        ddata[dmobile[k0]['data'][ii]]['data'][
-                            dmobile[k0]['func_slice'][ii](iref[ii])
-                        ].todense()
-                    )
-                else:
-                    msg = "Sparse data of dim > 2: not handled yet"
-                    raise Exception(msg)
+    # if nocc == 1:
+        # c0 = (
+            # dmobile[k0]['data'][0] == 'index'
+            # or ddata[dmobile[k0]['data'][0]]['data'].dtype.type == np.str_
+        # )
+        # if c0:
+            # dmobile[k0]['func_set_data'][0](*iref)
 
-            else:
-                dmobile[k0]['func_set_data'][ii](
-                    ddata[dmobile[k0]['data'][ii]]['data'][
-                        dmobile[k0]['func_slice'][ii](iref[ii])
-                    ]
-                )
+        # elif scpsparse.issparse(ddata[dmobile[k0]['data'][0]]['data']):
+            # if ddata[dmobile[k0]['data'][0]]['data'].ndim <= 2:
+                # dmobile[k0]['func_set_data'][0](
+                    # ddata[dmobile[k0]['data'][0]]['data'][
+                        # dmobile[k0]['func_slice'][0](*iref)
+                    # ].todense()
+                # )
+            # else:
+                # msg = "Sparse data of dim > 2: not handled yet"
+                # raise Exception(msg)
+
+        # else:
+            # dmobile[k0]['func_set_data'][0](
+                # ddata[dmobile[k0]['data'][0]]['data'][
+                    # dmobile[k0]['func_slice'][0](*iref)
+                # ]
+            # )
+
+    # else:
+        # for ii in range(nocc):
+            # c0 = (
+                # dmobile[k0]['data'][0] == 'index'
+                # or ddata[dmobile[k0]['data'][0]]['data'].dtype.type == np.str_
+            # )
+            # if c0:
+                # dmobile[k0]['func_set_data'][ii](iref[ii])
+
+            # elif scpsparse.issparse(ddata[dmobile[k0]['data'][ii]]['data']):
+                # if ddata[dmobile[k0]['data'][ii]]['data'].ndim <= 2:
+                    # dmobile[k0]['func_set_data'][ii](
+                        # ddata[dmobile[k0]['data'][ii]]['data'][
+                            # dmobile[k0]['func_slice'][ii](iref[ii])
+                        # ].todense()
+                    # )
+                # else:
+                    # msg = "Sparse data of dim > 2: not handled yet"
+                    # raise Exception(msg)
+
+            # else:
+                # dmobile[k0]['func_set_data'][ii](
+                    # ddata[dmobile[k0]['data'][ii]]['data'][
+                        # dmobile[k0]['func_slice'][ii](iref[ii])
+                    # ]
+                # )

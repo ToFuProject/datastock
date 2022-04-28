@@ -42,16 +42,18 @@ def _get_slice(laxis=None, ndim=None):
     return fslice
 
 
-def get_slice(nocc=None, laxis=None, lndim=None):
+# def get_slice(nocc=None, laxis=None, lndim=None):
 
-    if nocc == 1:
-        return [_get_slice(laxis=laxis, ndim=lndim[0])]
+    # return [_get_slice(laxis=laxis, ndim=lndim[0])]
 
-    elif nocc == 2:
-        return [
-            _get_slice(laxis=[laxis[0]], ndim=lndim[0]),
-            _get_slice(laxis=[laxis[1]], ndim=lndim[1]),
-        ]
+    # if nocc == 1:
+        # return [_get_slice(laxis=laxis, ndim=lndim[0])]
+
+    # elif nocc == 2:
+        # return [
+            # _get_slice(laxis=[laxis[0]], ndim=lndim[0]),
+            # _get_slice(laxis=[laxis[1]], ndim=lndim[1]),
+        # ]
 
 
 #############################################

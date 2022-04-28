@@ -53,12 +53,29 @@ class DataStock2(DataStock1):
 
         if isinstance(ref, str):
             ref = (ref,)
+        if isinstance(ref, tuple):
+            ref = list(ref)
         if isinstance(ref, list):
-            ref = tuple(ref)
+            for ii, r0 in enumerate(ref):
+                if isinstance(r0, str):
+                    ref[ii] = [r0]
+            ref = tuple([tuple(r0) for r0 in ref])
 
-        if ref is None or not all([rr in self._dref.keys() for rr in ref]):
+        c0 = (
+            isinstance(ref, tuple)
+            and all([
+                isinstance(r0, (tuple, list))
+                and all([
+                    isinstance(r1, str)
+                    and r1 in self._dref.keys()
+                    for r1 in r0
+                ])
+                for r0 in ref
+            ])
+        )
+        if not c0:
             msg = (
-                "Arg ref must be a tuple of existing ref keys!\n"
+                "Arg ref must be a tuple of tuples of existing ref keys!\n"
                 f"\t- Provided: {ref}"
             )
             raise Exception(msg)
@@ -72,7 +89,7 @@ class DataStock2(DataStock1):
         dtype = _generic_check._check_var_iter(
             dtype,
             'dtype',
-            types=list,
+            types=(list, tuple),
             types_iter=str,
             allowed=['xdata', 'ydata', 'data', 'data.T', 'alpha', 'txt']
         )
@@ -112,8 +129,8 @@ class DataStock2(DataStock1):
         # check axis vs data
 
         axis = [
-            0 if dd == 'index'
-            else self._ddata[dd]['ref'].index(ref[ii])
+            [0] if dd == 'index'
+            else [self._ddata[dd]['ref'].index(rr) for rr in ref[ii]]
             for ii, dd in enumerate(data)
         ]
 
@@ -337,6 +354,7 @@ class DataStock2(DataStock1):
 
         # ----------
         # Check dgroup
+
         dgroup, newgroup = _class2_interactivity._setup_dgroup(
             dgroup=dgroup,
             dobj0=self._dobj,
@@ -888,21 +906,21 @@ class DataStock2(DataStock1):
         # --- Redraw all objects (due to background restore) --- 25 ms
         for k0, v0 in self._dobj['mobile'].items():
             v0['handle'].set_visible(v0['visible'])
-            # try:
-            self._dobj['axes'][v0['axes']]['handle'].draw_artist(v0['handle'])
-            # except Exception as err:
-                # print()
-                # print(0, k0)            # DB
-                # print(1, v0['axes'])    # DB
-                # print(2, self._dobj['axes'][v0['axes']]['handle'])  # DB
-                # print(3, v0['handle'])  # DB
-                # print(
-                    # 4, 'x and y data shapes: ',
-                    # [vv.shape for vv in v0['handle'].get_data()]
-                # )   # DB
-                # print(5, 'data: ', v0['handle'].get_data())
-                # print(err)              # DB
-                # print()                 # DB
+            try:
+                self._dobj['axes'][v0['axes']]['handle'].draw_artist(v0['handle'])
+            except Exception as err:
+                print()
+                print(0, k0)            # DB
+                print(1, v0['axes'])    # DB
+                print(2, self._dobj['axes'][v0['axes']]['handle'])  # DB
+                print(3, v0['handle'])  # DB
+                print(
+                    4, 'x and y data shapes: ',
+                    [vv.shape for vv in v0['handle'].get_data()]
+                )   # DB
+                print(5, 'data: ', v0['handle'].get_data())
+                print(err)              # DB
+                print()                 # DB
 
         # ---- blit axes ------ 5 ms
         for aa in lax:

@@ -101,7 +101,7 @@ def plot_as_profile1d(
         inverty,
         bck,
         dcolorbar, dleg, connect,
-    ) = _plot_as_array_check(
+    ) = _plot_as_profile1d_check(
         ndim=ndim,
         coll=coll2,
         key=key,
@@ -235,7 +235,7 @@ def _check_keyX(coll=None, refs=None, ref_time=None, keyX=None):
     return keyX, refX, refX0
 
 
-def _plot_as_array_check(
+def _plot_as_profile1d_check(
     ndim=None,
     coll=None,
     key=None,
