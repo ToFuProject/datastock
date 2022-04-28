@@ -129,7 +129,7 @@ def plot_text(
             coll.add_mobile(
                 key=f'txt-{ref}-{k0}-{jj}',
                 handle=ht,
-                ref=(ref,),
+                refs=(ref,),
                 data=data,
                 dtype='txt',
                 bstr=bstr_dict[k0],

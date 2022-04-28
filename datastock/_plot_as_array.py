@@ -783,7 +783,7 @@ def plot_as_array_1d(
             coll.add_mobile(
                 key=kv,
                 handle=lv,
-                ref=ref,
+                refs=ref,
                 data=keyX,
                 dtype='xdata',
                 axes=kax,
@@ -1064,7 +1064,7 @@ def plot_as_array_2d(
                 coll.add_mobile(
                     key=kh,
                     handle=lh,
-                    ref=refY,
+                    refs=refY,
                     data=keyY,
                     dtype='ydata',
                     axes=kax,
@@ -1091,7 +1091,7 @@ def plot_as_array_2d(
                 coll.add_mobile(
                     key=kv,
                     handle=lv,
-                    ref=refX,
+                    refs=refX,
                     data=keyX,
                     dtype='xdata',
                     axes=kax,
@@ -1129,7 +1129,7 @@ def plot_as_array_2d(
             coll.add_mobile(
                 key=km,
                 handle=l0,
-                ref=(refX,),
+                refs=(refX,),
                 data=key,
                 dtype='xdata',
                 axes=kax,
@@ -1144,7 +1144,7 @@ def plot_as_array_2d(
             coll.add_mobile(
                 key=km,
                 handle=l0,
-                ref=(refY,),
+                refs=(refY,),
                 data=keyY,
                 dtype='ydata',
                 axes=kax,
@@ -1172,7 +1172,7 @@ def plot_as_array_2d(
             coll.add_mobile(
                 key=km,
                 handle=l1,
-                ref=(refY,),
+                refs=(refY,),
                 data=[key],
                 dtype='ydata',
                 axes=kax,
@@ -1187,7 +1187,7 @@ def plot_as_array_2d(
             coll.add_mobile(
                 key=km,
                 handle=l0,
-                ref=(refX,),
+                refs=(refX,),
                 data=keyX,
                 dtype='xdata',
                 axes=kax,
@@ -1546,7 +1546,7 @@ def plot_as_array_3d(
         coll.add_mobile(
             key=km,
             handle=im,
-            ref=refZ,
+            refs=refZ,
             data=key,
             dtype=datatype,
             axes=kax,
@@ -1580,7 +1580,7 @@ def plot_as_array_3d(
             coll.add_mobile(
                 key=kh,
                 handle=lh,
-                ref=refY,
+                refs=refY,
                 data=keyY,
                 dtype='ydata',
                 axes=kax,
@@ -1589,7 +1589,7 @@ def plot_as_array_3d(
             coll.add_mobile(
                 key=kv,
                 handle=lv,
-                ref=refX,
+                refs=refX,
                 data=keyX,
                 dtype='xdata',
                 axes=kax,
@@ -1599,7 +1599,7 @@ def plot_as_array_3d(
             coll.add_mobile(
                 key=km,
                 handle=mi,
-                ref=[refX, refY],
+                refs=[refX, refY],
                 data=[keyX, keyY],
                 dtype=['xdata', 'ydata'],
                 axes=kax,
@@ -1627,9 +1627,9 @@ def plot_as_array_3d(
             coll.add_mobile(
                 key=km,
                 handle=l0,
-                ref=(refX, refZ),
-                data=[key, key],
-                dtype=['xdata', 'xdata'],
+                refs=((refX, refZ),),
+                data=[key],
+                dtype=['xdata'],
                 group_vis='X',
                 axes=kax,
                 ind=ii,
@@ -1643,7 +1643,7 @@ def plot_as_array_3d(
             coll.add_mobile(
                 key=km,
                 handle=l0,
-                ref=(refY,),
+                refs=(refY,),
                 data=keyY,
                 dtype='ydata',
                 group_vis='Y',
@@ -1671,9 +1671,9 @@ def plot_as_array_3d(
             coll.add_mobile(
                 key=km,
                 handle=l1,
-                ref=(refY, refZ),
-                data=[key, key],
-                dtype=['ydata', 'ydata'],
+                refs=((refY, refZ),),
+                data=[key],
+                dtype=['ydata'],
                 group_vis='Y',
                 axes=kax,
                 ind=ii,
@@ -1687,7 +1687,7 @@ def plot_as_array_3d(
             coll.add_mobile(
                 key=km,
                 handle=l0,
-                ref=(refX,),
+                refs=(refX,),
                 data=keyX,
                 dtype='xdata',
                 group_vis='X',
@@ -1714,9 +1714,9 @@ def plot_as_array_3d(
             coll.add_mobile(
                 key=km,
                 handle=l1,
-                ref=(refX, refY),
-                data=[key, key],
-                dtype=['ydata', 'ydata'],
+                refs=((refX, refY),),
+                data=[key],
+                dtype=['ydata'],
                 axes=kax,
                 ind=ii,
             )
@@ -1729,7 +1729,7 @@ def plot_as_array_3d(
         coll.add_mobile(
             key=km,
             handle=l0,
-            ref=(refZ,),
+            refs=(refZ,),
             data=keyZ,
             dtype='xdata',
             axes=kax,

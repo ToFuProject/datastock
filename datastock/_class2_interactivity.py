@@ -1,5 +1,8 @@
 
 
+import itertools as itt
+
+
 import numpy as np
 import scipy.sparse as scpsparse
 
@@ -208,35 +211,36 @@ def _setup_mobile(
     for k0, v0 in dmobile.items():
 
         # group
-        dmobile[k0]['group'] = tuple([
+        groups = [
             [dref[r1]['group'] for r1 in r0]
-            for r0 in v0['ref']
-        ])
+            for r0 in v0['refs']
+        ]
+        dmobile[k0]['group'] = tuple(set(itt.chain.from_iterable(groups)))
 
         # group _vis
         if dmobile[k0]['group_vis'] is None:
             dmobile[k0]['group_vis'] = dmobile[k0]['group']
 
-        # if isinstance(dmobile[k0]['group_vis'], str):
-           # dmobile[k0]['group_vis'] = (dmobile[k0]['group_vis'],)
-        # c0 = (
-            # isinstance(dmobile[k0]['group_vis'], tuple)
-            # and all([
-                # isinstance(ss, str)
-                # and ss in dmobile[k0]['group']
-                # for ss in dmobile[k0]['group_vis']
-            # ])
-        # )
-        # if not c0:
-            # msg = (
-                # f"dmobile['{k0}']['group_vis'] must be:\n"
-                # f"\t- a tuple of groups in dmobile['{k0}']['group']\n"
-                # "\t- specifies which groups determine visibility\n"
-                # f"If None: set to dmobile['{k0}']['group']"
-                # f" = {dmobile[k0]['group']}\n"
-                # f"Provided: {dmobile[k0]['group_vis']}"
-            # )
-            # raise Exception(msg)
+        if isinstance(dmobile[k0]['group_vis'], str):
+           dmobile[k0]['group_vis'] = (dmobile[k0]['group_vis'],)
+        c0 = (
+            isinstance(dmobile[k0]['group_vis'], tuple)
+            and all([
+                isinstance(ss, str)
+                and ss in dmobile[k0]['group']
+                for ss in dmobile[k0]['group_vis']
+            ])
+        )
+        if not c0:
+            msg = (
+                f"dmobile['{k0}']['group_vis'] must be:\n"
+                f"\t- a tuple of groups in dmobile['{k0}']['group']\n"
+                "\t- specifies which groups determine visibility\n"
+                f"If None: set to dmobile['{k0}']['group']"
+                f" = {dmobile[k0]['group']}\n"
+                f"Provided: {dmobile[k0]['group_vis']}"
+            )
+            raise Exception(msg)
 
         # functions for updating
         nocc = len(set(dmobile[k0]['dtype']))
@@ -422,7 +426,7 @@ def _get_ix_for_refx_only_1or2d(
         cd = ddata[cur_data]['data']
 
     # prepare input for >= 2d data
-    if cd == 'index' or cd.ndim == 1:
+    if (isinstance(cd, str) and cd == 'index') or cd.ndim == 1:
         laxis, linds = None, None
 
     elif cd.ndim == 2:
@@ -482,10 +486,6 @@ def get_fupdate(handle=None, dtype=None, norm=None, bstr=None):
 def _update_mobile(k0=None, dmobile=None, dref=None, ddata=None):
     """ Update mobile objects data """
 
-    func = dmobile[k0]['func']
-    kref = dmobile[k0]['ref']
-    kdata = dmobile[k0]['data']
-
     # All ref do not necessarily have the same nb of indices
     iref = [
         [
@@ -494,7 +494,7 @@ def _update_mobile(k0=None, dmobile=None, dref=None, ddata=None):
             ]
             for r1 in r0
         ]
-        for r0 in dmobile[k0]['ref']
+        for r0 in dmobile[k0]['refs']
     ]
 
     nocc = len(set(dmobile[k0]['dtype']))

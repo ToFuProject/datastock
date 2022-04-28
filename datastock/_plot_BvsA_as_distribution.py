@@ -364,7 +364,7 @@ def plot_BvsA_as_distribution(
             coll2.add_mobile(
                 key=km,
                 handle=mi,
-                ref=[ref0, ref0],
+                refs=[ref0, ref0],
                 data=[keyA, keyB],
                 dtype=['xdata', 'ydata'],
                 axes=kax,
@@ -406,7 +406,7 @@ def plot_BvsA_as_distribution(
                         coll2.add_mobile(
                             key=km,
                             handle=li,
-                            ref=[ref0],
+                            refs=[ref0],
                             data=[kk],
                             dtype=['ydata'],
                             axes=kax,
@@ -430,7 +430,7 @@ def plot_BvsA_as_distribution(
                         coll2.add_mobile(
                             key=km,
                             handle=li,
-                            ref=[ref0, ref0],
+                            refs=[ref0, ref0],
                             data=[keyX, kk],
                             dtype=['xdata', 'ydata'],
                             axes=kax,
