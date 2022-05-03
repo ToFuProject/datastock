@@ -225,8 +225,8 @@ def _plot_as_mobile_lines_check(
     if refs != coll.ddata[keyY]['ref']:
         msg = (
             "Arg keyX and keyY must refer to data of same ref!\n"
-            "\t- keyX ref: {coll.ddata[keyX]['ref']}\n"
-            "\t- keyY ref: {coll.ddata[keyY]['ref']}\n"
+            f"\t- keyX ref: {coll.ddata[keyX]['ref']}\n"
+            f"\t- keyY ref: {coll.ddata[keyY]['ref']}\n"
         )
         raise Exception(msg)
 
