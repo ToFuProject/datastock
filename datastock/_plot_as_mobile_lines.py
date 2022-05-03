@@ -185,54 +185,13 @@ def plot_as_mobile_lines(
 # #############################################################################
 
 
-def _check_keyX(coll=None, refs=None, ref_time=None, keyX=None):
-
-    # keyX
-    if keyX in coll.ddata.keys():
-        lkok = [
-            k0 for k0, v0 in coll.ddata.items()
-            if tuple([kk for kk in refs if kk in v0['ref']]) == v0['ref']
-            and len(v0['ref']) in [1, 2]
-        ]
-        keyX = _generic_check._check_var(
-            keyX, 'keyX',
-            allowed=lkok,
-        )
-
-        # refX, refX0
-        refX = coll.ddata[keyX]['ref']
-        if refX == refs:
-            refX0 = refs[1 - refs.index(ref_time)]
-        elif len(refX) == 1 and refX[0] in refs:
-            refX0 = refX[0]
-        else:
-            msg = (
-                f"Arg keyX {keyX} must be a data with:\n"
-                f"\t- ref = {refs}\n"
-                f"\t- or ref = {refs[1 - refs.index(ref_time)]}\n"
-                f"Provided: {keyX} with ref = {refX}"
-            )
-            raise Exception(msg)
-
-    elif keyX in refs:
-        assert keyX != ref_time, keyX
-        keyX, refX = 'index', keyX
-        refX0 = refX
-
-    else:
-        msg = f"Unrecongnized keyX: {keyX}"
-        raise Exception(msg)
-
-    # final check
-    if ref_time == refX:
+def _check_notchar(key=None, keyname=None, coll=None):
+    if key != 'index' and coll.ddata[key]['data'].dtype == np.str_:
         msg = (
-            "Arg key_time and keyX have the same references!\n"
-            f"\t- ref_time: {ref_time}\n"
-            f"\t- keyX, refX: {keyX}, {refX}\n"
+            f"Arg {keyname} must refer to a float/int/bool data (not char)\n"
+            f"\t- {keyname}: {key}\n"
         )
         raise Exception(msg)
-
-    return keyX, refX, refX0
 
 
 def _plot_as_mobile_lines_check(
@@ -271,7 +230,10 @@ def _plot_as_mobile_lines_check(
         )
         raise Exception(msg)
 
-    # key_time, keyX
+    _check_notchar(key=keyX, keyname='keyX', coll=coll)
+    _check_notchar(key=keyY, keyname='keyY', coll=coll)
+
+    # keyt, keych
     keyt, reft, islogt = _check_keyXYZ(
         coll=coll, refs=refs, keyX=key_time, ndim=ndim, dimlim=1,
         uniform=False,
@@ -280,6 +242,11 @@ def _plot_as_mobile_lines_check(
         coll=coll, refs=refs, keyX=key_chan, ndim=ndim, dimlim=2,
         uniform=False,
     )
+
+    if keyt is not None:
+        _check_notchar(key=keyt, keyname='keyt', coll=coll)
+    if keych is not None:
+        _check_notchar(key=keych, keyname='keych', coll=coll)
 
     # ind
     ind = _generic_check._check_var(
@@ -367,59 +334,6 @@ def _plot_as_mobile_lines_check(
     )
 
 
-def _get_bck(
-    bck=None,
-    y=None,
-    x=None,
-    axisx=None,
-):
-    nrep = y.shape[1-axisx]
-    if bck == 'lines':
-
-        sh = (1, nrep) if axisx == 0 else (nrep, 1)
-        if x.ndim == 1:
-            bckx = np.tile(np.append(x, [np.nan]), nrep)
-        else:
-            assert x.shape == y.shape
-            if axisx == 0:
-                bckx = np.append(x, np.zeros(sh), axis=0).T.ravel()
-            else:
-                bckx = np.append(y, np.zeros(sh), axis=1).ravel()
-        if axisx == 0:
-            bcky = np.append(y, np.zeros(sh), axis=0).T.ravel()
-        else:
-            bcky = np.append(y, np.zeros(sh), axis=1).ravel()
-    elif bck == 'envelop' and x.ndim == 1:
-        bckx = x
-        bcky = [
-            np.nanmin(y, axis=1-axisx),
-            np.nanmax(y, axis=1-axisx),
-        ]
-    else:
-        bckx, bcky = None, None
-
-    return bckx, bcky
-
-
-def _get_sliceXt(laxis=None, ndim=None):
-
-    nax = len(laxis)
-    assert nax in range(1, ndim + 1)
-
-    if ndim == 1:
-        def fslice(*args):
-            return slice(None)
-
-    else:
-        def fslice(*args, laxis=laxis):
-            ind = [slice(None) for ii in range(ndim)]
-            for ii, aa in enumerate(args):
-                ind[laxis[ii]] = aa
-            return tuple(ind)
-
-    return fslice
-
-
 # #############################################################################
 # #############################################################################
 #                       plot_as_mobile_lines2d
@@ -472,6 +386,9 @@ def _plot_as_mobile_lines2d(
     # ----------------------
     #  labels and data
 
+    labx = f"{keyX} ({coll.ddata[keyX]['units']})"
+    laby = f"{keyY} ({coll.ddata[keyY]['units']})"
+
     keych, chstr, datach, dch2, labch = _get_str_datadlab(
         keyX=keych, nx=nch, islogX=islogch, coll=coll,
     )
@@ -501,53 +418,26 @@ def _plot_as_mobile_lines2d(
         fig.suptitle(f'{keyX} vs {keyY}', size=14, fontweight='bold')
         gs = gridspec.GridSpec(ncols=5, nrows=2, **dmargin)
 
-        # ax0 = time
-        ax0 = fig.add_subplot(gs[0, :2])
-
         # ax1 = chan
         ax1 = fig.add_subplot(gs[1, :2])
-        ax1.set_ylabel('data')
-        ax1.set_xlabel(labt)
+        ax1.set_ylabel(labch)
+        ax1.set_xlabel('index')
 
         # ax2 = lines
         ax2 = fig.add_subplot(gs[:, 2:-1], aspect=aspect)
-        ax2.set_ylabel('data')
-        ax2.set_xlabel(labch)
+        ax2.set_ylabel(laby)
+        ax2.set_xlabel(labx)
 
         # axes for text
-        ax3 = fig.add_subplot(gs[0, -1], frameon=False)
-        ax3.set_xticks([])
-        ax3.set_yticks([])
         ax4 = fig.add_subplot(gs[1, -1], frameon=False)
         ax4.set_xticks([])
         ax4.set_yticks([])
 
-        if tstr:
-            ax0.set_xticks(datat)
-            ax0.set_xticklabels(
-                coll.ddata[key_time]['data'],
-                rotation=rotation,
-                horizontalalignment='left',
-                verticalalignment='bottom',
-            )
-            ax1.set_xticks(datat)
-            ax1.set_xticklabels(
-                coll.ddata[key_time]['data'],
-                rotation=rotation,
-                horizontalalignment='right',
-                verticalalignment='top',
-            )
-        else:
-            ax0.set_xlabel(labt)
-            ax1.set_xlabel(labt)
-
         dax = {
             # data
-            'time': {'handle': ax0},
             'chan': {'handle': ax1},
             'lines': {'handle': ax2},
             # text
-            'text0': {'handle': ax3, 'type': 'text'},
             'text1': {'handle': ax4, 'type': 'text'},
         }
 
@@ -555,18 +445,6 @@ def _plot_as_mobile_lines2d(
 
     # ---------------
     # plot fixed part
-
-    kax = 'time'
-    if dax.get(kax) is not None:
-        ax = dax[kax]['handle']
-
-        im = ax.plot(
-            range(nt),
-            datat,
-            c='k',
-            ls='-',
-            lw=1.,
-        )
 
     kax = 'chan'
     if dax.get(kax) is not None:
@@ -584,11 +462,6 @@ def _plot_as_mobile_lines2d(
     # define and set dgroup
 
     dgroup = {
-        'time': {
-            'ref': [reft],
-            'data': ['index'],
-            'nmax': nmax,
-        },
         'chan': {
             'ref': [refch],
             'data': ['index'],
@@ -605,9 +478,9 @@ def _plot_as_mobile_lines2d(
 
         for ii in range(nmax):
             l0, = ax.plot(
-                dataX[sli(ind[0], ind[1])],
-                dataY[sli(ind[0], ind[1])],
-                c=color_dict['time'][ii],
+                dataX[sli(ind[0])],
+                dataY[sli(ind[0])],
+                c=color_dict['chan'][ii],
                 lw=1.,
                 ls='-',
             )
@@ -616,38 +489,12 @@ def _plot_as_mobile_lines2d(
             coll.add_mobile(
                 key=k0,
                 handle=l0,
-                refs=((reft, refch), (reft, refch)),
+                refs=((refch,), (refch,)),
                 data=(keyX, keyY),
                 dtype=['xdata', 'ydata'],
                 axes=kax,
                 ind=ii,
             )
-
-    kax = 'time'
-    if dax.get(kax) is not None:
-        ax = dax[kax]['handle']
-
-        for ii in range(nmax):
-            l0 = ax.axvline(
-                0,
-                ls='-',
-                marker='.',
-                lw=1.,
-                color=color_dict['time'][ii],
-            )
-
-            km = f't{ii}'
-            coll.add_mobile(
-                key=km,
-                handle=l0,
-                refs=(reft,),
-                data='index',
-                dtype='xdata',
-                axes=kax,
-                ind=ii,
-            )
-
-        dax[kax].update(refx=[reft], datax=keyt)
 
     kax = 'chan'
     if dax.get(kax) is not None:
@@ -673,27 +520,10 @@ def _plot_as_mobile_lines2d(
                 ind=ii,
             )
 
-        dax[kax].update(refx=[refch], datax=keych)
+        dax[kax].update(refx=[refch], datax='index')
 
     # ---------
     # add text
-
-    kax = 'text0'
-    if dax.get(kax) is not None:
-        ax = dax[kax]['handle']
-
-        _plot_text.plot_text(
-            coll=coll,
-            kax=kax,
-            ax=ax,
-            ref=reft,
-            group='time',
-            ind=ind[0],
-            lkeys=lkeys,
-            nmax=nmax,
-            color_dict=color_dict,
-            bstr_dict=bstr_dict,
-        )
 
     kax = 'text1'
     if dax.get(kax) is not None:
@@ -705,7 +535,7 @@ def _plot_as_mobile_lines2d(
             ax=ax,
             ref=refch,
             group='chan',
-            ind=ind[1],
+            ind=ind[0],
             lkeys=lkeys,
             nmax=nmax,
             color_dict=color_dict,
@@ -769,6 +599,9 @@ def _plot_as_mobile_lines3d(
     # ----------------------
     #  labels and data
 
+    labx = f"{keyX} ({coll.ddata[keyX]['units']})"
+    laby = f"{keyY} ({coll.ddata[keyY]['units']})"
+
     keyt, tstr, datat, dt2, labt = _get_str_datadlab(
         keyX=keyt, nx=nt, islogX=islogt, coll=coll,
     )
@@ -803,16 +636,18 @@ def _plot_as_mobile_lines3d(
 
         # ax0 = time
         ax0 = fig.add_subplot(gs[0, :2])
+        ax0.set_ylabel(labt)
+        ax0.set_xlabel('index')
 
         # ax1 = chan
         ax1 = fig.add_subplot(gs[1, :2])
-        ax1.set_ylabel('data')
-        ax1.set_xlabel(labt)
+        ax1.set_ylabel(labch)
+        ax1.set_xlabel('index')
 
         # ax2 = lines
         ax2 = fig.add_subplot(gs[:, 2:-1], aspect=aspect)
-        ax2.set_ylabel('data')
-        ax2.set_xlabel(labch)
+        ax2.set_ylabel(laby)
+        ax2.set_xlabel(labx)
 
         # axes for text
         ax3 = fig.add_subplot(gs[0, -1], frameon=False)
@@ -821,25 +656,6 @@ def _plot_as_mobile_lines3d(
         ax4 = fig.add_subplot(gs[1, -1], frameon=False)
         ax4.set_xticks([])
         ax4.set_yticks([])
-
-        if tstr:
-            ax0.set_xticks(datat)
-            ax0.set_xticklabels(
-                coll.ddata[key_time]['data'],
-                rotation=rotation,
-                horizontalalignment='left',
-                verticalalignment='bottom',
-            )
-            ax1.set_xticks(datat)
-            ax1.set_xticklabels(
-                coll.ddata[key_time]['data'],
-                rotation=rotation,
-                horizontalalignment='right',
-                verticalalignment='top',
-            )
-        else:
-            ax0.set_xlabel(labt)
-            ax1.set_xlabel(labt)
 
         dax = {
             # data
@@ -947,7 +763,7 @@ def _plot_as_mobile_lines3d(
                 ind=ii,
             )
 
-        dax[kax].update(refx=[reft], datax=keyt)
+        dax[kax].update(refx=[reft], datax='index')
 
     kax = 'chan'
     if dax.get(kax) is not None:
@@ -973,7 +789,7 @@ def _plot_as_mobile_lines3d(
                 ind=ii,
             )
 
-        dax[kax].update(refx=[refch], datax=keych)
+        dax[kax].update(refx=[refch], datax='index')
 
     # ---------
     # add text
