@@ -48,6 +48,8 @@ def plot_as_mobile_lines(
     keyY=None,
     key_time=None,
     key_chan=None,
+    bck_color=None,
+    bck=None,
     aspect=None,
     ind=None,
     nmax=None,
@@ -69,6 +71,9 @@ def plot_as_mobile_lines(
     # ------------
     #  check inputs
 
+    if bck:
+        inplace = False
+
     # check key, inplace flag and extract sub-collection
     [keyX, keyY], inplace, coll2 = _generic_check._check_inplace(
         coll=coll,
@@ -84,7 +89,7 @@ def plot_as_mobile_lines(
         keyX, keyY, refs,
         keyt, reft, islogt,
         keych, refch, islogch,
-        ind,
+        bck, bck_color, ind,
         aspect, nmax,
         color_dict,
         rotation,
@@ -96,6 +101,8 @@ def plot_as_mobile_lines(
         keyY=keyY,
         key_time=key_time,
         key_chan=key_chan,
+        bck=bck,
+        bck_color=bck_color,
         ind=ind,
         aspect=aspect,
         nmax=nmax,
@@ -120,6 +127,8 @@ def plot_as_mobile_lines(
             refch=refch,
             islogch=islogch,
             # parameters
+            bck=bck,
+            bck_color=bck_color,
             ind=ind,
             aspect=aspect,
             nmax=nmax,
@@ -146,6 +155,8 @@ def plot_as_mobile_lines(
             islogt=islogt,
             islogch=islogch,
             # parameters
+            bck=bck,
+            bck_color=bck_color,
             ind=ind,
             aspect=aspect,
             nmax=nmax,
@@ -201,6 +212,8 @@ def _plot_as_mobile_lines_check(
     keyY=None,
     key_time=None,
     key_chan=None,
+    bck=None,
+    bck_color=None,
     ind=None,
     aspect=None,
     nmax=None,
@@ -247,6 +260,23 @@ def _plot_as_mobile_lines_check(
         _check_notchar(key=keyt, keyname='keyt', coll=coll)
     if keych is not None:
         _check_notchar(key=keych, keyname='keych', coll=coll)
+
+    # bck
+    bck = _generic_check._check_var(
+        bck, 'bck',
+        default=True,
+        types=bool,
+    )
+
+    # bck_color
+    if bck_color is None:
+        bck_color = (0.8, 0.8, 0.8, 0.8)
+    if not mcolors.is_color_like(bck_color):
+        msg = (
+            "Arg bck_color must be a matplotlib color-like!\n"
+            f"Provided: {bck_color}"
+        )
+        raise Exception(msg)
 
     # ind
     ind = _generic_check._check_var(
@@ -326,7 +356,7 @@ def _plot_as_mobile_lines_check(
         keyX, keyY, refs,
         keyt, reft, islogt,
         keych, refch, islogch,
-        ind,
+        bck, bck_color, ind,
         aspect, nmax,
         color_dict,
         rotation,
@@ -353,6 +383,8 @@ def _plot_as_mobile_lines2d(
     islogt=None,
     islogch=None,
     # parameters
+    bck=None,
+    bck_color=None,
     ind=None,
     aspect=None,
     nmax=None,
@@ -378,10 +410,22 @@ def _plot_as_mobile_lines2d(
     if hasattr(dataY, 'nnz'):
         dataY = dataY.toarray()
     assert dataX.ndim == len(coll.ddata[keyX]['ref']) == 2
-    n0, n1 = dataX.shape
 
     axisch = refs.index(refch)
     nch = dataX.shape[axisch]
+
+    # -----------
+    # background
+
+    if bck is True:
+        bckx = np.insert(dataX, dataX.shape[1-axisch], np.nan, axis=1-axisch)
+        bcky = np.insert(dataY, dataY.shape[1-axisch], np.nan, axis=1-axisch)
+        if axisch == 0:
+            bckx = bckx.ravel()
+            bcky = bcky.ravel()
+        else:
+            bckx = bckx.T.ravel()
+            bcky = bcky.T.ravel()
 
     # ----------------------
     #  labels and data
@@ -427,6 +471,9 @@ def _plot_as_mobile_lines2d(
         ax2 = fig.add_subplot(gs[:, 2:-1], aspect=aspect)
         ax2.set_ylabel(laby)
         ax2.set_xlabel(labx)
+        if bck is False:
+            ax2.set_xlim(np.nanmin(dataX), np.nanmax(dataX))
+            ax2.set_ylim(np.nanmin(dataY), np.nanmax(dataY))
 
         # axes for text
         ax4 = fig.add_subplot(gs[1, -1], frameon=False)
@@ -456,6 +503,17 @@ def _plot_as_mobile_lines2d(
             c='k',
             ls='-',
             lw=1.,
+        )
+
+    kax = 'lines'
+    if dax.get(kax) is not None and bck is True:
+        ax = dax[kax]['handle']
+        ax.plot(
+            bckx,
+            bcky,
+            c=bck_color,
+            lw=1.,
+            ls='-',
         )
 
     # ----------------
@@ -564,6 +622,8 @@ def _plot_as_mobile_lines3d(
     islogt=None,
     islogch=None,
     # parameters
+    bck=None,
+    bck_color=None,
     ind=None,
     aspect=None,
     nmax=None,
@@ -589,12 +649,13 @@ def _plot_as_mobile_lines3d(
     if hasattr(dataY, 'nnz'):
         dataY = dataY.toarray()
     assert dataX.ndim == len(coll.ddata[keyX]['ref']) == 3
-    n0, n1, n2 = dataX.shape
 
     axist = refs.index(reft)
     axisch = refs.index(refch)
+    axispts = [ii for ii in range(3) if refs[ii] not in [reft, refch]][0]
     nt = dataX.shape[axist]
     nch = dataX.shape[axisch]
+    npts = dataX.shape[axispts]
 
     # ----------------------
     #  labels and data
@@ -608,6 +669,49 @@ def _plot_as_mobile_lines3d(
     keych, chstr, datach, dch2, labch = _get_str_datadlab(
         keyX=keych, nx=nch, islogX=islogch, coll=coll,
     )
+
+    # -----------
+    # background
+
+    if bck is True:
+
+        # append nan
+        bckx = np.insert(dataX, dataX.shape[axispts], np.nan, axis=axispts)
+        bcky = np.insert(dataY, dataY.shape[axispts], np.nan, axis=axispts)
+
+        # reshape into (nt, nch*(npts+1))
+        ntot = nch*(npts + 1)
+        order = 'C' if axisch < axispts else 'F'
+        slibck = _class1_compute._get_slice(laxis=[axist], ndim=3)
+        bckx = np.array([
+            bckx[slibck(ii)].reshape((ntot,), order=order)
+            for ii in range(nt)
+        ])
+        bcky = np.array([
+            bcky[slibck(ii)].reshape((ntot,), order=order)
+            for ii in range(nt)
+        ])
+
+        # add ref
+        kbck = 'nch*(npts+1)'
+        coll.add_ref(
+            key=kbck,
+            size=ntot,
+        )
+
+        # add data
+        kbckx = f'{keyX}-bck'
+        coll.add_data(
+            key=kbckx,
+            data=bckx,
+            ref=(reft, kbck),
+        )
+        kbcky = f'{keyY}-bck'
+        coll.add_data(
+            key=kbcky,
+            data=bcky,
+            ref=(reft, kbck),
+        )
 
     # -----------------
     #  prepare slicing
@@ -738,6 +842,26 @@ def _plot_as_mobile_lines3d(
                 axes=kax,
                 ind=ii,
             )
+
+            if bck is True:
+                l0, = ax.plot(
+                    bckx[ind[0]],
+                    bcky[ind[0]],
+                    c=bck_color,
+                    lw=1.,
+                    ls='-',
+                )
+
+                k0 = f'bck{ii}'
+                coll.add_mobile(
+                    key=k0,
+                    handle=l0,
+                    refs=(reft, reft),
+                    data=[kbckx, kbcky],
+                    dtype=['xdata', 'ydata'],
+                    axes=kax,
+                    ind=ii,
+                )
 
     kax = 'time'
     if dax.get(kax) is not None:
