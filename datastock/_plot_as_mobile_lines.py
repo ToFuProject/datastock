@@ -752,6 +752,8 @@ def _plot_as_mobile_lines3d(
         ax2 = fig.add_subplot(gs[:, 2:-1], aspect=aspect)
         ax2.set_ylabel(laby)
         ax2.set_xlabel(labx)
+        ax2.set_xlim(np.nanmin(dataX), np.nanmax(dataX))
+        ax2.set_ylim(np.nanmin(dataY), np.nanmax(dataY))
 
         # axes for text
         ax3 = fig.add_subplot(gs[0, -1], frameon=False)
@@ -824,24 +826,6 @@ def _plot_as_mobile_lines3d(
         ax = dax[kax]['handle']
 
         for ii in range(nmax):
-            l0, = ax.plot(
-                dataX[sli(ind[0], ind[1])],
-                dataY[sli(ind[0], ind[1])],
-                c=color_dict['time'][ii],
-                lw=1.,
-                ls='-',
-            )
-
-            k0 = f'l{ii}'
-            coll.add_mobile(
-                key=k0,
-                handle=l0,
-                refs=((reft, refch), (reft, refch)),
-                data=(keyX, keyY),
-                dtype=['xdata', 'ydata'],
-                axes=kax,
-                ind=ii,
-            )
 
             if bck is True:
                 l0, = ax.plot(
@@ -862,6 +846,26 @@ def _plot_as_mobile_lines3d(
                     axes=kax,
                     ind=ii,
                 )
+
+            # individual lines
+            l0, = ax.plot(
+                dataX[sli(ind[0], ind[1])],
+                dataY[sli(ind[0], ind[1])],
+                c=color_dict['time'][ii],
+                lw=1.,
+                ls='-',
+            )
+
+            k0 = f'l{ii}'
+            coll.add_mobile(
+                key=k0,
+                handle=l0,
+                refs=((reft, refch), (reft, refch)),
+                data=(keyX, keyY),
+                dtype=['xdata', 'ydata'],
+                axes=kax,
+                ind=ii,
+            )
 
     kax = 'time'
     if dax.get(kax) is not None:
