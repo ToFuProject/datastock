@@ -15,7 +15,7 @@ from . import _class1_compute
 from ._plot_as_array import _check_keyXYZ, _get_str_datadlab
 
 
-__all__ = ['plot_as_profile1d']
+__all__ = ['plot_as_mobile_lines']
 
 
 __github = 'https://github.com/ToFuProject/datacollection/issues'
