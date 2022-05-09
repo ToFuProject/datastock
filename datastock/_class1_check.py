@@ -562,12 +562,15 @@ def _check_dref(
             isinstance(v0, dict)
             and (
                 isinstance(v0.get('data'), (np.ndarray, list, tuple))
-                or isinstance(v0.get('size'), int)
+                or isinstance(v0.get('size'), (int, np.int_))
             )
         )
         if not c0:
             msg = "v0 must be a dict with either 'data' or 'size'"
             raise Exception(msg)
+
+        if isinstance(v0.get('size'), (int, np.int_)):
+            dref[k0]['size'] = int(v0['size'])
 
         dref2[key] = dict(dref[k0])
 
