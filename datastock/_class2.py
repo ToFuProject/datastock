@@ -38,7 +38,7 @@ class DataStock2(DataStock1):
         self,
         handle=None,
         key=None,
-        ref=None,
+        refs=None,
         data=None,
         dtype=None,
         bstr=None,
@@ -51,18 +51,35 @@ class DataStock2(DataStock1):
         # ----------
         # check ref
 
-        if isinstance(ref, str):
-            ref = (ref,)
-        if isinstance(ref, list):
-            ref = tuple(ref)
+        if isinstance(refs, str):
+            refs = (refs,)
+        if isinstance(refs, tuple):
+            refs = list(refs)
+        if isinstance(refs, list):
+            for ii, r0 in enumerate(refs):
+                if isinstance(r0, str):
+                    refs[ii] = [r0]
+            refs = tuple([tuple(r0) for r0 in refs])
 
-        if ref is None or not all([rr in self._dref.keys() for rr in ref]):
+        c0 = (
+            isinstance(refs, tuple)
+            and all([
+                isinstance(r0, (tuple, list))
+                and all([
+                    isinstance(r1, str)
+                    and r1 in self._dref.keys()
+                    for r1 in r0
+                ])
+                for r0 in refs
+            ])
+        )
+        if not c0:
             msg = (
-                "Arg ref must be a tuple of existing ref keys!\n"
-                f"\t- Provided: {ref}"
+                "Arg refs must be a tuple of tuples of existing ref keys!\n"
+                f"\t- Provided: {refs}"
             )
             raise Exception(msg)
-        nref = len(ref)
+        nref = len(refs)
 
         # ----------
         # check dtype
@@ -72,7 +89,7 @@ class DataStock2(DataStock1):
         dtype = _generic_check._check_var_iter(
             dtype,
             'dtype',
-            types=list,
+            types=(list, tuple),
             types_iter=str,
             allowed=['xdata', 'ydata', 'data', 'data.T', 'alpha', 'txt']
         )
@@ -81,7 +98,7 @@ class DataStock2(DataStock1):
                 f"For mobile {key}:\n"
                 "Arg dtype must be a list, the same length as ref!\n"
                 f"\t- dtype: {dtype}\n"
-                f"\t- ref: {ref}\n"
+                f"\t- refs: {refs}\n"
             )
             raise Exception(msg)
 
@@ -93,7 +110,7 @@ class DataStock2(DataStock1):
         if isinstance(data, list):
             data = tuple(data)
         if data is None:
-            data = ['index' for rr in ref]
+            data = ['index' for rr in refs]
 
         c0 = (
             nref == len(data)
@@ -103,7 +120,7 @@ class DataStock2(DataStock1):
             msg = (
                 "Arg data must be a tuple of existing data keys!\n"
                 "It should have the same length as ref!\n"
-                f"\t- Provided ref: {ref}\n"
+                f"\t- Provided refs: {refs}\n"
                 f"\t- Provided data: {data}"
             )
             raise Exception(msg)
@@ -112,8 +129,8 @@ class DataStock2(DataStock1):
         # check axis vs data
 
         axis = [
-            0 if dd == 'index'
-            else self._ddata[dd]['ref'].index(ref[ii])
+            [0] if dd == 'index'
+            else [self._ddata[dd]['ref'].index(rr) for rr in refs[ii]]
             for ii, dd in enumerate(data)
         ]
 
@@ -138,7 +155,7 @@ class DataStock2(DataStock1):
             handle=handle,
             group=None,
             group_vis=group_vis,
-            ref=ref,
+            refs=refs,
             data=data,
             axis=axis,
             dtype=dtype,
@@ -337,6 +354,7 @@ class DataStock2(DataStock1):
 
         # ----------
         # Check dgroup
+
         dgroup, newgroup = _class2_interactivity._setup_dgroup(
             dgroup=dgroup,
             dobj0=self._dobj,
@@ -831,7 +849,7 @@ class DataStock2(DataStock1):
             lmobiles += [
                 k0 for k0, v0 in self._dobj['mobile'].items()
                 if any([
-                    rr in v0['ref']
+                    any([rr in r1 for r1 in v0['refs']])
                     for rr in self._dobj['group'][cur_groupx]['ref']
                 ])
             ]
@@ -840,7 +858,7 @@ class DataStock2(DataStock1):
             lmobiles += [
                 k0 for k0, v0 in self._dobj['mobile'].items()
                 if any([
-                    rr in v0['ref']
+                    any([rr in r1 for r1 in v0['refs']])
                     for rr in self._dobj['group'][cur_groupy]['ref']
                 ])
             ]
@@ -888,15 +906,21 @@ class DataStock2(DataStock1):
         # --- Redraw all objects (due to background restore) --- 25 ms
         for k0, v0 in self._dobj['mobile'].items():
             v0['handle'].set_visible(v0['visible'])
-            # try:
-            self._dobj['axes'][v0['axes']]['handle'].draw_artist(v0['handle'])
-            # except Exception as err:
-                # print(0, k0)        # DB
-                # print(1, v0['axes'])    # DB
-                # print(2, self._dobj['axes'][v0['axes']]['handle'])  # DB
-                # print(3, v0['handle'])  # DB
-                # print(err)
-                # print()
+            try:
+                self._dobj['axes'][v0['axes']]['handle'].draw_artist(v0['handle'])
+            except Exception as err:
+                print()
+                print(0, k0)            # DB
+                print(1, v0['axes'])    # DB
+                print(2, self._dobj['axes'][v0['axes']]['handle'])  # DB
+                print(3, v0['handle'])  # DB
+                print(
+                    4, 'x and y data shapes: ',
+                    [vv.shape for vv in v0['handle'].get_data()]
+                )   # DB
+                print(5, 'data: ', v0['handle'].get_data())
+                print(err)              # DB
+                print()                 # DB
 
         # ---- blit axes ------ 5 ms
         for aa in lax:

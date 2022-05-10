@@ -92,6 +92,15 @@ def _add_data(st=None, nc=None, nx=None, lnt=None):
             ref=(f'nt{ii}', 'nx'),
         )
 
+    # add replication of prof2 for plot_as_mobile_lines in 2d
+    st.add_data(
+        key='prof2-bis',
+        data=lprof[2] + np.random.normal(scale=0.1, size=(lnt[2], nx)),
+        dimension='velocity',
+        units='m/s',
+        ref=(f'nt{2}', 'nx'),
+    )
+
     # add 3d array
     st.add_data(
         key='prof0-bis',
@@ -104,6 +113,16 @@ def _add_data(st=None, nc=None, nx=None, lnt=None):
     st.add_data(
         key='3d',
         data=np.arange(nc)[:, None, None] + lprof[0][None, :, :],
+        dimensions='blabla',
+        ref=('nc', 'nt0', 'nx'),
+    )
+    st.add_data(
+        key='3d-bis',
+        data=(
+            np.arange(nc)[:, None, None]
+            + lprof[0][None, :, :]
+            + np.random.normal(scale=0.01, size=(nc, lnt[0], nx))
+        ),
         dimensions='blabla',
         ref=('nc', 'nt0', 'nx'),
     )
@@ -269,11 +288,30 @@ class Test02_Manipulate():
         )
         plt.close('all')
 
+    def test10_plot_as_mobile_lines(self):
+
+        # 3d
+        dax = self.st.plot_as_mobile_lines(
+            keyX='3d',
+            keyY='3d-bis',
+            key_time='t0',
+            key_chan='x',
+        )
+
+        # 2d
+        dax = self.st.plot_as_mobile_lines(
+            keyX='prof2',
+            keyY='prof2-bis',
+            key_chan='nx',
+        )
+
+        plt.close('all')
+
     # ------------------------
     #   File handling
     # ------------------------
 
-    def test10_copy_equal(self):
+    def test11_copy_equal(self):
         st2 = self.st.copy()
         assert st2 is not self.st
 
@@ -281,10 +319,10 @@ class Test02_Manipulate():
         if msg is not True:
             raise Exception(msg)
 
-    def test11_get_nbytes(self):
+    def test12_get_nbytes(self):
         nb, dnb = self.st.get_nbytes()
 
-    def test12_saveload(self, verb=False):
+    def test13_saveload(self, verb=False):
         pfe = self.st.save(path=_PATH_OUTPUT, verb=verb, return_pfe=True)
         st2 = load(pfe, verb=verb)
         # Just to check the loaded version works fine

@@ -1,5 +1,8 @@
 
 
+import itertools as itt
+
+
 import numpy as np
 import scipy.sparse as scpsparse
 
@@ -208,7 +211,11 @@ def _setup_mobile(
     for k0, v0 in dmobile.items():
 
         # group
-        dmobile[k0]['group'] = tuple([dref[rr]['group'] for rr in v0['ref']])
+        groups = [
+            [dref[r1]['group'] for r1 in r0]
+            for r0 in v0['refs']
+        ]
+        dmobile[k0]['group'] = tuple(set(itt.chain.from_iterable(groups)))
 
         # group _vis
         if dmobile[k0]['group_vis'] is None:
@@ -249,15 +256,17 @@ def _setup_mobile(
         ]
 
         # functions for slicing
-        dmobile[k0]['func_slice'] = _class1_compute.get_slice(
-            nocc=nocc,
-           laxis=dmobile[k0]['axis'],
-           lndim=[
-               1 if dd == 'index'
-               else ddata[dd]['data'].ndim
-               for dd in dmobile[k0]['data']
-           ],
-        )
+        dmobile[k0]['func_slice'] = [
+            _class1_compute._get_slice(
+                laxis=dmobile[k0]['axis'][ii],
+                ndim=(
+                    1 if dmobile[k0]['data'][ii] == 'index'
+                    else ddata[dmobile[k0]['data'][ii]]['data'].ndim
+                )
+            )
+            for ii in range(nocc)
+        ]
+
 
 def _setup_keys(dkeys=None, dgroup=None):
     """ return dkeys """
@@ -417,7 +426,7 @@ def _get_ix_for_refx_only_1or2d(
         cd = ddata[cur_data]['data']
 
     # prepare input for >= 2d data
-    if cd.ndim == 1:
+    if (isinstance(cd, str) and cd == 'index') or cd.ndim == 1:
         laxis, linds = None, None
 
     elif cd.ndim == 2:
@@ -452,15 +461,20 @@ def _get_ix_for_refx_only_1or2d(
 
 def get_fupdate(handle=None, dtype=None, norm=None, bstr=None):
     if dtype == 'xdata':
-        func = lambda val, handle=handle: handle.set_xdata(val)
+        def func(val, handle=handle):
+            handle.set_xdata(val)
     elif dtype == 'ydata':
-        func = lambda val, handle=handle: handle.set_ydata(val)
+        def func(val, handle=handle):
+            handle.set_ydata(val)
     elif dtype in ['data']:   # Also works for imshow
-        func = lambda val, handle=handle: handle.set_data(val)
+        def func(val, handle=handle):
+            handle.set_data(val)
     elif dtype in ['data.T']:   # Also works for imshow
-        func = lambda val, handle=handle: handle.set_data(val.T)
+        def func(val, handle=handle):
+            handle.set_data(val.T)
     elif dtype in ['alpha']:   # Also works for imshow
-        func = lambda val, handle=handle, norm=norm: handle.set_alpha(norm(val))
+        def func(val, handle=handle, norm=norm):
+            handle.set_alpha(norm(val))
     elif dtype == 'txt':
         func = lambda val, handle=handle, bstr=bstr: handle.set_text(bstr.format(val))
     else:
@@ -472,68 +486,95 @@ def get_fupdate(handle=None, dtype=None, norm=None, bstr=None):
 def _update_mobile(k0=None, dmobile=None, dref=None, ddata=None):
     """ Update mobile objects data """
 
-    func = dmobile[k0]['func']
-    kref = dmobile[k0]['ref']
-    kdata = dmobile[k0]['data']
-
     # All ref do not necessarily have the same nb of indices
     iref = [
-        dref[rr]['indices'][
-            min(dmobile[k0]['ind'], len(dref[rr]['indices']) - 1)
+        [
+            dref[r1]['indices'][
+                min(dmobile[k0]['ind'], len(dref[r1]['indices']) - 1)
+            ]
+            for r1 in r0
         ]
-        for rr in dmobile[k0]['ref']
+        for r0 in dmobile[k0]['refs']
     ]
 
     nocc = len(set(dmobile[k0]['dtype']))
-    if nocc == 1:
+
+    for ii in range(nocc):
         c0 = (
             dmobile[k0]['data'][0] == 'index'
             or ddata[dmobile[k0]['data'][0]]['data'].dtype.type == np.str_
         )
         if c0:
-            dmobile[k0]['func_set_data'][0](*iref)
+            dmobile[k0]['func_set_data'][ii](*iref[ii])
 
-        elif scpsparse.issparse(ddata[dmobile[k0]['data'][0]]['data']):
-            if ddata[dmobile[k0]['data'][0]]['data'].ndim <= 2:
-                dmobile[k0]['func_set_data'][0](
-                    ddata[dmobile[k0]['data'][0]]['data'][
-                        dmobile[k0]['func_slice'][0](*iref)
-                    ].data
+        elif scpsparse.issparse(ddata[dmobile[k0]['data'][ii]]['data']):
+            if ddata[dmobile[k0]['data'][ii]]['data'].ndim <= 2:
+                dmobile[k0]['func_set_data'][ii](
+                    ddata[dmobile[k0]['data'][ii]]['data'][
+                        dmobile[k0]['func_slice'][ii](*iref[ii])
+                    ].todense()
                 )
             else:
                 msg = "Sparse data of dim > 2: not handled yet"
                 raise Exception(msg)
 
         else:
-            dmobile[k0]['func_set_data'][0](
-                ddata[dmobile[k0]['data'][0]]['data'][
-                    dmobile[k0]['func_slice'][0](*iref)
+            dmobile[k0]['func_set_data'][ii](
+                ddata[dmobile[k0]['data'][ii]]['data'][
+                    dmobile[k0]['func_slice'][ii](*iref[ii])
                 ]
             )
 
-    else:
-        for ii in range(nocc):
-            c0 = (
-                dmobile[k0]['data'][0] == 'index'
-                or ddata[dmobile[k0]['data'][0]]['data'].dtype.type == np.str_
-            )
-            if c0:
-                dmobile[k0]['func_set_data'][ii](iref[ii])
 
-            elif scpsparse.issparse(ddata[dmobile[k0]['data'][ii]]['data']):
-                if ddata[dmobile[k0]['data'][ii]]['data'].ndim <= 2:
-                    dmobile[k0]['func_set_data'][ii](
-                        ddata[dmobile[k0]['data'][ii]]['data'][
-                            dmobile[k0]['func_slice'][ii](iref[ii])
-                        ].data
-                    )
-                else:
-                    msg = "Sparse data of dim > 2: not handled yet"
-                    raise Exception(msg)
+    # if nocc == 1:
+        # c0 = (
+            # dmobile[k0]['data'][0] == 'index'
+            # or ddata[dmobile[k0]['data'][0]]['data'].dtype.type == np.str_
+        # )
+        # if c0:
+            # dmobile[k0]['func_set_data'][0](*iref)
 
-            else:
-                dmobile[k0]['func_set_data'][ii](
-                    ddata[dmobile[k0]['data'][ii]]['data'][
-                        dmobile[k0]['func_slice'][ii](iref[ii])
-                    ]
-                )
+        # elif scpsparse.issparse(ddata[dmobile[k0]['data'][0]]['data']):
+            # if ddata[dmobile[k0]['data'][0]]['data'].ndim <= 2:
+                # dmobile[k0]['func_set_data'][0](
+                    # ddata[dmobile[k0]['data'][0]]['data'][
+                        # dmobile[k0]['func_slice'][0](*iref)
+                    # ].todense()
+                # )
+            # else:
+                # msg = "Sparse data of dim > 2: not handled yet"
+                # raise Exception(msg)
+
+        # else:
+            # dmobile[k0]['func_set_data'][0](
+                # ddata[dmobile[k0]['data'][0]]['data'][
+                    # dmobile[k0]['func_slice'][0](*iref)
+                # ]
+            # )
+
+    # else:
+        # for ii in range(nocc):
+            # c0 = (
+                # dmobile[k0]['data'][0] == 'index'
+                # or ddata[dmobile[k0]['data'][0]]['data'].dtype.type == np.str_
+            # )
+            # if c0:
+                # dmobile[k0]['func_set_data'][ii](iref[ii])
+
+            # elif scpsparse.issparse(ddata[dmobile[k0]['data'][ii]]['data']):
+                # if ddata[dmobile[k0]['data'][ii]]['data'].ndim <= 2:
+                    # dmobile[k0]['func_set_data'][ii](
+                        # ddata[dmobile[k0]['data'][ii]]['data'][
+                            # dmobile[k0]['func_slice'][ii](iref[ii])
+                        # ].todense()
+                    # )
+                # else:
+                    # msg = "Sparse data of dim > 2: not handled yet"
+                    # raise Exception(msg)
+
+            # else:
+                # dmobile[k0]['func_set_data'][ii](
+                    # ddata[dmobile[k0]['data'][ii]]['data'][
+                        # dmobile[k0]['func_slice'][ii](iref[ii])
+                    # ]
+                # )

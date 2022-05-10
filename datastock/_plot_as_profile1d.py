@@ -101,7 +101,7 @@ def plot_as_profile1d(
         inverty,
         bck,
         dcolorbar, dleg, connect,
-    ) = _plot_as_array_check(
+    ) = _plot_as_profile1d_check(
         ndim=ndim,
         coll=coll2,
         key=key,
@@ -235,7 +235,7 @@ def _check_keyX(coll=None, refs=None, ref_time=None, keyX=None):
     return keyX, refX, refX0
 
 
-def _plot_as_array_check(
+def _plot_as_profile1d_check(
     ndim=None,
     coll=None,
     key=None,
@@ -768,7 +768,7 @@ def _plot_as_profile1d(
                 coll.add_mobile(
                     key=kh,
                     handle=lh,
-                    ref=ref_time,
+                    refs=ref_time,
                     data=key_time,
                     dtype='xdata',
                     axes=kax,
@@ -795,7 +795,7 @@ def _plot_as_profile1d(
                 # coll.add_mobile(
                     # key=kv,
                     # handle=lv,
-                    # ref=refX,
+                    # refs=refX,
                     # data=keyX,
                     # dtype='xdata',
                     # axes=kax,
@@ -834,7 +834,7 @@ def _plot_as_profile1d(
                 coll.add_mobile(
                     key=km,
                     handle=l0,
-                    ref=(ref_time,),
+                    refs=(ref_time,),
                     data=key,
                     dtype='ydata',
                     axes=kax,
@@ -844,7 +844,7 @@ def _plot_as_profile1d(
                 coll.add_mobile(
                     key=km,
                     handle=l0,
-                    ref=(ref_time, ref_time),
+                    refs=(ref_time, ref_time),
                     data=(keyX, key),
                     dtype=['xdata', 'ydata'],
                     group_vis='time',
@@ -864,9 +864,9 @@ def _plot_as_profile1d(
             coll.add_mobile(
                 key=km,
                 handle=l0,
-                ref=refX,
-                data=[keyX]*dataX.ndim,
-                dtype=['xdata']*dataX.ndim,
+                refs=(refX,),
+                data=[keyX],
+                dtype=['xdata'],
                 axes=kax,
                 ind=ii,
             )
@@ -892,7 +892,7 @@ def _plot_as_profile1d(
             coll.add_mobile(
                 key=km,
                 handle=l1,
-                ref=(refX0,),
+                refs=(refX0,),
                 data=[key],
                 dtype='ydata',
                 axes=kax,
@@ -907,7 +907,7 @@ def _plot_as_profile1d(
             coll.add_mobile(
                 key=km,
                 handle=l0,
-                ref=(ref_time,),
+                refs=(ref_time,),
                 data=key_time,
                 dtype='xdata',
                 axes=kax,
