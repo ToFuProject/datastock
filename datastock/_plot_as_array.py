@@ -1116,7 +1116,7 @@ def plot_as_array_2d(
 
         for ii in range(nmax):
             l0, = ax.plot(
-                data[sliY(ind[1])],
+                data[sliY(ind[0])],
                 dataY,
                 ls='-',
                 marker='.',
@@ -1160,7 +1160,7 @@ def plot_as_array_2d(
         for ii in range(nmax):
             l1, = ax.plot(
                 dataX,
-                data[sliX(ind[0])],
+                data[sliX(ind[1])],
                 ls='-',
                 marker='.',
                 lw=1.,
