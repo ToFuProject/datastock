@@ -248,7 +248,21 @@ class Test02_Manipulate():
     #   Interpolate
     # ------------------------
 
-    def test06_interpolate(self):
+    def test06_get_ref_vector(self):
+        (
+            hasref, hasvector,
+            ref, key_vector,
+            values, indices, indu, ind_reverse,
+        ) = self.st.get_ref_vector(
+            key='prof0',
+            ref='nx',
+            values=[1, 2, 2.01, 3],
+        )
+        assert hasref is True and hasvector is True
+        assert values.size == indices.size == 4
+        assert ind_reverse.shape == (2, 4)
+
+    def test07_interpolate(self):
         out = self.st.interpolate(
             keys='prof0',
             ref_keys=None,
@@ -269,17 +283,17 @@ class Test02_Manipulate():
     #   Plotting
     # ------------------------
 
-    def test07_plot_as_array(self):
+    def test08_plot_as_array(self):
         dax = self.st.plot_as_array(key='t0')
         dax = self.st.plot_as_array(key='prof0')
         dax = self.st.plot_as_array(key='3d')
         plt.close('all')
 
-    def test08_plot_BvsA_as_distribution(self):
+    def test09_plot_BvsA_as_distribution(self):
         dax = self.st.plot_BvsA_as_distribution(keyA='prof0', keyB='prof0-bis')
         plt.close('all')
 
-    def test09_plot_as_profile1d(self):
+    def test10_plot_as_profile1d(self):
         dax = self.st.plot_as_profile1d(
             key='prof0',
             key_time='t0',
@@ -288,7 +302,7 @@ class Test02_Manipulate():
         )
         plt.close('all')
 
-    def test10_plot_as_mobile_lines(self):
+    def test11_plot_as_mobile_lines(self):
 
         # 3d
         dax = self.st.plot_as_mobile_lines(

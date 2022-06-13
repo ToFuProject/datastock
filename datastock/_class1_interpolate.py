@@ -255,6 +255,7 @@ def interpolate(
     else:
         return dvalues
 
+
 # #############################################################################
 # #############################################################################
 #           Utilities
@@ -507,4 +508,168 @@ def _check(
         deg, deriv,
         pts_axis0, pts_axis1, pts_axis2,
         log_log, grid, ndim, return_params,
+    )
+
+
+# #############################################################################
+# #############################################################################
+#           Monotonous vector
+# #############################################################################
+
+
+def get_monotonous_vector(
+    # ressources
+    ddata=None,
+    dref=None,
+    # inputs
+    key=None,
+    ref=None,
+    hasref=None,
+    lk_vect=None,
+    # parameters
+    values=None,
+    indices=None,
+):
+
+    # values
+    if values is not None:
+        values = np.atleast_1d(values).ravel()
+
+    # indices
+    if indices is not None:
+        indices = np.atleast_1d(indices).ravel()
+
+    # values vs indices
+    if values is not None and indices is not None:
+        msg = "Please provide values xor indices, not both!"
+        raise Exception(msg)
+
+    # ------------------------
+    # hasvector and key_vector
+
+    # lt vs hasvector
+    key_vector = None
+    if len(lk_vect) == 0:
+        if hasref is True:
+            msg = (
+                f"key {key} was found to have '{ref}' dimension, "
+                "but no corresponding vector could be identified!"
+            )
+            warnings.warn(msg)
+        else:
+            hasref = False
+            ref = None
+        hasvector = False
+
+    elif len(lk_vect) == 1:
+        key_vector = lk_vect[0]
+        if hasref is False:
+            msg = (
+                "Contradiction:\n"
+                f"\t- {key} should not have a '{ref}' dimension\n"
+                f"\t- vector {key_vector} identified"
+            )
+            raise Exception(msg)
+        else:
+            hasref = True
+            ref = ddata[key_vector]['ref'][0]
+            hasvector = True
+
+    else:
+        if hasref is False:
+            msg = (
+                "Contradiction:\n"
+                f"\t- {key} should not have a '{ref}' dimension\n"
+                f"\t- Several vectors identified: {lk_vect}"
+            )
+            raise Exception(msg)
+        else:
+            msg = f"Several possible time vectors identified!\n{lk_vect}"
+            raise Exception(msg)
+
+    # ref
+    if hasref:
+        axis = ddata[key]['ref'].index(ref)
+        nref = dref[ref]['size']
+
+    # ------------------
+    # consistency checks 
+
+    if not hasref:
+        assert ref is None
+
+    if hasvector:
+        assert hasref
+        assert key_vector is not None
+    else:
+        assert key_vector is None
+
+    if (values is not None or indices is not None) and not hasvector:
+        msg = (
+            "Contradtiction:\n"
+            f"\t- '{key}' does not seem to have a '{ref}' vector\n"
+            "=> Args values and indices cannot be provided"
+        )
+        raise Exception(msg)
+
+    # -----------------
+    # values vs indices
+
+    # values vs key_vector => indices
+    if values is not None:
+        val0 = ddata[key_vector]['data']
+        val0bins = 0.5*(val0[1:] + val0[:-1])
+        indices = np.digitize(values, val0bins)
+
+    # -------
+    # indices
+
+    if indices is not None:
+        if indices.dtype == np.bool_:
+            if indices.size != nref:
+                msg = (
+                    f"indt as bool must have shape ({nref},), "
+                    "not {indices.shape}"
+                )
+                raise Exception(msg)
+
+        elif indices.dtype == np.int_:
+            if np.nanmax(indices) >= nref:
+                msg = f"indices as int must be < {nref}\nProvided: {indices}"
+                raise Exception(msg)
+
+        else:
+            msg = (
+                "Arg indices must be a bool or int array of indices!\n"
+                f"Provided: {indices}"
+            )
+            raise Exception(msg)
+
+        # convert to int
+        if indices.dtype == np.bool_:
+            indices = indices.nonzero()[0]
+
+        # derive values
+        if values is None:
+            values = ddata[key_vector]['data'][indices]
+
+    # -------------------
+    # indtu, indt_reverse
+
+    ind_reverse = None
+    if indices is not None:
+        indu = np.unique(indices)
+        if indu.size < indices.size:
+            ind_reverse = np.array(
+                [indices == iu for iu in indu],
+                dtype=bool,
+            )
+
+    if ind_reverse is None:
+        indu = None
+
+    return (
+        hasref, hasvector,
+        ref, key_vector,
+        values, indices, indu, ind_reverse,
     )

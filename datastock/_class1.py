@@ -539,6 +539,105 @@ class DataStock1(DataStock0):
     # Methods interpolating
     # ---------------------
 
+    def get_ref_vector(
+        self,
+        # key 
+        key=None,
+        # which ref / dimension
+        ref=None,
+        dim=None,
+        quant=None,
+        name=None,
+        units=None,
+        # nearest-neighbour interpolation input
+        values=None,
+        indices=None,
+        # which ref / dimension
+        **kwdargs,
+    ):
+        """ Return the monotonous vector associated to a ref of key
+
+        Typical use: get the time vector of a multidimensional key
+
+        Returns False if the key has no time vector
+
+        Optional uses:
+            -
+            - get the nearest neighbourg indices between said vector and any
+            user-provided vector
+            -
+
+
+        Parameters
+        ----------
+
+        Return
+        ------
+
+        """
+
+        # ------------
+        # check inputs
+
+        # key
+        lkok = list(self.ddata.keys())
+        key = _generic_check._check_var(
+            key, 'key',
+            types=str,
+            allowed=lkok,
+        )
+
+        # ref
+        refok = self.ddata[key]['ref']
+        if ref is not None:
+            lkok = list(self.dref.keys())
+            ref = _generic_check._check_var(
+                ref, 'ref',
+                types=str,
+                allowed=lkok,
+            )
+
+            if ref in refok:
+                hasref = True
+                refok = (ref,)
+            else:
+                hasref = False
+
+        else:
+            hasref = None
+
+        # ------------------------------------------------
+        # get list of monotonous vectors with relevant ref
+
+        lk_vect = [
+            k0 for k0 in self.select(
+                which='data',
+                log='all',
+                returnas=str,
+                monot=(True,),
+                dim=dim,
+                quant=quant,
+                name=name,
+                units=units,
+                **kwdargs,
+            )
+            if self.ddata[k0]['ref'][0] in refok
+        ]
+
+        return _class1_interpolate.get_monotonous_vector(
+            # ressources
+            ddata=self._ddata,
+            dref=self._dref,
+            # inputs
+            key=key,
+            ref=ref,
+            hasref=hasref,
+            lk_vect=lk_vect,
+            # parameters
+            values=values,
+            indices=indices,
+        )
+
     def interpolate(
         self,
         # interpolation base
