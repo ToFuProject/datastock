@@ -252,7 +252,7 @@ class Test02_Manipulate():
         (
             hasref, hasvector,
             ref, key_vector,
-            values, indices, indu, ind_reverse,
+            values, indices, indu, ind_reverse, indok,
         ) = self.st.get_ref_vector(
             key='prof0',
             ref='nx',
@@ -262,7 +262,13 @@ class Test02_Manipulate():
         assert values.size == indices.size == 4
         assert ind_reverse.shape == (2, 4)
 
-    def test07_interpolate(self):
+    def test07_get_ref_vector_common(self):
+        val, dout = self.st.get_ref_vector_common(
+            keys=['t0', 'prof0', 'prof1', 't3'],
+            dim='time',
+        )
+
+    def test08_interpolate(self):
         out = self.st.interpolate(
             keys='prof0',
             ref_keys=None,
@@ -283,17 +289,17 @@ class Test02_Manipulate():
     #   Plotting
     # ------------------------
 
-    def test08_plot_as_array(self):
+    def test09_plot_as_array(self):
         dax = self.st.plot_as_array(key='t0')
         dax = self.st.plot_as_array(key='prof0')
         dax = self.st.plot_as_array(key='3d')
         plt.close('all')
 
-    def test09_plot_BvsA_as_distribution(self):
+    def test10_plot_BvsA_as_distribution(self):
         dax = self.st.plot_BvsA_as_distribution(keyA='prof0', keyB='prof0-bis')
         plt.close('all')
 
-    def test10_plot_as_profile1d(self):
+    def test11_plot_as_profile1d(self):
         dax = self.st.plot_as_profile1d(
             key='prof0',
             key_time='t0',
@@ -302,7 +308,7 @@ class Test02_Manipulate():
         )
         plt.close('all')
 
-    def test11_plot_as_mobile_lines(self):
+    def test12_plot_as_mobile_lines(self):
 
         # 3d
         dax = self.st.plot_as_mobile_lines(
@@ -325,7 +331,7 @@ class Test02_Manipulate():
     #   File handling
     # ------------------------
 
-    def test11_copy_equal(self):
+    def test13_copy_equal(self):
         st2 = self.st.copy()
         assert st2 is not self.st
 
@@ -333,10 +339,10 @@ class Test02_Manipulate():
         if msg is not True:
             raise Exception(msg)
 
-    def test12_get_nbytes(self):
+    def test14_get_nbytes(self):
         nb, dnb = self.st.get_nbytes()
 
-    def test13_saveload(self, verb=False):
+    def test15_saveload(self, verb=False):
         pfe = self.st.save(path=_PATH_OUTPUT, verb=verb, return_pfe=True)
         st2 = load(pfe, verb=verb)
         # Just to check the loaded version works fine
