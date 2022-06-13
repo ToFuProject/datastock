@@ -638,7 +638,7 @@ def get_ref_vector(
     # indices
 
     if indices is not None:
-        if indices.dtype == bool:
+        if 'bool' in indices.dtype.name:
             if indices.size != nref:
                 msg = (
                     f"indt as bool must have shape ({nref},), "
@@ -646,7 +646,7 @@ def get_ref_vector(
                 )
                 raise Exception(msg)
 
-        elif indices.dtype == int:
+        elif 'int' in indices.dtype.name:
             if np.nanmax(indices) >= nref:
                 msg = f"indices as int must be < {nref}\nProvided: {indices}"
                 raise Exception(msg)
