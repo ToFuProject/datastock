@@ -2,6 +2,8 @@
 
 from ._class2 import *
 from . import _plot_as_array
+from . import _plot_as_profile1d
+from . import _plot_as_mobile_lines
 from . import _plot_correlations
 from . import _plot_BvsA_as_distribution
 
@@ -68,6 +70,117 @@ class DataStock3(DataStock2):
             dmargin=dmargin,
             fs=fs,
             dcolorbar=dcolorbar,
+            dleg=dleg,
+            connect=connect,
+            inplace=inplace,
+        )
+
+    def plot_as_profile1d(
+        self,
+        # parameters
+        key=None,
+        key_time=None,
+        keyX=None,
+        ind=None,
+        vmin=None,
+        vmax=None,
+        cmap=None,
+        aspect=None,
+        nmax=None,
+        color_dict=None,
+        dinc=None,
+        lkeys=None,
+        bstr_dict=None,
+        rotation=None,
+        inverty=None,
+        bck=None,
+        # figure-specific
+        dax=None,
+        dmargin=None,
+        fs=None,
+        dcolorbar=None,
+        dleg=None,
+        connect=None,
+        inplace=None,
+    ):
+        """ Plot the desired 2d data array as a time-varying 1d profile """
+        return _plot_as_profile1d.plot_as_profile1d(
+            # parameters
+            coll=self,
+            key=key,
+            key_time=key_time,
+            keyX=keyX,
+            ind=ind,
+            vmin=vmin,
+            vmax=vmax,
+            cmap=cmap,
+            aspect=aspect,
+            nmax=nmax,
+            color_dict=color_dict,
+            dinc=dinc,
+            lkeys=lkeys,
+            bstr_dict=bstr_dict,
+            rotation=rotation,
+            inverty=inverty,
+            bck=bck,
+            # figure-specific
+            dax=dax,
+            dmargin=dmargin,
+            fs=fs,
+            dcolorbar=dcolorbar,
+            dleg=dleg,
+            connect=connect,
+            inplace=inplace,
+        )
+
+    def plot_as_mobile_lines(
+        self,
+        # parameters
+        keyX=None,
+        keyY=None,
+        key_time=None,
+        key_chan=None,
+        bck=None,
+        bck_color=None,
+        ind=None,
+        aspect=None,
+        nmax=None,
+        color_dict=None,
+        dinc=None,
+        lkeys=None,
+        bstr_dict=None,
+        rotation=None,
+        # figure-specific
+        dax=None,
+        dmargin=None,
+        fs=None,
+        dleg=None,
+        connect=None,
+        inplace=None,
+    ):
+        """"""
+
+        return _plot_as_mobile_lines.plot_as_mobile_lines(
+            # parameters
+            coll=self,
+            keyX=keyX,
+            keyY=keyY,
+            key_time=key_time,
+            key_chan=key_chan,
+            bck=bck,
+            bck_color=bck_color,
+            ind=ind,
+            aspect=aspect,
+            nmax=nmax,
+            color_dict=color_dict,
+            dinc=dinc,
+            lkeys=lkeys,
+            bstr_dict=bstr_dict,
+            rotation=rotation,
+            # figure-specific
+            dax=dax,
+            dmargin=dmargin,
+            fs=fs,
             dleg=dleg,
             connect=connect,
             inplace=inplace,

@@ -92,6 +92,15 @@ def _add_data(st=None, nc=None, nx=None, lnt=None):
             ref=(f'nt{ii}', 'nx'),
         )
 
+    # add replication of prof2 for plot_as_mobile_lines in 2d
+    st.add_data(
+        key='prof2-bis',
+        data=lprof[2] + np.random.normal(scale=0.1, size=(lnt[2], nx)),
+        dimension='velocity',
+        units='m/s',
+        ref=(f'nt{2}', 'nx'),
+    )
+
     # add 3d array
     st.add_data(
         key='prof0-bis',
@@ -104,6 +113,16 @@ def _add_data(st=None, nc=None, nx=None, lnt=None):
     st.add_data(
         key='3d',
         data=np.arange(nc)[:, None, None] + lprof[0][None, :, :],
+        dimensions='blabla',
+        ref=('nc', 'nt0', 'nx'),
+    )
+    st.add_data(
+        key='3d-bis',
+        data=(
+            np.arange(nc)[:, None, None]
+            + lprof[0][None, :, :]
+            + np.random.normal(scale=0.01, size=(nc, lnt[0], nx))
+        ),
         dimensions='blabla',
         ref=('nc', 'nt0', 'nx'),
     )
@@ -174,7 +193,7 @@ class Test02_Manipulate():
     #   Add / remove
     # ------------------------
 
-    def test04_add_param(self):
+    def test01_add_param(self):
         # create new 'campaign' parameter for data arrays
         self.st.add_param('campaign', which='data')
 
@@ -193,7 +212,7 @@ class Test02_Manipulate():
                 value=f'c{ii}',
             )
 
-    def test05_remove_param(self):
+    def test02_remove_param(self):
         self.st.add_param('blabla', which='campaign')
         self.st.remove_param('blabla', which='campaign')
 
@@ -201,7 +220,7 @@ class Test02_Manipulate():
     #   Selection / sorting
     # ------------------------
 
-    def test06_select(self):
+    def test03_select(self):
         key = self.st.select(which='data', units='s', returnas=str)
         assert key.tolist() == ['t0', 't1', 't2', 't3', 't4']
 
@@ -215,21 +234,21 @@ class Test02_Manipulate():
         out = self.st.select(which='campaign', index=(2, 4))
         assert len(out) == 2
 
-    def test07_sortby(self):
+    def test04_sortby(self):
         self.st.sortby(which='data', param='units')
 
     # ------------------------
     #   show
     # ------------------------
 
-    def test08_show(self):
+    def test05_show(self):
         self.st.show()
 
     # ------------------------
     #   Interpolate
     # ------------------------
 
-    def test09_interpolate(self):
+    def test06_interpolate(self):
         out = self.st.interpolate(
             keys='prof0',
             ref_keys=None,
@@ -250,31 +269,64 @@ class Test02_Manipulate():
     #   Plotting
     # ------------------------
 
-    def test10_plot_as_array(self):
+    def test07_plot_as_array(self):
         dax = self.st.plot_as_array(key='t0')
         dax = self.st.plot_as_array(key='prof0')
         dax = self.st.plot_as_array(key='3d')
         plt.close('all')
 
-    def test11_plot_BvsA_as_distribution(self):
+    def test08_plot_BvsA_as_distribution(self):
         dax = self.st.plot_BvsA_as_distribution(keyA='prof0', keyB='prof0-bis')
+        plt.close('all')
+
+    def test09_plot_as_profile1d(self):
+        dax = self.st.plot_as_profile1d(
+            key='prof0',
+            key_time='t0',
+            keyX='prof0-bis',
+            bck='lines',
+        )
+        plt.close('all')
+
+    def test10_plot_as_mobile_lines(self):
+
+        # 3d
+        dax = self.st.plot_as_mobile_lines(
+            keyX='3d',
+            keyY='3d-bis',
+            key_time='t0',
+            key_chan='x',
+        )
+
+        # 2d
+        dax = self.st.plot_as_mobile_lines(
+            keyX='prof2',
+            keyY='prof2-bis',
+            key_chan='nx',
+        )
+
         plt.close('all')
 
     # ------------------------
     #   File handling
     # ------------------------
 
-    def test20_copy_equal(self):
+    def test11_copy_equal(self):
         st2 = self.st.copy()
-        assert st2 == self.st
         assert st2 is not self.st
 
-    def test21_get_nbytes(self):
+        msg = st2.__eq__(self.st, returnas=str)
+        if msg is not True:
+            raise Exception(msg)
+
+    def test12_get_nbytes(self):
         nb, dnb = self.st.get_nbytes()
 
-    def test23_saveload(self, verb=False):
-            pfe = self.st.save(path=_PATH_OUTPUT, verb=verb, return_pfe=True)
-            st2 = load(pfe, verb=verb)
-            # Just to check the loaded version works fine
-            assert st2 == self.st
-            os.remove(pfe)
+    def test13_saveload(self, verb=False):
+        pfe = self.st.save(path=_PATH_OUTPUT, verb=verb, return_pfe=True)
+        st2 = load(pfe, verb=verb)
+        # Just to check the loaded version works fine
+        msg = st2.__eq__(self.st, returnas=str)
+        if msg is not True:
+            raise Exception(msg)
+        os.remove(pfe)

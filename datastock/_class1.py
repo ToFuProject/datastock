@@ -36,12 +36,16 @@ class DataStock1(DataStock0):
     # Fixed (class-wise) dictionary of default properties
     _ddef = {
         'params': {
+            'dref': {
+            },
             'ddata': {
-                'units':  (str, 'a.u.'),
-                'dim':    (str, 'unknown'),
-                'quant':  (str, 'unknown'),
-                'name':   (str, 'unknown'),
-                'source': (str, 'unknown'),
+                'units':  (str, ''),
+                'dim':    (str, ''),
+                'quant':  (str, ''),
+                'name':   (str, ''),
+                'source': (str, ''),
+            },
+            'dobj': {
             },
          },
     }
@@ -108,18 +112,18 @@ class DataStock1(DataStock0):
     # Adding ref / quantity one by one
     # ---------------------
 
-    def add_ref(self, size=None, key=None, data=None, **kwdargs):
-        dref = {key: {'data': data, 'size': size, **kwdargs}}
+    def add_ref(self, size=None, key=None, data=None, harmonize=None, **kwds):
+        dref = {key: {'data': data, 'size': size, **kwds}}
         # Check consistency
-        self.update(ddata=None, dref=dref, harmonize=True)
+        self.update(ddata=None, dref=dref, harmonize=harmonize)
 
-    def add_data(self, data=None, key=None, ref=None, **kwdargs):
-        ddata = {key: {'data': data, 'ref': ref, **kwdargs}}
+    def add_data(self, data=None, key=None, ref=None, harmonize=None, **kwds):
+        ddata = {key: {'data': data, 'ref': ref, **kwds}}
         # Check consistency
-        self.update(ddata=ddata, dref=None, harmonize=True)
+        self.update(ddata=ddata, dref=None, harmonize=harmonize)
 
-    def add_obj(self, which=None, key=None, harmonize=None, **kwdargs):
-        dobj = {which: {key: kwdargs}}
+    def add_obj(self, which=None, key=None, harmonize=None, **kwds):
+        dobj = {which: {key: kwds}}
         # Check consistency
         self.update(dobj=dobj, dref=None, harmonize=harmonize)
 
@@ -137,8 +141,8 @@ class DataStock1(DataStock0):
             dobj0=self._dobj,
             propagate=propagate,
             reserved_keys=self._reserved_keys,
-            ddefparams_data=self._ddef['params']['ddata'],
-            ddefparams_obj=self._ddef['params']['dobj'],
+            ddefparams_data=self._ddef['params'].get('ddata'),
+            ddefparams_obj=self._ddef['params'].get('dobj'),
             data_none=self._data_none,
             max_ndim=self._max_ndim,
         )
@@ -153,8 +157,8 @@ class DataStock1(DataStock0):
             dobj0=self._dobj,
             propagate=propagate,
             reserved_keys=self._reserved_keys,
-            ddefparams_data=self._ddef['params']['ddata'],
-            ddefparams_obj=self._ddef['params']['dobj'],
+            ddefparams_data=self._ddef['params'].get('ddata'),
+            ddefparams_obj=self._ddef['params'].get('dobj'),
             data_none=self._data_none,
             max_ndim=self._max_ndim,
         )
@@ -170,8 +174,8 @@ class DataStock1(DataStock0):
             ddata0=self._ddata,
             dref0=self._dref,
             reserved_keys=self._reserved_keys,
-            ddefparams_data=self._ddef['params']['ddata'],
-            ddefparams_obj=self._ddef['params']['dobj'],
+            ddefparams_data=self._ddef['params'].get('ddata'),
+            ddefparams_obj=self._ddef['params'].get('dobj'),
             data_none=self._data_none,
             max_ndim=self._max_ndim,
         )
@@ -255,11 +259,15 @@ class DataStock1(DataStock0):
 
         """
         which, dd = self.__check_which(which, return_dict=True)
-        _class1_check._set_param(
+        param = _class1_check._set_param(
             dd=dd, dd_name=which,
             param=param, value=value, ind=ind, key=key,
             distribute=distribute,
         )
+
+        # if param refers to an object => update
+        if param in self._dobj.keys():
+            self.update()
 
     def add_param(
         self,
@@ -269,12 +277,16 @@ class DataStock1(DataStock0):
     ):
         """ Add a parameter, optionnally also set its value """
         which, dd = self.__check_which(which, return_dict=True)
-        _class1_check._add_param(
+        param = _class1_check._add_param(
             dd=dd,
             dd_name=which,
             param=param,
             value=value,
         )
+
+        # if param refers to an object => update
+        if param in self._dobj.keys():
+            self.update()
 
     def remove_param(
         self,
@@ -763,3 +775,4 @@ class DataStock1(DataStock0):
 __all__ = [
     sorted([k0 for k0 in locals() if k0.startswith('DataStock')])[-1]
 ]
+

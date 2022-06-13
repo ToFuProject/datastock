@@ -1,25 +1,17 @@
 # coding utf-8
 
 
-# Built-in
-import itertools as itt
-import warnings
-
-
 # Common
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
-import matplotlib as mpl
-import matplotlib.transforms as transforms
-import matplotlib.lines as mlines
 import matplotlib.colors as mcolors
 
 
 # library-specific
 from . import _generic_check
 from . import _plot_text
-from . import _class2_interactivity
+from . import _class1_compute
 
 
 __all__ = ['plot_as_array']
@@ -101,7 +93,7 @@ def plot_as_array(
         keyX, refX, islogX,
         keyY, refY, islogY,
         keyZ, refZ, islogZ,
-        ind,
+        sameref, ind,
         cmap, vmin, vmax,
         ymin, ymax,
         aspect, nmax,
@@ -134,6 +126,15 @@ def plot_as_array(
         dleg=dleg,
         connect=connect,
     )
+
+    # --------------------------------
+    # Particular case: same references
+
+    if sameref:
+        from ._class import DataStock
+        cc = DataStock()
+        cc.add_data(key=key, data=coll2.ddata[key]['data'])
+        return cc.plot_as_array()
 
     # -------------------------
     #  call appropriate routine
@@ -253,14 +254,61 @@ def plot_as_array(
     else:
         return coll2, dgroup
 
+
 # #############################################################################
 # #############################################################################
 #                       check
 # #############################################################################
 
 
-def _check_keyXYZ(coll=None, refs=None, keyX=None, ndim=None, dimlim=None):
-    """   """
+def _check_uniform_lin(k0=None, ddata=None):
+
+    v0 = ddata[k0]
+
+    c0 = (
+        v0['data'].dtype.type != np.str_
+        and v0['monot'] == (True,)
+        and np.allclose(
+            np.diff(v0['data']),
+            v0['data'][1] - v0['data'][0],
+            equal_nan=False,
+        )
+    )
+    return c0
+
+
+def _check_uniform_log(k0=None, ddata=None):
+
+    v0 = ddata[k0]
+
+    c0 = (
+        v0['data'].dtype.type != np.str_
+        and v0['monot'] == (True,)
+        and np.all(v0['data'] > 0.)
+        and np.allclose(
+            np.diff(np.log(v0['data'])),
+            np.log(v0['data'][1]) - np.log(v0['data'][0]),
+            equal_nan=False,
+        )
+    )
+    return c0
+
+
+def _check_keyXYZ(
+    coll=None,
+    refs=None,
+    keyX=None,
+    ndim=None,
+    dimlim=None,
+    uniform=None,
+    already=None,
+):
+    """ Ensure keyX refers to a monotonic and (optionally) uniform data
+
+    """
+
+    if uniform is None:
+        uniform = True
 
     refX = None
     islog = False
@@ -269,47 +317,31 @@ def _check_keyXYZ(coll=None, refs=None, keyX=None, ndim=None, dimlim=None):
             if keyX in coll._ddata.keys():
                 lok = [
                     k0 for k0, v0 in coll._ddata.items()
-                    if len( v0['ref']) == 1
+                    if len(v0['ref']) == 1
                     and v0['ref'][0] in refs
                     and (
                         v0['data'].dtype.type == np.str_
-                        or (
-                            v0['monot'] == (True,)
-                            and np.allclose(
-                                np.diff(v0['data']),
-                                v0['data'][1] - v0['data'][0],
-                                equal_nan=False,
-                            )
-                        )
-                        or (
-                            v0['monot'] == (True,)
-                            and np.all(v0['data'] > 0.)
-                            and np.allclose(
-                                np.diff(np.log(v0['data'])),
-                                np.log(v0['data'][1]) - np.log(v0['data'][0]),
-                                equal_nan=False,
-                            )
-                        )
+                        or v0['monot'] == (True,)
                     )
                 ]
+
+                # optional uniformity
+                if uniform:
+                    lok = [
+                        k0 for k0 in lok
+                        if _check_uniform_lin(k0=k0, ddata=coll._ddata)
+                        or _check_uniform_log(k0=k0, ddata=coll._ddata)
+                    ]
+
                 keyX = _generic_check._check_var(
                     keyX, 'keyX',
                     allowed=lok,
                 )
+
                 refX = coll._ddata[keyX]['ref'][0]
 
                 # islog
-                c0 = (
-                    np.all(coll._ddata[keyX]['data'] > 0.)
-                    and np.allclose(
-                        np.diff(np.log(coll._ddata[keyX]['data'])),
-                        np.log(coll._ddata[keyX]['data'][1])
-                        - np.log(coll._ddata[keyX]['data'][0]),
-                        equal_nan=False,
-                    )
-                )
-                if c0:
-                    islog = True
+                islog = _check_uniform_log(k0=keyX, ddata=coll._ddata)
 
             elif keyX in refs:
                 keyX, refX = 'index', keyX
@@ -318,7 +350,11 @@ def _check_keyXYZ(coll=None, refs=None, keyX=None, ndim=None, dimlim=None):
                 msg = f"Arg keyX refers to unknow data:\n\t- Provided: {keyX}"
                 raise Exception(msg)
         else:
-            keyX, refX = 'index', refs[dimlim - 1]
+            keyX = 'index'
+            if already is None or all([kk in already for kk in refs]):
+                refX = refs[dimlim - 1]
+            else:
+                refX = [kk for kk in refs if kk not in already][0]
 
     return keyX, refX, islog
 
@@ -362,34 +398,51 @@ def _plot_as_array_check(
         raise Exception(msg)
 
     # keyX, keyY, keyZ
+
+    if keyX is None and (keyY is not None or keyZ is not None):
+        lstr = [
+            f"\t- {k0}: {v0}"
+            for k0, v0 in [('keyX', keyX), ('keyY', keyY), ('keyZ', keyZ)]
+        ]
+        msg = (
+            "Please specify keyX, then keyY, then keyZ, in priority\n"
+            + "\n".join(lstr)
+        )
+        raise Exception(msg)
+
     refs = coll._ddata[key]['ref']
     keyX, refX, islogX = _check_keyXYZ(
         coll=coll, refs=refs, keyX=keyX, ndim=ndim, dimlim=1,
     )
     keyY, refY, islogY = _check_keyXYZ(
         coll=coll, refs=refs, keyX=keyY, ndim=ndim, dimlim=2,
+        already=[refX],
     )
     keyZ, refZ, islogZ = _check_keyXYZ(
         coll=coll, refs=refs, keyX=keyZ, ndim=ndim, dimlim=3,
+        already=[refX, refY]
     )
 
-    # unciitiy of refX vs refY
+    # unicity of refX vs refY
+    sameref = False
     if ndim == 2 and refX == refY:
-        msg = (
-            "Arg keyX and keyY have the same references!\n"
-            f"\t- keyX, refX: {keyX}, {refX}\n"
-            f"\t- keyY, refY: {keyY}, {refY}\n"
-        )
-        raise Exception(msg)
+        sameref = True
+        # msg = (
+            # "Arg keyX and keyY have the same references!\n"
+            # f"\t- keyX, refX: {keyX}, {refX}\n"
+            # f"\t- keyY, refY: {keyY}, {refY}\n"
+        # )
+        # raise Exception(msg)
 
     if ndim == 3 and len(set([refX, refY, refZ])) < 3:
-        msg = (
-            "Arg keyX, keyY, keyZ have the same references!\n"
-            f"\t- keyX, refX: {keyX}, {refX}\n"
-            f"\t- keyY, refY: {keyY}, {refY}\n"
-            f"\t- keyZ, refZ: {keyZ}, {refZ}\n"
-        )
-        raise Exception(msg)
+        sameref = True
+        # msg = (
+            # "Arg keyX, keyY, keyZ have the same references!\n"
+            # f"\t- keyX, refX: {keyX}, {refX}\n"
+            # f"\t- keyY, refY: {keyY}, {refY}\n"
+            # f"\t- keyZ, refZ: {keyZ}, {refZ}\n"
+        # )
+        # raise Exception(msg)
 
     # ind
     ind = _generic_check._check_var(
@@ -549,7 +602,7 @@ def _plot_as_array_check(
         keyX, refX, islogX,
         keyY, refY, islogY,
         keyZ, refZ, islogZ,
-        ind,
+        sameref, ind,
         cmap, vmin, vmax,
         ymin, ymax,
         aspect, nmax,
@@ -730,7 +783,7 @@ def plot_as_array_1d(
             coll.add_mobile(
                 key=kv,
                 handle=lv,
-                ref=ref,
+                refs=ref,
                 data=keyX,
                 dtype='xdata',
                 axes=kax,
@@ -827,8 +880,8 @@ def plot_as_array_2d(
     #  prepare slicing
 
     # here slice X => slice in dim Y and vice-versa
-    sliX = _class2_interactivity._get_slice(laxis=[1-axisX], ndim=2)
-    sliY = _class2_interactivity._get_slice(laxis=[1-axisY], ndim=2)
+    sliX = _class1_compute._get_slice(laxis=[1-axisX], ndim=2)
+    sliY = _class1_compute._get_slice(laxis=[1-axisY], ndim=2)
 
     # ----------------------
     #  labels and data
@@ -959,9 +1012,8 @@ def plot_as_array_2d(
     # ---------------
     # plot fixed part
 
-    axtype = 'matrix'
-    lkax = [kk for kk, vv in dax.items() if vv['type'] == axtype]
-    for kax in lkax:
+    kax = 'matrix'
+    if dax.get(kax) is not None:
         ax = dax[kax]['handle']
 
         im = ax.imshow(
@@ -1012,7 +1064,7 @@ def plot_as_array_2d(
                 coll.add_mobile(
                     key=kh,
                     handle=lh,
-                    ref=refY,
+                    refs=refY,
                     data=keyY,
                     dtype='ydata',
                     axes=kax,
@@ -1039,7 +1091,7 @@ def plot_as_array_2d(
                 coll.add_mobile(
                     key=kv,
                     handle=lv,
-                    ref=refX,
+                    refs=refX,
                     data=keyX,
                     dtype='xdata',
                     axes=kax,
@@ -1064,7 +1116,7 @@ def plot_as_array_2d(
 
         for ii in range(nmax):
             l0, = ax.plot(
-                data[sliY(ind[1])],
+                data[sliY(ind[0])],
                 dataY,
                 ls='-',
                 marker='.',
@@ -1077,7 +1129,7 @@ def plot_as_array_2d(
             coll.add_mobile(
                 key=km,
                 handle=l0,
-                ref=(refX,),
+                refs=(refX,),
                 data=key,
                 dtype='xdata',
                 axes=kax,
@@ -1092,7 +1144,7 @@ def plot_as_array_2d(
             coll.add_mobile(
                 key=km,
                 handle=l0,
-                ref=(refY,),
+                refs=(refY,),
                 data=keyY,
                 dtype='ydata',
                 axes=kax,
@@ -1108,7 +1160,7 @@ def plot_as_array_2d(
         for ii in range(nmax):
             l1, = ax.plot(
                 dataX,
-                data[sliX(ind[0])],
+                data[sliX(ind[1])],
                 ls='-',
                 marker='.',
                 lw=1.,
@@ -1120,7 +1172,7 @@ def plot_as_array_2d(
             coll.add_mobile(
                 key=km,
                 handle=l1,
-                ref=(refY,),
+                refs=(refY,),
                 data=[key],
                 dtype='ydata',
                 axes=kax,
@@ -1135,7 +1187,7 @@ def plot_as_array_2d(
             coll.add_mobile(
                 key=km,
                 handle=l0,
-                ref=(refX,),
+                refs=(refX,),
                 data=keyX,
                 dtype='xdata',
                 axes=kax,
@@ -1243,10 +1295,10 @@ def plot_as_array_3d(
     #  prepare slicing
 
     # here slice X => slice in dim Y and vice-versa
-    sliX = _class2_interactivity._get_slice(laxis=[axY, axZ], ndim=3)
-    sliY = _class2_interactivity._get_slice(laxis=[axX, axZ], ndim=3)
-    sliZ = _class2_interactivity._get_slice(laxis=[axX, axY], ndim=3)
-    sliZ2 = _class2_interactivity._get_slice(laxis=[axZ], ndim=3)
+    sliX = _class1_compute._get_slice(laxis=[axY, axZ], ndim=3)
+    sliY = _class1_compute._get_slice(laxis=[axX, axZ], ndim=3)
+    sliZ = _class1_compute._get_slice(laxis=[axX, axY], ndim=3)
+    sliZ2 = _class1_compute._get_slice(laxis=[axZ], ndim=3)
 
     if axX < axY:
         datatype = 'data.T'
@@ -1494,7 +1546,7 @@ def plot_as_array_3d(
         coll.add_mobile(
             key=km,
             handle=im,
-            ref=refZ,
+            refs=refZ,
             data=key,
             dtype=datatype,
             axes=kax,
@@ -1528,7 +1580,7 @@ def plot_as_array_3d(
             coll.add_mobile(
                 key=kh,
                 handle=lh,
-                ref=refY,
+                refs=refY,
                 data=keyY,
                 dtype='ydata',
                 axes=kax,
@@ -1537,7 +1589,7 @@ def plot_as_array_3d(
             coll.add_mobile(
                 key=kv,
                 handle=lv,
-                ref=refX,
+                refs=refX,
                 data=keyX,
                 dtype='xdata',
                 axes=kax,
@@ -1547,7 +1599,7 @@ def plot_as_array_3d(
             coll.add_mobile(
                 key=km,
                 handle=mi,
-                ref=[refX, refY],
+                refs=[refX, refY],
                 data=[keyX, keyY],
                 dtype=['xdata', 'ydata'],
                 axes=kax,
@@ -1575,9 +1627,9 @@ def plot_as_array_3d(
             coll.add_mobile(
                 key=km,
                 handle=l0,
-                ref=(refX, refZ),
-                data=[key, key],
-                dtype=['xdata', 'xdata'],
+                refs=((refX, refZ),),
+                data=[key],
+                dtype=['xdata'],
                 group_vis='X',
                 axes=kax,
                 ind=ii,
@@ -1591,7 +1643,7 @@ def plot_as_array_3d(
             coll.add_mobile(
                 key=km,
                 handle=l0,
-                ref=(refY,),
+                refs=(refY,),
                 data=keyY,
                 dtype='ydata',
                 group_vis='Y',
@@ -1619,9 +1671,9 @@ def plot_as_array_3d(
             coll.add_mobile(
                 key=km,
                 handle=l1,
-                ref=(refY, refZ),
-                data=[key, key],
-                dtype=['ydata', 'ydata'],
+                refs=((refY, refZ),),
+                data=[key],
+                dtype=['ydata'],
                 group_vis='Y',
                 axes=kax,
                 ind=ii,
@@ -1635,7 +1687,7 @@ def plot_as_array_3d(
             coll.add_mobile(
                 key=km,
                 handle=l0,
-                ref=(refX,),
+                refs=(refX,),
                 data=keyX,
                 dtype='xdata',
                 group_vis='X',
@@ -1662,9 +1714,9 @@ def plot_as_array_3d(
             coll.add_mobile(
                 key=km,
                 handle=l1,
-                ref=(refX, refY),
-                data=[key, key],
-                dtype=['ydata', 'ydata'],
+                refs=((refX, refY),),
+                data=[key],
+                dtype=['ydata'],
                 axes=kax,
                 ind=ii,
             )
@@ -1677,7 +1729,7 @@ def plot_as_array_3d(
         coll.add_mobile(
             key=km,
             handle=l0,
-            ref=(refZ,),
+            refs=(refZ,),
             data=keyZ,
             dtype='xdata',
             axes=kax,

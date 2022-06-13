@@ -1,11 +1,15 @@
 
 
+import itertools as itt
+
+
 import numpy as np
 import scipy.sparse as scpsparse
 
 
 from . import _generic_check
 from . import _generic_utils
+from . import _class1_compute
 
 
 _INCREMENTS = [1, 10]
@@ -207,7 +211,11 @@ def _setup_mobile(
     for k0, v0 in dmobile.items():
 
         # group
-        dmobile[k0]['group'] = tuple([dref[rr]['group'] for rr in v0['ref']])
+        groups = [
+            [dref[r1]['group'] for r1 in r0]
+            for r0 in v0['refs']
+        ]
+        dmobile[k0]['group'] = tuple(set(itt.chain.from_iterable(groups)))
 
         # group _vis
         if dmobile[k0]['group_vis'] is None:
@@ -248,15 +256,17 @@ def _setup_mobile(
         ]
 
         # functions for slicing
-        dmobile[k0]['func_slice'] = get_slice(
-            nocc=nocc,
-           laxis=dmobile[k0]['axis'],
-           lndim=[
-               1 if dd == 'index'
-               else ddata[dd]['data'].ndim
-               for dd in dmobile[k0]['data']
-           ],
-        )
+        dmobile[k0]['func_slice'] = [
+            _class1_compute._get_slice(
+                laxis=dmobile[k0]['axis'][ii],
+                ndim=(
+                    1 if dmobile[k0]['data'][ii] == 'index'
+                    else ddata[dmobile[k0]['data'][ii]]['data'].ndim
+                )
+            )
+            for ii in range(nocc)
+        ]
+
 
 def _setup_keys(dkeys=None, dgroup=None):
     """ return dkeys """
@@ -380,21 +390,91 @@ def _update_indices_nb(group=None, dgroup=None, ctrl=None, shift=None):
 
 # #############################################################################
 # #############################################################################
+#            mouseclic utility
+# #############################################################################
+
+
+def _get_ix_for_refx_only_1or2d(
+    cur_data=None,
+    cur_ref=None,
+    eventdata=None,
+    # resources
+    ddata=None,
+    dref=None,
+    dgroup=None,
+):
+    """
+    Return the index coreesponding to:
+
+        - event data (mouseclic)
+        - desired cur_data
+        - desired cur_ref
+
+    Handles 1d or 2d arrays (useful for profile1d)
+
+    """
+
+    monot = None
+    c0 = (
+        cur_data == 'index'
+        or ddata[cur_data]['data'].dtype.type == np.str_
+    )
+    if c0:
+        cd = 'index'
+    else:
+        monot = ddata[cur_data]['monot'] == (True,)
+        cd = ddata[cur_data]['data']
+
+    # prepare input for >= 2d data
+    if (isinstance(cd, str) and cd == 'index') or cd.ndim == 1:
+        laxis, linds = None, None
+
+    elif cd.ndim == 2:
+        laxis = [
+            (
+                ii,
+                dref[rr]['indices'][dgroup[dref[cur_ref]['group']]['indcur']],
+            )
+            for ii, rr in enumerate(ddata[cur_data]['ref'])
+            if rr != cur_ref
+        ]
+        laxis, linds = zip(*laxis)
+    else:
+        raise NotImplementedError()
+
+    # get index of datax corresponding to clicked point
+    return _class1_compute._get_index_from_data(
+        data=cd,
+        data_pick=np.r_[eventdata],
+        monot=monot,
+        # for >= 2d data
+        laxis=laxis,
+        linds=linds,
+    )[0]
+
+
+# #############################################################################
+# #############################################################################
 #           data of mobile based on indices
 # #############################################################################
 
 
 def get_fupdate(handle=None, dtype=None, norm=None, bstr=None):
     if dtype == 'xdata':
-        func = lambda val, handle=handle: handle.set_xdata(val)
+        def func(val, handle=handle):
+            handle.set_xdata(val)
     elif dtype == 'ydata':
-        func = lambda val, handle=handle: handle.set_ydata(val)
+        def func(val, handle=handle):
+            handle.set_ydata(val)
     elif dtype in ['data']:   # Also works for imshow
-        func = lambda val, handle=handle: handle.set_data(val)
+        def func(val, handle=handle):
+            handle.set_data(val)
     elif dtype in ['data.T']:   # Also works for imshow
-        func = lambda val, handle=handle: handle.set_data(val.T)
+        def func(val, handle=handle):
+            handle.set_data(val.T)
     elif dtype in ['alpha']:   # Also works for imshow
-        func = lambda val, handle=handle, norm=norm: handle.set_alpha(norm(val))
+        def func(val, handle=handle, norm=norm):
+            handle.set_alpha(norm(val))
     elif dtype == 'txt':
         func = lambda val, handle=handle, bstr=bstr: handle.set_text(bstr.format(val))
     else:
@@ -403,102 +483,98 @@ def get_fupdate(handle=None, dtype=None, norm=None, bstr=None):
     return func
 
 
-def _get_slice(laxis=None, ndim=None):
-
-    nax = len(laxis)
-    assert nax in range(1, ndim + 1)
-
-    if ndim == nax:
-        def fslice(*args):
-            return args
-
-    else:
-        def fslice(*args, laxis=laxis):
-            ind = [slice(None) for ii in range(ndim)]
-            for ii, aa in enumerate(args):
-                ind[laxis[ii]] = aa
-            return tuple(ind)
-
-    return fslice
-
-
-def get_slice(nocc=None, laxis=None, lndim=None):
-
-    if nocc == 1:
-        return [_get_slice(laxis=laxis, ndim=lndim[0])]
-
-    elif nocc == 2:
-        return [
-            _get_slice(laxis=[laxis[0]], ndim=lndim[0]),
-            _get_slice(laxis=[laxis[1]], ndim=lndim[1]),
-        ]
-
-
 def _update_mobile(k0=None, dmobile=None, dref=None, ddata=None):
     """ Update mobile objects data """
 
-    func = dmobile[k0]['func']
-    kref = dmobile[k0]['ref']
-    kdata = dmobile[k0]['data']
-
     # All ref do not necessarily have the same nb of indices
     iref = [
-        dref[rr]['indices'][
-            min(dmobile[k0]['ind'], len(dref[rr]['indices']) - 1)
+        [
+            dref[r1]['indices'][
+                min(dmobile[k0]['ind'], len(dref[r1]['indices']) - 1)
+            ]
+            for r1 in r0
         ]
-        for rr in dmobile[k0]['ref']
+        for r0 in dmobile[k0]['refs']
     ]
 
     nocc = len(set(dmobile[k0]['dtype']))
-    if nocc == 1:
+
+    for ii in range(nocc):
         c0 = (
             dmobile[k0]['data'][0] == 'index'
             or ddata[dmobile[k0]['data'][0]]['data'].dtype.type == np.str_
         )
         if c0:
-            dmobile[k0]['func_set_data'][0](*iref)
+            dmobile[k0]['func_set_data'][ii](*iref[ii])
 
-        elif scpsparse.issparse(ddata[dmobile[k0]['data'][0]]['data']):
-            if ddata[dmobile[k0]['data'][0]]['data'].ndim <= 2:
-                dmobile[k0]['func_set_data'][0](
-                    ddata[dmobile[k0]['data'][0]]['data'][
-                        dmobile[k0]['func_slice'][0](*iref)
-                    ].data
+        elif scpsparse.issparse(ddata[dmobile[k0]['data'][ii]]['data']):
+            if ddata[dmobile[k0]['data'][ii]]['data'].ndim <= 2:
+                dmobile[k0]['func_set_data'][ii](
+                    ddata[dmobile[k0]['data'][ii]]['data'][
+                        dmobile[k0]['func_slice'][ii](*iref[ii])
+                    ].todense()
                 )
             else:
                 msg = "Sparse data of dim > 2: not handled yet"
                 raise Exception(msg)
 
         else:
-            dmobile[k0]['func_set_data'][0](
-                ddata[dmobile[k0]['data'][0]]['data'][
-                    dmobile[k0]['func_slice'][0](*iref)
+            dmobile[k0]['func_set_data'][ii](
+                ddata[dmobile[k0]['data'][ii]]['data'][
+                    dmobile[k0]['func_slice'][ii](*iref[ii])
                 ]
             )
 
-    else:
-        for ii in range(nocc):
-            c0 = (
-                dmobile[k0]['data'][0] == 'index'
-                or ddata[dmobile[k0]['data'][0]]['data'].dtype.type == np.str_
-            )
-            if c0:
-                dmobile[k0]['func_set_data'][ii](iref[ii])
 
-            elif scpsparse.issparse(ddata[dmobile[k0]['data'][ii]]['data']):
-                if ddata[dmobile[k0]['data'][ii]]['data'].ndim <= 2:
-                    dmobile[k0]['func_set_data'][ii](
-                        ddata[dmobile[k0]['data'][ii]]['data'][
-                            dmobile[k0]['func_slice'][ii](iref[ii])
-                        ].data
-                    )
-                else:
-                    msg = "Sparse data of dim > 2: not handled yet"
-                    raise Exception(msg)
+    # if nocc == 1:
+        # c0 = (
+            # dmobile[k0]['data'][0] == 'index'
+            # or ddata[dmobile[k0]['data'][0]]['data'].dtype.type == np.str_
+        # )
+        # if c0:
+            # dmobile[k0]['func_set_data'][0](*iref)
 
-            else:
-                dmobile[k0]['func_set_data'][ii](
-                    ddata[dmobile[k0]['data'][ii]]['data'][
-                        dmobile[k0]['func_slice'][ii](iref[ii])
-                    ]
-                )
+        # elif scpsparse.issparse(ddata[dmobile[k0]['data'][0]]['data']):
+            # if ddata[dmobile[k0]['data'][0]]['data'].ndim <= 2:
+                # dmobile[k0]['func_set_data'][0](
+                    # ddata[dmobile[k0]['data'][0]]['data'][
+                        # dmobile[k0]['func_slice'][0](*iref)
+                    # ].todense()
+                # )
+            # else:
+                # msg = "Sparse data of dim > 2: not handled yet"
+                # raise Exception(msg)
+
+        # else:
+            # dmobile[k0]['func_set_data'][0](
+                # ddata[dmobile[k0]['data'][0]]['data'][
+                    # dmobile[k0]['func_slice'][0](*iref)
+                # ]
+            # )
+
+    # else:
+        # for ii in range(nocc):
+            # c0 = (
+                # dmobile[k0]['data'][0] == 'index'
+                # or ddata[dmobile[k0]['data'][0]]['data'].dtype.type == np.str_
+            # )
+            # if c0:
+                # dmobile[k0]['func_set_data'][ii](iref[ii])
+
+            # elif scpsparse.issparse(ddata[dmobile[k0]['data'][ii]]['data']):
+                # if ddata[dmobile[k0]['data'][ii]]['data'].ndim <= 2:
+                    # dmobile[k0]['func_set_data'][ii](
+                        # ddata[dmobile[k0]['data'][ii]]['data'][
+                            # dmobile[k0]['func_slice'][ii](iref[ii])
+                        # ].todense()
+                    # )
+                # else:
+                    # msg = "Sparse data of dim > 2: not handled yet"
+                    # raise Exception(msg)
+
+            # else:
+                # dmobile[k0]['func_set_data'][ii](
+                    # ddata[dmobile[k0]['data'][ii]]['data'][
+                        # dmobile[k0]['func_slice'][ii](iref[ii])
+                    # ]
+                # )

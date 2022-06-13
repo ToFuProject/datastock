@@ -242,14 +242,21 @@ def pretty_print(
 def _compare_dict_verb_return(dout, returnas, verb):
 
     if len(dout) > 0:
-        if verb:
+
+        # msg ?
+        if verb or returnas is str:
             lstr = [f"{k0}: {v0}" for k0, v0 in dout.items()]
             msg = (
                 "The following differences have been found:\n"
                 + "\n".join(lstr)
             )
-            print(msg)
-        if returnas:
+            if verb:
+                print(msg)
+
+        # return
+        if returnas is str:
+            return msg
+        elif returnas is dict:
             return dout
         else:
             return False
@@ -273,8 +280,8 @@ def compare_dict(d0=None, d1=None, dname=None, returnas=None, verb=None):
     # returnas
     returnas = _generic_check._check_var(
         returnas, 'returnas',
-        default=False,
-        types=bool,
+        default=bool,
+        allowed=[bool, str, dict],
     )
 
     # verb
@@ -302,7 +309,9 @@ def compare_dict(d0=None, d1=None, dname=None, returnas=None, verb=None):
     lk0 = sorted(list(d0.keys()))
     lk1 = sorted(list(d1.keys()))
     if lk0 != lk1:
-        dout[kroot] = f'different keys: {lk0} vs {lk1}'
+        lk00 = [kk for kk in lk0 if kk not in lk1]
+        lk11 = [kk for kk in lk1 if kk not in lk0]
+        dout[kroot] = f'different keys: {lk00} vs {lk11}'
         return _compare_dict_verb_return(dout, returnas, verb)
 
     # values
@@ -365,7 +374,7 @@ def compare_dict(d0=None, d1=None, dname=None, returnas=None, verb=None):
                 d0=d0[k0],
                 d1=d1[k0],
                 dname=key,
-                returnas=True,
+                returnas=dict,
                 verb=False,
             )
             if isinstance(dd, dict):
