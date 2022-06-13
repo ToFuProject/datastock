@@ -559,20 +559,27 @@ class DataStock1(DataStock0):
 
         Typical use: get the time vector of a multidimensional key
 
-        Returns False if the key has no time vector
+        >>> import datastock as ds
+        >>> nt = 11; t0 = np.linspace(0, 10, nt);
+        >>> nx = 21; x = np.linspace(0, 10, nx);
+        >>> xt = np.sin(t0)[:, None] * (x-x.mean())[None, :]
+        >>> st = ds.DataStock()
+        >>> st.add_ref(key='nt', size=nt)
+        >>> st.add_ref(key='nx', size=nx)
+        >>> st.add_data(key='t0', data=t0)
+        >>> st.add_data(key='x', data=x)
+        >>> st.add_data(key='xt', data=xt)
+        >>> hasref, hasvect, ref, key_vect, t, ind, indu, indr = st.get_ref_vector(key='xt', ref='nt', values=[2, 3, 3.1, 5])
 
-        Optional uses:
-            -
-            - get the nearest neighbourg indices between said vector and any
-            user-provided vector
-            -
-
-
-        Parameters
-        ----------
-
-        Return
-        ------
+        In the qbove example:
+            - hasref = True: 'xt' does have 'nt' has ref
+            - hasvect = True: there is a monotonous vector with ref 'nt'
+            - ref = 'nt'
+            - key_vect = 't0'
+            - t = [2, 3, 3.1, 5]: the desired time points
+            - ind = [2, 3, 3, 5]: the indices of t in t0
+            - indu = [2, 3, 5]: the unique indices of t in t0
+            - indr = (3, 4) bool array showing, for each indu, matching ind
 
         """
 
