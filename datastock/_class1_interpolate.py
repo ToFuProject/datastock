@@ -517,7 +517,17 @@ def _check(
 # #############################################################################
 
 
-def get_monotonous_vector(
+def _get_ref_vector_nearest(x0, x):
+    x0bins = 0.5*(x0[1:] + x0[:-1])
+    ind = np.digitize(x, x0bins)
+
+    vmin = np.min(x0)
+    vmax = np.max(x0)
+    dmax2 = np.max(np.diff(x0)) / 2.
+    indok = (x >= vmin - dmax2) & (x >= vmax + dmax2)
+    return ind, indok
+
+def get_ref_vector(
     # ressources
     ddata=None,
     dref=None,
@@ -617,9 +627,12 @@ def get_monotonous_vector(
 
     # values vs key_vector => indices
     if values is not None:
-        val0 = ddata[key_vector]['data']
-        val0bins = 0.5*(val0[1:] + val0[:-1])
-        indices = np.digitize(values, val0bins)
+        indices, indok = _get_ref_vector_nearest(
+            ddata[key_vector]['data'],
+            values,
+        )
+    else:
+        indok = None
 
     # -------
     # indices
@@ -671,5 +684,87 @@ def get_monotonous_vector(
     return (
         hasref, hasvector,
         ref, key_vector,
-        values, indices, indu, ind_reverse,
+        values, indices, indu, ind_reverse, indok,
     )
+
+
+# #############################################################################
+# #############################################################################
+#           Monotonous vector
+# #############################################################################
+
+
+def get_ref_vector_common(
+    # ressources
+    ddata=None,
+    # inputs
+    din=None,
+):
+
+    # ------------
+    # check inputs
+
+    dc = {
+        k0: f"hasref: {v0[0]}, hasvector: {v0[1]}, key_vect: {v0[3]}"
+        for k0, v0 in din.items()
+        if not (
+            v0[0]   # hasref
+            and v0[1]   # hasvector
+        )
+    }
+    if len(dc) > 0:
+        lstr = [f"\t- {k0}: {v0}" for k0, v0 in dc.items()]
+        msg = (
+            "The following keys do not have a ref vector:\n"
+            + "\n".join(lstr)
+        )
+        raise Exception(msg)
+
+    # ------------
+    # compute
+
+    # get list if key_vector and of vectors
+    lkv = list(set([v0[3] for v0 in din.values()]))
+    nv, lv = -1, []
+    for ii in len(lkv):
+        if ii == 0 or not np.allclose(lv[nv], ddata[lkv[ii]]['data']):
+            lv.append(ddata[lkv[ii]]['data'])
+            nv += 1
+
+    if len(lv) == 1:
+        val = lv[0]
+        ind = np.arange(0, len(val))
+        dout = {k0: ind for k0 in din.keys()}
+
+    else:
+
+        # bounds
+        b0 = np.max([np.min(vv) for vv in lv])
+        b1 = np.min([np.max(vv) for vv in lv])
+
+        # increments
+        if uniform is True:
+            dv = np.min([np.min(np.diff(vv)) for vv in lv])
+            val = np.linspace(b0, b1, np.ceil((b1-b0)/dv))
+        else:
+            val = b0
+
+        # indices
+        dout = {
+            k0: _get_ref_vector_nearest(ddata[v0[3]]['data'], val)
+            for k0, v0 in din.items()
+        }
+
+        # only keep all-valid indices
+        iok = np.all(np.array([v0[1] for v0 in dout.values()]), axis=0)
+        if not np.any(iok):
+            msg = (
+                "Non valid common vector values could be identified!"
+            )
+            warnings.warn(msg)
+
+        # adjust
+        val = val[iok]
+        dout = {k0: v0[0][iok] for k0, v0 in dout.keys()}
+
+    return val, dout

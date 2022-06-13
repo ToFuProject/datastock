@@ -631,7 +631,7 @@ class DataStock1(DataStock0):
             if self.ddata[k0]['ref'][0] in refok
         ]
 
-        return _class1_interpolate.get_monotonous_vector(
+        return _class1_interpolate.get_ref_vector(
             # ressources
             ddata=self._ddata,
             dref=self._dref,
@@ -644,6 +644,61 @@ class DataStock1(DataStock0):
             values=values,
             indices=indices,
         )
+
+    def get_ref_vector_common(
+        self,
+        keys=None,
+        # for selecting ref vector
+        ref=None,
+        dim=None,
+        quant=None,
+        name=None,
+        units=None,
+        # which ref / dimension
+        **kwdargs,
+    ):
+        """ Return a unique ref vector and a dict of indices
+
+
+        Return
+        ------
+        val:        np.ndarray
+            common finest vector
+        dout:       dict
+            dict of indices, per key, to match val
+
+        """
+
+        # ------------
+        # check inputs
+
+        keys = _generic_check._check_var_iter(
+            keys, 'keys',
+            types=(list, tuple),
+            types_iter=str,
+            allowed=self.ddata.keys(),
+        )
+
+        # ---------------------------
+        # Get ref vector for each key
+
+        din = {
+            k0: self.get_ref_vector(
+                key=k0,
+                ref=ref,
+                dim=dim,
+                quant=quant,
+                name=name,
+                units=units,
+                **kwdargs,
+            )
+            for k0 in keys
+        }
+
+        # ---------------------------
+        # Compute unique vector
+
+        return _class1_interpolate.get_ref_vector_common(din=din)
 
     def interpolate(
         self,
@@ -662,6 +717,9 @@ class DataStock1(DataStock0):
         log_log=None,
         return_params=None,
     ):
+        """ Interpolate keys in desired dimension
+
+        """
         return _class1_interpolate.interpolate(
             # interpolation base
             keys=keys,
