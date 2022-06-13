@@ -654,7 +654,8 @@ def get_ref_vector(
         else:
             msg = (
                 "Arg indices must be a bool or int array of indices!\n"
-                f"Provided: {indices}"
+                f"\t- indices.dtype: {indices.dtype}\n"
+                f"\t- indices: {indices}\n"
             )
             raise Exception(msg)
 
