@@ -698,7 +698,10 @@ class DataStock1(DataStock0):
         # ---------------------------
         # Compute unique vector
 
-        return _class1_interpolate.get_ref_vector_common(din=din)
+        return _class1_interpolate.get_ref_vector_common(
+            ddata=self._ddata,
+            din=din,
+        )
 
     def interpolate(
         self,

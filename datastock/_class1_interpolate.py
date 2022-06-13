@@ -524,7 +524,7 @@ def _get_ref_vector_nearest(x0, x):
     vmin = np.min(x0)
     vmax = np.max(x0)
     dmax2 = np.max(np.diff(x0)) / 2.
-    indok = (x >= vmin - dmax2) & (x >= vmax + dmax2)
+    indok = (x >= vmin - dmax2) & (x <= vmax + dmax2)
     return ind, indok
 
 def get_ref_vector(
@@ -690,7 +690,7 @@ def get_ref_vector(
 
 # #############################################################################
 # #############################################################################
-#           Monotonous vector
+#           Monotonous vector - common
 # #############################################################################
 
 
@@ -725,16 +725,26 @@ def get_ref_vector_common(
 
     # get list if key_vector and of vectors
     lkv = list(set([v0[3] for v0 in din.values()]))
-    nv, lv = -1, []
-    for ii in len(lkv):
-        if ii == 0 or not np.allclose(lv[nv], ddata[lkv[ii]]['data']):
+    nv, lv = 0, [ddata[lkv[0]]['data']]
+    for ii in range(1, len(lkv)):
+        c0 = (
+            lv[nv].size == ddata[lkv[ii]]['data'].size
+            and np.allclose(lv[nv], ddata[lkv[ii]]['data'])
+        )
+        if not c0:
             lv.append(ddata[lkv[ii]]['data'])
             nv += 1
 
     if len(lv) == 1:
         val = lv[0]
         ind = np.arange(0, len(val))
-        dout = {k0: ind for k0 in din.keys()}
+        dout = {
+            k0: {
+                'ind': ind,
+                'key_vector': din[k0][3],
+            }
+            for k0 in din.keys()
+        }
 
     else:
 
@@ -742,29 +752,41 @@ def get_ref_vector_common(
         b0 = np.max([np.min(vv) for vv in lv])
         b1 = np.min([np.max(vv) for vv in lv])
 
-        # increments
-        if uniform is True:
-            dv = np.min([np.min(np.diff(vv)) for vv in lv])
-            val = np.linspace(b0, b1, np.ceil((b1-b0)/dv))
-        else:
-            val = b0
-
-        # indices
-        dout = {
-            k0: _get_ref_vector_nearest(ddata[v0[3]]['data'], val)
-            for k0, v0 in din.items()
-        }
-
-        # only keep all-valid indices
-        iok = np.all(np.array([v0[1] for v0 in dout.values()]), axis=0)
-        if not np.any(iok):
+        if b0 >= b1:
             msg = (
                 "Non valid common vector values could be identified!"
             )
             warnings.warn(msg)
+            val, dout = None, None
 
-        # adjust
-        val = val[iok]
-        dout = {k0: v0[0][iok] for k0, v0 in dout.keys()}
+        else:
+            # increments
+            dv = np.min([np.min(np.diff(vv)) for vv in lv])
+            val = np.linspace(b0, b1, int(np.ceil((b1-b0)/dv)))
+
+            # indices
+            dout = {
+                k0: _get_ref_vector_nearest(ddata[v0[3]]['data'], val)
+                for k0, v0 in din.items()
+            }
+
+            # only keep all-valid indices
+            iok = np.all(np.array([v0[1] for v0 in dout.values()]), axis=0)
+            if not np.any(iok):
+                msg = (
+                    "Non valid common vector values could be identified!"
+                )
+                warnings.warn(msg)
+                val, dout = None, None
+            else:
+                # adjust
+                val = val[iok]
+                dout = {
+                    k0: {
+                        'ind': v0[0][iok],
+                        'key_vector': din[k0][3],
+                    }
+                    for k0, v0 in dout.items()
+                }
 
     return val, dout

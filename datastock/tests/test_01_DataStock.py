@@ -70,7 +70,7 @@ def _add_data(st=None, nc=None, nx=None, lnt=None):
     st.add_data(
         key='x',
         data=x,
-        dimension='distance',
+        dim='distance',
         quant='radius',
         units='m',
         ref='nx',
@@ -80,14 +80,14 @@ def _add_data(st=None, nc=None, nx=None, lnt=None):
         st.add_data(
             key=f't{ii}',
             data=lt[ii],
-            dimension='time',
+            dim='time',
             units='s',
             ref=f'nt{ii}',
         )
         st.add_data(
             key=f'prof{ii}',
             data=lprof[ii],
-            dimension='velocity',
+            dim='velocity',
             units='m/s',
             ref=(f'nt{ii}', 'nx'),
         )
@@ -96,7 +96,7 @@ def _add_data(st=None, nc=None, nx=None, lnt=None):
     st.add_data(
         key='prof2-bis',
         data=lprof[2] + np.random.normal(scale=0.1, size=(lnt[2], nx)),
-        dimension='velocity',
+        dim='velocity',
         units='m/s',
         ref=(f'nt{2}', 'nx'),
     )
@@ -105,7 +105,7 @@ def _add_data(st=None, nc=None, nx=None, lnt=None):
     st.add_data(
         key='prof0-bis',
         data=lprof[0] + np.random.normal(scale=0.1, size=lprof[0].shape),
-        dimensions='blabla',
+        dim='blabla',
         ref=('nt0', 'nx'),
     )
 
@@ -113,7 +113,7 @@ def _add_data(st=None, nc=None, nx=None, lnt=None):
     st.add_data(
         key='3d',
         data=np.arange(nc)[:, None, None] + lprof[0][None, :, :],
-        dimensions='blabla',
+        dim='blabla',
         ref=('nc', 'nt0', 'nx'),
     )
     st.add_data(
@@ -123,7 +123,7 @@ def _add_data(st=None, nc=None, nx=None, lnt=None):
             + lprof[0][None, :, :]
             + np.random.normal(scale=0.01, size=(nc, lnt[0], nx))
         ),
-        dimensions='blabla',
+        dim='blabla',
         ref=('nc', 'nt0', 'nx'),
     )
 
@@ -224,7 +224,7 @@ class Test02_Manipulate():
         key = self.st.select(which='data', units='s', returnas=str)
         assert key.tolist() == ['t0', 't1', 't2', 't3', 't4']
 
-        out = self.st.select(dimension='time', returnas=int)
+        out = self.st.select(dim='time', returnas=int)
         assert len(out) == 5, out
 
         # test quantitative param selection
