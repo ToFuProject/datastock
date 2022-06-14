@@ -552,6 +552,7 @@ class DataStock1(DataStock0):
         # nearest-neighbour interpolation input
         values=None,
         indices=None,
+        ind_strict=None,
         # which ref / dimension
         **kwdargs,
     ):
@@ -643,6 +644,7 @@ class DataStock1(DataStock0):
             # parameters
             values=values,
             indices=indices,
+            ind_strict=ind_strict,
         )
 
     def get_ref_vector_common(

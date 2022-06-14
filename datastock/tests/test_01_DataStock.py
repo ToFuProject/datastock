@@ -257,6 +257,7 @@ class Test02_Manipulate():
             key='prof0',
             ref='nx',
             values=[1, 2, 2.01, 3],
+            ind_strict=False,
         )
         assert hasref is True and hasvector is True
         assert values.size == indices.size == 4
