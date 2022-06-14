@@ -705,20 +705,14 @@ def get_ref_vector_common(
     # ------------
     # check inputs
 
-    dc = {
-        k0: f"hasref: {v0[0]}, hasvector: {v0[1]}, key_vect: {v0[3]}"
+    din = {
+        k0: v0
         for k0, v0 in din.items()
-        if not (
-            v0[0]   # hasref
-            and v0[1]   # hasvector
-        )
+        if v0[0] and v0[1]
     }
-    if len(dc) > 0:
-        lstr = [f"\t- {k0}: {v0}" for k0, v0 in dc.items()]
-        msg = (
-            "The following keys do not have a ref vector:\n"
-            + "\n".join(lstr)
-        )
+
+    if len(din) == 0:
+        msg = "No keys have a ref vector:\n"
         raise Exception(msg)
 
     # ------------
