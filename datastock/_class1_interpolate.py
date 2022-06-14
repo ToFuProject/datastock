@@ -279,8 +279,8 @@ def _check_pts(pts=None, pts_name=None):
 def _check(
     # interpolation base
     keys=None,
-    ref_keys=None,
-    ref_quant=None,
+    ref_keys=None,      # ddata keys
+    ref_quant=None,     # ddata[ref_key]['quant'], not used yet
     # interpolation pts
     pts_axis0=None,
     pts_axis1=None,
@@ -331,8 +331,9 @@ def _check(
     if ref_keys is None:
         ref_keys = [None for rr in ref]
 
-    if ref_keys == 1 and (ref_keys is None or isinstance(ref_keys, str)):
-        ref_keys = [ref_keys]
+    if isinstance(ref_keys, str):
+        ref_keys = [ref_keys for rr in ref]
+
     c0 = (
         isinstance(ref_keys, list)
         and len(ref_keys) == ndim
