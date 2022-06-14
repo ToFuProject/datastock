@@ -605,11 +605,11 @@ class DataStock1(DataStock0):
                 allowed=lkok,
             )
 
-            if ref in refok:
-                hasref = True
+            hasref = ref in refok
+            if hasref:
                 refok = (ref,)
             else:
-                hasref = False
+                refok = tuple()
 
         else:
             hasref = None
