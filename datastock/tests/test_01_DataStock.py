@@ -264,7 +264,7 @@ class Test02_Manipulate():
         assert ind_reverse.shape == (2, 4)
 
     def test07_get_ref_vector_common(self):
-        val, dout = self.st.get_ref_vector_common(
+        hasref, hasvect, val, dout = self.st.get_ref_vector_common(
             keys=['t0', 'prof0', 'prof1', 't3'],
             dim='time',
         )
