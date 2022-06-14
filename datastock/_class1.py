@@ -656,6 +656,10 @@ class DataStock1(DataStock0):
         quant=None,
         name=None,
         units=None,
+        # values, indices
+        values=None,
+        indices=None,
+        ind_strict=None,
         # which ref / dimension
         **kwdargs,
     ):
@@ -701,8 +705,15 @@ class DataStock1(DataStock0):
         # Compute unique vector
 
         return _class1_interpolate.get_ref_vector_common(
+            # ressources
             ddata=self._ddata,
+            dref=self._dref,
+            # inputs
             din=din,
+            # parameters
+            values=values,
+            indices=indices,
+            ind_strict=ind_strict,
         )
 
     def interpolate(

@@ -570,7 +570,7 @@ def get_ref_vector(
     if len(lk_vect) == 0:
         if hasref is True:
             msg = (
-                f"key {key} was found to have '{ref}' dimension, "
+                f"key '{key}' was found to have '{ref}' dimension, "
                 "but no corresponding vector could be identified!"
             )
             warnings.warn(msg)
@@ -584,8 +584,8 @@ def get_ref_vector(
         if hasref is False:
             msg = (
                 "Contradiction:\n"
-                f"\t- {key} should not have a '{ref}' dimension\n"
-                f"\t- vector {key_vector} identified"
+                f"\t- '{key}' should not have a '{ref}' dimension\n"
+                f"\t- vector '{key_vector}' identified"
             )
             raise Exception(msg)
         else:
@@ -597,12 +597,15 @@ def get_ref_vector(
         if hasref is False:
             msg = (
                 "Contradiction:\n"
-                f"\t- {key} should not have a '{ref}' dimension\n"
+                f"\t- '{key}' should not have a '{ref}' dimension\n"
                 f"\t- Several vectors identified: {lk_vect}"
             )
             raise Exception(msg)
         else:
-            msg = f"Several possible time vectors identified!\n{lk_vect}"
+            msg = (
+                f"Several possible time vectors identified for '{key}'!\n"
+                f"{lk_vect}"
+            )
             raise Exception(msg)
 
     # ref
@@ -713,90 +716,203 @@ def get_ref_vector(
 def get_ref_vector_common(
     # ressources
     ddata=None,
+    dref=None,
     # inputs
     din=None,
+    # parameters
+    values=None,
+    indices=None,
+    ind_strict=None,
 ):
 
     # ------------
     # check inputs
 
-    din = {
-        k0: v0
-        for k0, v0 in din.items()
-        if v0[0] and v0[1]
-    }
-
-    if len(din) == 0:
-        msg = "No keys have a ref vector:\n"
-        raise Exception(msg)
+    # ind_strict
+    ind_strict = _generic_check._check_var(
+        ind_strict, 'ind_strict',
+        types=bool,
+        default=True,
+    )
 
     # ------------
+    # cases
+
+    err = False
+    lref = list(set([v0[2] for v0 in din.values() if v0[0]]))
+
+    # No key has ref dimension
+    if all([not v0[0] for v0 in din.values()]):
+        hasref = False
+        hasvect = False
+
+    # No key has ref vector (but at least one has ref dimension)
+    elif len(lref) == 1:
+        nref = dref[lref[0]]['size']
+        hasref = True
+        hasvect = any([v0[1] for v0 in din.values() if v0[0]])
+
+    # all keys with ref dimension have a ref vector
+    elif len(lref) > 1 and all([v0[1] for v0 in din.values() if v0[0]]):
+        hasref = True
+        hasvect = True
+
+    # some only => error
+    else:
+        err = True
+
+    # raise Error if needed
+    if err:
+        lstr = [f"\t- {k0}: {v0[2]}, {v0[3]}" for k0, v0 in din.items()]
+        msg = (
+            "Chosen keys cannot be used to extract a common ind / value:\n"
+            "They should have either:\n"
+            "\t- no ref\n"
+            "\t- a unique common ref\n"
+            "\t- a set of different ref, each with a vector\n"
+            "Provided:\n"
+            + "\n".join(lstr)
+        )
+        raise Exception(msg)
+
+    # values and indices
+    if values is not None:
+        values = np.atleast_1d(values).ravel()
+
+    if indices is not None:
+        indices = np.atleast_1d(indices).ravel()
+
+    if values is not None and indices is not None:
+        msg = "Please provide values xor indices, not both!"
+        raise Exception(msg)
+
+    if values is not None and not hasvect:
+        msg = (
+            "Arg values cannot be provided because no ref vector exists!"
+        )
+        raise Exception(msg)
+
+    if indices is not None and len(lref) > 1:
+        lstr = [f"\t- {k0}: {v0[2]}, {v0[3]}" for k0, v0 in din.items()]
+        msg = (
+            "Arg indices can only be used if there is a unique common ref!\n"
+            + "\n".join(lstr)
+        )
+        raise Exception(msg)
+
+    # --------
     # compute
 
-    # get list if key_vector and of vectors
-    lkv = list(set([v0[3] for v0 in din.values()]))
-    nv, lv = 0, [ddata[lkv[0]]['data']]
-    for ii in range(1, len(lkv)):
-        c0 = (
-            lv[nv].size == ddata[lkv[ii]]['data'].size
-            and np.allclose(lv[nv], ddata[lkv[ii]]['data'])
-        )
-        if not c0:
-            lv.append(ddata[lkv[ii]]['data'])
-            nv += 1
+    val = None
 
-    if len(lv) == 1:
-        val = lv[0]
-        ind = np.arange(0, len(val))
-        dout = {
-            k0: {
-                'ind': ind,
-                'key_vector': din[k0][3],
-            }
-            for k0 in din.keys()
+    # common vector
+    if hasvect:
+
+        din = {
+            k0: v0[3]
+            for k0, v0 in din.items()
+            if v0[1]
         }
 
-    else:
+        # ------------
+        # compute
 
-        # bounds
-        b0 = np.max([np.min(vv) for vv in lv])
-        b1 = np.min([np.max(vv) for vv in lv])
-
-        if b0 >= b1:
-            msg = (
-                "Non valid common vector values could be identified!"
+        # get list if key_vector and of vectors
+        lkv = list(set([v0 for v0 in din.values()]))
+        nv, lv = 0, [ddata[lkv[0]]['data']]
+        for ii in range(1, len(lkv)):
+            c0 = (
+                lv[nv].size == ddata[lkv[ii]]['data'].size
+                and np.allclose(lv[nv], ddata[lkv[ii]]['data'])
             )
-            warnings.warn(msg)
-            val, dout = None, None
+            if not c0:
+                lv.append(ddata[lkv[ii]]['data'])
+                nv += 1
 
-        else:
-            # increments
-            dv = np.min([np.min(np.diff(vv)) for vv in lv])
-            val = np.linspace(b0, b1, int(np.ceil((b1-b0)/dv)))
-
-            # indices
+        if len(lv) == 1:
+            val = lv[0]
+            ind = np.arange(0, len(val))
             dout = {
-                k0: _get_ref_vector_nearest(ddata[v0[3]]['data'], val)
-                for k0, v0 in din.items()
+                k0: {
+                    'ind': ind,
+                    'key_vector': din[k0],
+                }
+                for k0 in din.keys()
             }
 
-            # only keep all-valid indices
-            iok = np.all(np.array([v0[1] for v0 in dout.values()]), axis=0)
-            if not np.any(iok):
+        else:
+
+            # bounds
+            b0 = np.max([np.min(vv) for vv in lv])
+            b1 = np.min([np.max(vv) for vv in lv])
+
+            if b0 >= b1:
                 msg = (
                     "Non valid common vector values could be identified!"
                 )
                 warnings.warn(msg)
                 val, dout = None, None
+
             else:
-                # adjust
-                val = val[iok]
+                # increments
+                dv = np.min([np.min(np.diff(vv)) for vv in lv])
+                val = np.linspace(b0, b1, int(np.ceil((b1-b0)/dv)))
+
+                # indices
                 dout = {
-                    k0: {
-                        'ind': v0[0][iok],
-                        'key_vector': din[k0][3],
-                    }
-                    for k0, v0 in dout.items()
+                    k0: _get_ref_vector_nearest(ddata[v0]['data'], val)
+                    for k0, v0 in din.items()
                 }
 
-    return val, dout
+                # only keep all-valid indices
+                iok = np.all(np.array([v0[1] for v0 in dout.values()]), axis=0)
+                if not np.any(iok):
+                    msg = (
+                        "Non valid common vector values could be identified!"
+                    )
+                    warnings.warn(msg)
+                    val, dout = None, None
+                else:
+                    # adjust
+                    val = val[iok]
+                    dout = {
+                        k0: {
+                            'ind': v0[0][iok],
+                            'key_vector': din[k0],
+                        }
+                        for k0, v0 in dout.items()
+                    }
+
+        # values
+        if values is not None:
+
+            ind, indok = _get_ref_vector_nearest(val, values)
+
+            if ind_strict:
+                values = values[indok]
+                ind = ind[indok]
+
+            for k0, v0 in dout.items():
+                v0['ind'] = v0['ind'][ind]
+
+            val = values
+
+        elif indices is not None:
+            val = val[indices]
+            for k0, v0 in dout.items():
+                v0['ind'] = v0['ind'][indices]
+
+    # common indices
+    elif hasref:
+        din = {
+            k0: v0
+            for k0, v0 in din.items()
+            if v0[1]
+        }
+        ind = np.arange(0, nref)
+
+        if indices is not None:
+            ind = ind[indices]
+        dout = dict.fromkeys(din.keys(), {'ind': ind, 'key_vector': None})
+
+    return hasref, hasvect, val, dout
