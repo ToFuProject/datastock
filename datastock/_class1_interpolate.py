@@ -671,12 +671,15 @@ def get_ref_vector(
             raise Exception(msg)
 
         # convert to int
-        if indices.dtype == np.bool_:
+        if 'bool' in indices.dtype.name:
             indices = indices.nonzero()[0]
 
         # derive values
         if values is None:
             values = ddata[key_vector]['data'][indices]
+
+    elif values is None and key_vector is not None:
+        values = ddata[key_vector]['data']
 
     # -------------------
     # indtu, indt_reverse
@@ -685,7 +688,7 @@ def get_ref_vector(
     if indices is not None:
 
         # ind_strict
-        if ind_strict is True and indices is not None:
+        if ind_strict is True and indices is not None and indok is not None:
             values = values[indok]
             indices = indices[indok]
 
@@ -914,5 +917,8 @@ def get_ref_vector_common(
         if indices is not None:
             ind = ind[indices]
         dout = dict.fromkeys(din.keys(), {'ind': ind, 'key_vector': None})
+
+    else:
+        dout = {}
 
     return hasref, hasvect, val, dout
