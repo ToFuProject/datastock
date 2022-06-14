@@ -539,6 +539,7 @@ def get_ref_vector(
     # parameters
     values=None,
     indices=None,
+    ind_strict=None,
 ):
 
     # values
@@ -553,6 +554,13 @@ def get_ref_vector(
     if values is not None and indices is not None:
         msg = "Please provide values xor indices, not both!"
         raise Exception(msg)
+
+    # ind_strict
+    ind_strict = _generic_check._check_var(
+        ind_strict, 'ind_strict',
+        types=bool,
+        default=True,
+    )
 
     # ------------------------
     # hasvector and key_vector
@@ -672,6 +680,13 @@ def get_ref_vector(
 
     ind_reverse = None
     if indices is not None:
+
+        # ind_strict
+        if ind_strict is True and indices is not None:
+            values = values[indok]
+            indices = indices[indok]
+
+        # indu, ind_reverse
         indu = np.unique(indices)
         if indu.size < indices.size:
             ind_reverse = np.array(
