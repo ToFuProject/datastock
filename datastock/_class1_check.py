@@ -36,8 +36,8 @@ _DDEF_PARAMS = {
 }
 
 
-_IREF = 'iref'
-_IDATA = 'data'
+_IREF = 'n'
+_IDATA = 'd'
 
 
 _DATA_NONE = False
@@ -1791,11 +1791,19 @@ def _select(dd=None, dd_name=None, log=None, returnas=None, **kwdargs):
     ind = np.zeros((len(kwdargs), len(dd)), dtype=bool)
     for ii, kk in enumerate(kwdargs.keys()):
         try:
+
+            if kk in lquant:
+                retas = np.ndarray
+            else:
+                retas = dict
+
             par = _get_param(
                 dd=dd, dd_name=dd_name,
                 param=kk,
-                returnas=np.ndarray,
+                returnas=retas,
             )[kk]
+
+            # Numerical quantities
             if kk in lquant:
                 # list => in interval
                 if isinstance(kwdargs[kk], list) and len(kwdargs[kk]) == 2:
@@ -1812,8 +1820,10 @@ def _select(dd=None, dd_name=None, log=None, returnas=None, **kwdargs):
                 # float / int => equal
                 else:
                     ind[ii, :] = par == kwdargs[kk]
+
+            # Non-numerical quantities
             else:
-                ind[ii, :] = par == kwdargs[kk]
+                ind[ii, :] = [pp == kwdargs[kk] for pp in par.values()]
         except Exception as err:
             try:
                 ind[ii, :] = [
