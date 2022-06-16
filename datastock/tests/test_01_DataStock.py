@@ -70,7 +70,7 @@ def _add_data(st=None, nc=None, nx=None, lnt=None):
     st.add_data(
         key='x',
         data=x,
-        dimension='distance',
+        dim='distance',
         quant='radius',
         units='m',
         ref='nx',
@@ -80,14 +80,14 @@ def _add_data(st=None, nc=None, nx=None, lnt=None):
         st.add_data(
             key=f't{ii}',
             data=lt[ii],
-            dimension='time',
+            dim='time',
             units='s',
             ref=f'nt{ii}',
         )
         st.add_data(
             key=f'prof{ii}',
             data=lprof[ii],
-            dimension='velocity',
+            dim='velocity',
             units='m/s',
             ref=(f'nt{ii}', 'nx'),
         )
@@ -96,7 +96,7 @@ def _add_data(st=None, nc=None, nx=None, lnt=None):
     st.add_data(
         key='prof2-bis',
         data=lprof[2] + np.random.normal(scale=0.1, size=(lnt[2], nx)),
-        dimension='velocity',
+        dim='velocity',
         units='m/s',
         ref=(f'nt{2}', 'nx'),
     )
@@ -105,7 +105,7 @@ def _add_data(st=None, nc=None, nx=None, lnt=None):
     st.add_data(
         key='prof0-bis',
         data=lprof[0] + np.random.normal(scale=0.1, size=lprof[0].shape),
-        dimensions='blabla',
+        dim='blabla',
         ref=('nt0', 'nx'),
     )
 
@@ -113,7 +113,7 @@ def _add_data(st=None, nc=None, nx=None, lnt=None):
     st.add_data(
         key='3d',
         data=np.arange(nc)[:, None, None] + lprof[0][None, :, :],
-        dimensions='blabla',
+        dim='blabla',
         ref=('nc', 'nt0', 'nx'),
     )
     st.add_data(
@@ -123,7 +123,7 @@ def _add_data(st=None, nc=None, nx=None, lnt=None):
             + lprof[0][None, :, :]
             + np.random.normal(scale=0.01, size=(nc, lnt[0], nx))
         ),
-        dimensions='blabla',
+        dim='blabla',
         ref=('nc', 'nt0', 'nx'),
     )
 
@@ -224,7 +224,7 @@ class Test02_Manipulate():
         key = self.st.select(which='data', units='s', returnas=str)
         assert key.tolist() == ['t0', 't1', 't2', 't3', 't4']
 
-        out = self.st.select(dimension='time', returnas=int)
+        out = self.st.select(dim='time', returnas=int)
         assert len(out) == 5, out
 
         # test quantitative param selection
@@ -248,7 +248,28 @@ class Test02_Manipulate():
     #   Interpolate
     # ------------------------
 
-    def test06_interpolate(self):
+    def test06_get_ref_vector(self):
+        (
+            hasref, hasvector,
+            ref, key_vector,
+            values, indices, indu, ind_reverse, indok,
+        ) = self.st.get_ref_vector(
+            key='prof0',
+            ref='nx',
+            values=[1, 2, 2.01, 3],
+            ind_strict=False,
+        )
+        assert hasref is True and hasvector is True
+        assert values.size == indices.size == 4
+        assert ind_reverse.shape == (2, 4)
+
+    def test07_get_ref_vector_common(self):
+        hasref, hasvect, val, dout = self.st.get_ref_vector_common(
+            keys=['t0', 'prof0', 'prof1', 't3'],
+            dim='time',
+        )
+
+    def test08_interpolate(self):
         out = self.st.interpolate(
             keys='prof0',
             ref_keys=None,
@@ -269,17 +290,17 @@ class Test02_Manipulate():
     #   Plotting
     # ------------------------
 
-    def test07_plot_as_array(self):
+    def test09_plot_as_array(self):
         dax = self.st.plot_as_array(key='t0')
         dax = self.st.plot_as_array(key='prof0')
         dax = self.st.plot_as_array(key='3d')
         plt.close('all')
 
-    def test08_plot_BvsA_as_distribution(self):
+    def test10_plot_BvsA_as_distribution(self):
         dax = self.st.plot_BvsA_as_distribution(keyA='prof0', keyB='prof0-bis')
         plt.close('all')
 
-    def test09_plot_as_profile1d(self):
+    def test11_plot_as_profile1d(self):
         dax = self.st.plot_as_profile1d(
             key='prof0',
             key_time='t0',
@@ -288,7 +309,7 @@ class Test02_Manipulate():
         )
         plt.close('all')
 
-    def test10_plot_as_mobile_lines(self):
+    def test12_plot_as_mobile_lines(self):
 
         # 3d
         dax = self.st.plot_as_mobile_lines(
@@ -311,7 +332,7 @@ class Test02_Manipulate():
     #   File handling
     # ------------------------
 
-    def test11_copy_equal(self):
+    def test13_copy_equal(self):
         st2 = self.st.copy()
         assert st2 is not self.st
 
@@ -319,10 +340,10 @@ class Test02_Manipulate():
         if msg is not True:
             raise Exception(msg)
 
-    def test12_get_nbytes(self):
+    def test14_get_nbytes(self):
         nb, dnb = self.st.get_nbytes()
 
-    def test13_saveload(self, verb=False):
+    def test15_saveload(self, verb=False):
         pfe = self.st.save(path=_PATH_OUTPUT, verb=verb, return_pfe=True)
         st2 = load(pfe, verb=verb)
         # Just to check the loaded version works fine
