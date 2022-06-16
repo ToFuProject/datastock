@@ -56,6 +56,7 @@ class DataStock0(object):
             for k0 in dir(self)
             if isinstance(getattr(self, k0), dict)
             and k0 != '__dict__'
+            and '__dlinks' not in k0
             and not (
                 hasattr(self.__class__, k0)
                 and isinstance(getattr(self.__class__, k0), property)
@@ -93,6 +94,11 @@ class DataStock0(object):
 
         obj = cls()
         for k0 in din.keys():
+            if k0 == '_ddef':
+                if 'dobj' not in din[k0]['params'].keys():
+                    din[k0]['params']['dobj'] = {}
+                if 'dref' not in din[k0]['params'].keys():
+                    din[k0]['params']['dref'] = {}
             setattr(obj, k0, din[k0])
 
         return obj

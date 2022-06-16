@@ -25,19 +25,19 @@ _LRESERVED_KEYS = list(set(itt.chain.from_iterable([
 
 _DDEF_PARAMS = {
     'ddata': {
-        'source': (str, 'unknown'),
-        'dim':    (str, 'unknown'),
-        'quant':  (str, 'unknown'),
-        'name':   (str, 'unknown'),
-        'units':  (str, 'a.u.'),
+        'source': (str, ''),
+        'dim':    (str, ''),
+        'quant':  (str, ''),
+        'name':   (str, ''),
+        'units':  (str, ''),
     },
     'dobj': {
     },
 }
 
 
-_IREF = 'iref'
-_IDATA = 'data'
+_IREF = 'n'
+_IDATA = 'd'
 
 
 _DATA_NONE = False
@@ -562,12 +562,15 @@ def _check_dref(
             isinstance(v0, dict)
             and (
                 isinstance(v0.get('data'), (np.ndarray, list, tuple))
-                or isinstance(v0.get('size'), int)
+                or isinstance(v0.get('size'), (int, np.int_))
             )
         )
         if not c0:
             msg = "v0 must be a dict with either 'data' or 'size'"
             raise Exception(msg)
+
+        if isinstance(v0.get('size'), (int, np.int_)):
+            dref[k0]['size'] = int(v0['size'])
 
         dref2[key] = dict(dref[k0])
 
@@ -779,7 +782,9 @@ def _check_data_ref(k0=None, ddata=None, dref0=None, dref_add=None):
     # length mismatch
     elif len(ddata[k0]['shape']) != len(ddata[k0]['ref']):
         msg = (
-            "Mismatching len(ref) and len(shape) for ddata['{k0}']"
+            f"Mismatching len(ref) and len(shape) for ddata['{k0}']\n"
+            f"\t- ref = {ddata[k0]['ref']}\n"
+            f"\t- shape = {ddata[k0]['shape']}\n"
         )
         raise Exception(msg)
 
@@ -1098,24 +1103,31 @@ def _harmonize_params(
     # ----------------------------------------
     # check param types and set default values
 
+    dfail = {}
     for k0, v0 in ddefparams.items():
         for k1, v1 in dd.items():
-            if k0 not in v1.keys():
-                dd[k1][k0] = v0[1]
-            else:
-                # Check type if already included
-                if not isinstance(dd[k1][k0], v0[0]):
-                    msg = (
-                        """
-                        Wrong type for parameter:
-                            - type({}[{}][{}]) = {}
-                        - Expected: {}
-                        """.format(
-                            dd_name2, k1, k0, type(dd[k1][k0]), v0[0],
-                        )
-                    )
-                    raise Exception(msg)
 
+            # Set to default if None
+            if v1.get(k0) is None:
+                dd[k1][k0] = v0[1]
+
+            # Check type if already included
+            elif not isinstance(dd[k1][k0], v0[0]):
+                dfail[k0] = (
+                    f" expected {v0[0]} vs "
+                    f"type({dd_name2}['{k1}']['{k0}']) = {type(dd[k1][k0])}"
+                )
+
+    # raise error if any mismatch
+    if len(dfail) > 0:
+        lstr = [f"\t- {k0}: {v0}" for k0, v0 in dfail.items()]
+        msg = (
+            "The following parameters have the wrong type:\n"
+            + "\n".join(lstr)
+        )
+        raise Exception(msg)
+
+    # set 
     for k0 in lparams:
         for k1, v1 in dd.items():
             dd[k1][k0] = dd[k1].get(k0)
@@ -1132,7 +1144,7 @@ def _harmonize_params(
                     if any([k2 not in dobj0[k1].keys() for k2 in v0[k1]]):
                         out = True
                 elif isinstance(v0[k1], str):
-                    if v0[k1] not in dobj0[k1]:
+                    if v0[k1] not in dobj0[k1] and v0[k1] != '':
                         out = True
                 else:
                     msg = (
@@ -1174,7 +1186,7 @@ def _update_dobj0(ddata0=None, dobj0=None):
             if any([ddata0[k3].get(k0) == k2 for k3 in ddata0.keys()])
         }
         if len(dd) > 0:
-            ss = 'nb. data'
+            ss = 'nb data'
             for k2, v2 in v0.items():
                 dobj0[k0][k2][ss] = int(dd.get(k2, 0))
 
@@ -1186,7 +1198,7 @@ def _update_dobj0(ddata0=None, dobj0=None):
                 if any([v1[k3].get(k0) == k2 for k3 in v1.keys()])
             }
             if len(dd) > 0:
-                ss = f'nb. {k1}'
+                ss = f'nb {k1}'
                 for k2, v2 in v0.items():
                     dobj0[k0][k2][ss] = int(dd.get(k2, 0))
 
@@ -1563,6 +1575,8 @@ def _set_param(
         for kk, vv in value.items():
             dd[kk][param] = vv
 
+    return param
+
 
 def _add_param(
     dd=None, dd_name=None,
@@ -1590,6 +1604,7 @@ def _add_param(
         dd[kk][param] = None
     _set_param(dd=dd, param=param, value=value)
 
+    return param
 
 def _remove_param(dd=None, dd_name=None, param=None):
     """ Remove a parameter, none by default, all if param = 'all' """
@@ -1776,11 +1791,19 @@ def _select(dd=None, dd_name=None, log=None, returnas=None, **kwdargs):
     ind = np.zeros((len(kwdargs), len(dd)), dtype=bool)
     for ii, kk in enumerate(kwdargs.keys()):
         try:
+
+            if kk in lquant:
+                retas = np.ndarray
+            else:
+                retas = dict
+
             par = _get_param(
                 dd=dd, dd_name=dd_name,
                 param=kk,
-                returnas=np.ndarray,
+                returnas=retas,
             )[kk]
+
+            # Numerical quantities
             if kk in lquant:
                 # list => in interval
                 if isinstance(kwdargs[kk], list) and len(kwdargs[kk]) == 2:
@@ -1797,8 +1820,10 @@ def _select(dd=None, dd_name=None, log=None, returnas=None, **kwdargs):
                 # float / int => equal
                 else:
                     ind[ii, :] = par == kwdargs[kk]
+
+            # Non-numerical quantities
             else:
-                ind[ii, :] = par == kwdargs[kk]
+                ind[ii, :] = [pp == kwdargs[kk] for pp in par.values()]
         except Exception as err:
             try:
                 ind[ii, :] = [
