@@ -36,8 +36,8 @@ _DDEF_PARAMS = {
 }
 
 
-_IREF = 'iref'
-_IDATA = 'data'
+_IREF = 'n'
+_IDATA = 'd'
 
 
 _DATA_NONE = False
