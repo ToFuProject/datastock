@@ -35,6 +35,7 @@ class DataStock3(DataStock2):
         rotation=None,
         inverty=None,
         bck=None,
+        interp=None,
         # figure-specific
         dax=None,
         dmargin=None,
@@ -65,6 +66,7 @@ class DataStock3(DataStock2):
             rotation=rotation,
             inverty=inverty,
             bck=bck,
+            interp=interp,
             # figure-specific
             dax=dax,
             dmargin=dmargin,

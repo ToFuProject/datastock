@@ -62,6 +62,7 @@ def plot_as_array(
     rotation=None,
     inverty=None,
     bck=None,
+    interp=None,
     # figure-specific
     dax=None,
     dmargin=None,
@@ -101,6 +102,7 @@ def plot_as_array(
         rotation,
         inverty,
         bck,
+        interp,
         dcolorbar, dleg, connect,
     ) = _plot_as_array_check(
         ndim=ndim,
@@ -121,6 +123,7 @@ def plot_as_array(
         rotation=rotation,
         inverty=inverty,
         bck=bck,
+        interp=interp,
         # figure
         dcolorbar=dcolorbar,
         dleg=dleg,
@@ -191,6 +194,7 @@ def plot_as_array(
             bstr_dict=bstr_dict,
             rotation=rotation,
             inverty=inverty,
+            interp=interp,
             # figure-specific
             dax=dax,
             dmargin=dmargin,
@@ -227,6 +231,7 @@ def plot_as_array(
             rotation=rotation,
             inverty=inverty,
             bck=bck,
+            interp=interp,
             # figure-specific
             dax=dax,
             dmargin=dmargin,
@@ -378,6 +383,7 @@ def _plot_as_array_check(
     rotation=None,
     inverty=None,
     bck=None,
+    interp=None,
     # figure
     dcolorbar=None,
     dleg=None,
@@ -566,6 +572,14 @@ def _plot_as_array_check(
         allowed=['lines', 'envelop', False],
     )
 
+    # interp
+    interp = _generic_check._check_var(
+        interp, 'interp',
+        default='nearest',
+        types=str,
+        allowed=['nearest', 'bilinear', 'bicubic']
+    )
+
     # dcolorbar
     defdcolorbar = {
         # 'location': 'right',
@@ -610,6 +624,7 @@ def _plot_as_array_check(
         rotation,
         inverty,
         bck,
+        interp,
         dcolorbar, dleg, connect,
     )
 
@@ -847,6 +862,7 @@ def plot_as_array_2d(
     bstr_dict=None,
     rotation=None,
     inverty=None,
+    interp=None,
     # figure-specific
     dax=None,
     dmargin=None,
@@ -1019,7 +1035,7 @@ def plot_as_array_2d(
         im = ax.imshow(
             dataplot,
             extent=extent,
-            interpolation='nearest',
+            interpolation=interp,
             origin='lower',
             aspect=aspect,
             cmap=cmap,
@@ -1269,6 +1285,7 @@ def plot_as_array_3d(
     rotation=None,
     inverty=None,
     bck=None,
+    interp=None,
     # figure-specific
     dax=None,
     dmargin=None,
@@ -1534,7 +1551,7 @@ def plot_as_array_3d(
         im = ax.imshow(
             dataplot,
             extent=extent,
-            interpolation='nearest',
+            interpolation=interp,
             origin='lower',
             aspect=aspect,
             cmap=cmap,
