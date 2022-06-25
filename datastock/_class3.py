@@ -42,6 +42,7 @@ class DataStock3(DataStock2):
         fs=None,
         dcolorbar=None,
         dleg=None,
+        label=None,
         connect=None,
         inplace=None,
     ):
@@ -73,6 +74,7 @@ class DataStock3(DataStock2):
             fs=fs,
             dcolorbar=dcolorbar,
             dleg=dleg,
+            label=label,
             connect=connect,
             inplace=inplace,
         )
