@@ -262,11 +262,10 @@ def propagate_indices_per_ref(
             if ii == idata:
                 continue
             if ldata[ii] == 'index':
-                data_pick = dref[rr]['indices']
+                data_pick = dref[ref]['indices']
             else:
                 data_pick = ddata[ldata[ii]]['data']
 
-            import pdb; pdb.set_trace()     # DB
             dref[rr]['indices'] = _get_index_from_data(
                 data=dataref,
                 data_pick=data_pick,

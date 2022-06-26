@@ -1057,9 +1057,8 @@ def _get_ref_vector_common_values(
 
                 # update ind
                 if dkeys[k0].get('ind') is not None:
-                    dkeys[k0]['ind'] = v0['ind'][dindi['ind']]
-                else:
                     dkeys[k0]['ind'] = dindi['ind']
+                    dkeys[k0]['indok'] = dindi['indok']
 
                 # indu, indr
                 dkeys[k0]['indu'] = np.unique(dkeys[k0]['ind'])

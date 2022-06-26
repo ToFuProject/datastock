@@ -1498,7 +1498,6 @@ def plot_as_array_3d(
                 markerfacecolor='None',
             )
 
-
             # update coll
             kh = f'h{ii:02.0f}'
             kv = f'v{ii:02.0f}'
