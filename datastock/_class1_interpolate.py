@@ -977,6 +977,22 @@ def get_ref_vector_common(
                     if key_vector is not None:
                         key_vector = None
 
+            # try to identify identical pre-existing vector
+            if key_vector is None:
+                key_vector = _get_ref_vector_common_find_identical(
+                    # ressources
+                    ddata=ddata,
+                    dref=dref,
+                    # for selecting ref vector
+                    ref=ref,
+                    dim=dim,
+                    quant=quant,
+                    name=name,
+                    units=units,
+                    # for comparison
+                    val=val,
+                )
+
         else:
             val = ddata[key_vector]['data']
 
@@ -1075,3 +1091,50 @@ def _get_ref_vector_common_values(
                     assert np.allclose(val_out, dindi['data'])
 
     return key_vector, val_out
+
+
+def _get_ref_vector_common_find_identical(
+    # ressources
+    ddata=None,
+    dref=None,
+    # for selecting ref vector
+    ref=None,
+    dim=None,
+    quant=None,
+    name=None,
+    units=None,
+    # for comparison
+    val=None
+):
+
+    # get list of all available ref vectors
+    lkok = []
+    for ii, k0 in enumerate(ddata.keys()):
+        _, hasvecti, _, key_vecti = get_ref_vector(
+            ddata=ddata,
+            dref=dref,
+            key=k0,
+            ref=ref,
+            dim=dim,
+            quant=quant,
+            name=name,
+            units=units,
+            values=None,
+            indices=None,
+        )[:4]
+        if hasvecti and key_vecti not in lkok:
+            lkok.append(key_vecti)
+
+    # extract those which match
+    lkok = [
+        k0 for k0 in lkok
+        if ddata[k0]['data'].size == val.size
+        and np.allclose(ddata[k0]['data'], val)
+    ]
+
+    # cases
+    if len(lkok) == 1:
+        key = lkok[0]
+    else:
+        key = None
+    return key
