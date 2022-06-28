@@ -509,6 +509,9 @@ def _compute_dist(
 
     # iok
     iok = np.isfinite(dataA) & np.isfinite(dataB)
+    if not np.any(iok):
+        msg = "There seems to be no commonly usable data!"
+        raise Exception(msg)
 
     # databin
     databin = scpstats.binned_statistic_2d(
