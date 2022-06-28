@@ -554,7 +554,11 @@ def _get_ref_vector_common_values(
     if values is None and indices is None:
         return key_vector, val
 
-    val_out = None
+    if isinstance(values, str) and values == key_vector:
+        return key_vector, val
+
+    val_out = val
+    haschanged = False
     if hasref:
         for k0, v0 in dkeys.items():
             hasrefi, hasvecti, refi, key_vecti, vali, dindi = get_ref_vector(
@@ -584,9 +588,10 @@ def _get_ref_vector_common_values(
                 ])
 
                 # val_out
-                if val_out is None:
+                if haschanged is False:
                     val_out = dindi['data']
                     key_vector = dindi['key']
+                    haschanged = True
                 else:
                     assert val_out.size == dindi['data'].size
                     assert np.allclose(val_out, dindi['data'])
