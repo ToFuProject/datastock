@@ -536,7 +536,7 @@ class DataStock1(DataStock0):
             self._dobj[which] = dd
 
     # ---------------------
-    # Methods interpolating
+    # Getting a common reference vector
     # ---------------------
 
     def get_ref_vector(
@@ -585,7 +585,7 @@ class DataStock1(DataStock0):
 
         """
 
-        return _class1_interpolate.get_ref_vector(
+        return _class1_uniformize.get_ref_vector(
             # ressources
             ddata=self._ddata,
             dref=self._dref,
@@ -628,7 +628,7 @@ class DataStock1(DataStock0):
 
         """
 
-        return _class1_interpolate.get_ref_vector_common(
+        return _class1_uniformize.get_ref_vector_common(
             # ressources
             ddata=self._ddata,
             dref=self._dref,
@@ -645,6 +645,28 @@ class DataStock1(DataStock0):
             indices=indices,
             ind_strict=ind_strict,
         )
+
+    # ---------------------
+    # Uniformize
+    # ---------------------
+
+    def uniformize(
+        self,
+        keys=None,
+        refs=None,
+        returnas=None,
+    ):
+
+        return _class1_uniformize.uniformize(
+            coll=self,
+            keys=keys,
+            refs=refs,
+            returnas=returnas,
+        )
+
+    # ---------------------
+    # Interpolation
+    # ---------------------
 
     def interpolate(
         self,
