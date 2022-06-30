@@ -18,6 +18,7 @@ from . import _class1_compute
 from . import _class1_interpolate
 from . import _class1_uniformize
 from . import _export_dataframe
+from . import _find_plateau
 
 
 #############################################
@@ -453,6 +454,14 @@ class DataStock1(DataStock0):
             coll=self,
             which=which,
             keys=keys,
+        )
+
+    def find_plateau(self, keys=None, ref=None):
+        """ Typically used for time-traces, identify plateau phases """
+        return _find_plateau.find_plateau(
+            coll=self,
+            keys=keys,
+            ref=ref,
         )
 
     # ---------------------
