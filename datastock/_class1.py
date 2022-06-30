@@ -17,6 +17,7 @@ from ._class0 import *
 from . import _class1_compute
 from . import _class1_interpolate
 from . import _class1_uniformize
+from . import _export_dataframe
 
 
 #############################################
@@ -438,12 +439,21 @@ class DataStock1(DataStock0):
     # General use methods
     ###########
 
-    def to_DataFrame(self, which=None):
-        which, dd = self.__check_which(which, return_dict=True)
-        if which is None:
-            return
-        import pandas as pd
-        return pd.DataFrame(dd)
+    # ---------------------
+    # export methods
+    # ---------------------
+
+    def to_DataFrame(self, which=None, keys=None):
+        """ Export a set of uniform data arrays to a pandas DataFrame
+
+        To be done
+
+        """
+        return _export_dataframe.to_dataframe(
+            coll=self,
+            which=which,
+            keys=keys,
+        )
 
     # ---------------------
     # Key selection methods
