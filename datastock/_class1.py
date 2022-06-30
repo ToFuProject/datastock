@@ -16,6 +16,7 @@ from . import _class1_check
 from ._class0 import *
 from . import _class1_compute
 from . import _class1_interpolate
+from . import _class1_uniformize
 
 
 #############################################
@@ -654,6 +655,8 @@ class DataStock1(DataStock0):
         self,
         keys=None,
         refs=None,
+        param=None,
+        lparam=None,
         returnas=None,
     ):
 
@@ -661,6 +664,8 @@ class DataStock1(DataStock0):
             coll=self,
             keys=keys,
             refs=refs,
+            param=param,
+            lparam=lparam,
             returnas=returnas,
         )
 

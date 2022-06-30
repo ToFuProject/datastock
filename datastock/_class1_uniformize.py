@@ -657,7 +657,7 @@ def _uniformize_check(
     keys=None,
     refs=None,
     param=None,
-    dparam=None,
+    lparam=None,
     returnas=None,
 ):
 
@@ -669,7 +669,7 @@ def _uniformize_check(
         keys = list(coll.ddata.keys())
         refs = list(coll.dref.keys())
     else:
-        if isinstance(refs):
+        if isinstance(refs, str):
             refs = [refs]
         if isinstance(keys, str):
             keys = [keys]
@@ -709,6 +709,7 @@ def _uniformize_check(
     dkout = {
         k0: [k1 for k1 in coll.ddata[k0]['ref'] if k1 not in refs]
         for k0 in keys
+        if len([k1 for k1 in coll.ddata[k0]['ref'] if k1 not in refs]) > 0
     }
     if len(dkout) > 0:
         lstr = [f"\t- {k0}: {v0}" for k0, v0 in dkout.items()]
@@ -725,60 +726,63 @@ def _uniformize_check(
     param = _generic_check._check_var(
         param, 'param',
         types=str,
-        default=['dim', 'quant', 'name', 'units'],
+        allowed=['dim', 'quant', 'name', 'units'],
         default='dim',
     )
 
     # dparam
-    if dparam is None:
-        # list availabe values for param
-        dparref = {
-            k0: [
-                v1[param] for k1, v1 in coll.ddata.items()
-                if v1['monot'] == (True,)
-                and v1['ref'][0] == k0
-            ]
-            for k0 in refs
-        }
+    # list availabe values for param and associated refs
+    dparref = {
+        k0: [
+            v1[param] for k1, v1 in coll.ddata.items()
+            if v1['monot'] == (True,)
+            and v1['ref'][0] == k0
+            and (lparam is None or v1[param] in lparam)
+        ]
+        for k0 in refs
+    }
 
-        dfail = {k0: v0 for k0, v0 in dparref.items() if len(v0) != 1}
-        if len(dfail) > 0:
-            lstr = [f"\t- {k0}: {v0}" for k0, v0 in dfail.items()]
-            msg = (
-                "dparam cannot be inferred automatically due to ambiguities!\n"
-                + "\n".join(lstr)
-                + "\nPlease provide dparam explicitly!"
-            )
-            raise Exception(msg)
-
-        lparamu = set([v0[0] for v0 in dparref.values()])
-
-        dparam = {
-            k0: {
-                'keys': [],
-                'refs': [k1 for k1, v1 in dparref.items() if v1[0] == k0],
-            },
-            for k0 in lparamu
-        }
-
-    else:
-        # necessary to avoid ambiguities - TBF
-        c0 = (
+    dfail = {k0: v0 for k0, v0 in dparref.items() if len(v0) != 1}
+    if len(dfail) > 0:
+        lstr = [f"\t- {k0}: {v0}" for k0, v0 in dfail.items()]
+        msg = (
+            "dparam cannot be inferred automatically due to ambiguities!\n"
+            + "\n".join(lstr)
+            + "\nPlease provide lparam explicitly!"
         )
+        raise Exception(msg)
 
-        if not c0:
-            msg = (
-            )
-            raise Exception(msg)
+    # store dkeypar
+    dkeypar = {
+        k0: [dparref[rr][0] for rr in coll.ddata[k0]['ref']]
+        for k0 in keys
+    }
+
+    # create dparam
+    lparamu = set([v0[0] for v0 in dparref.values()])
+
+    dparam = dict.fromkeys(lparamu)
+    for k0 in lparamu:
+        lr = [k1 for k1, v1 in dparref.items() if v1[0] == k0]
+        dparam[k0] = {
+            'refs': lr,
+            'keys': [
+                k1 for k1 in keys
+                if any([k2 in coll.ddata[k1]['ref'] for k2 in lr])
+            ],
+        }
 
     # double-check consistency
-    dfail = {
-        k0: [
+    dfails = {}
+    for k0, v0 in dparam.items():
+        lout = [
             k1 for k1 in v0['keys']
             if coll.get_ref_vector(key=k1, **{param: k0})[3] is None
         ]
-    }
-    if len(dfail) > 0:
+        if len(lout) > 0:
+            dfails[k0] = lout
+
+    if len(dfails) > 0:
         lstr = [f"\t- {k0}: {v0}" for k0, v0 in dfails.items()]
         msg = (
             f"For the following values of '{param}', "
@@ -794,11 +798,11 @@ def _uniformize_check(
     returnas = _generic_check._check_var(
         returnas, 'returnas',
         types=str,
-        default=['datastock', 'dataframe'],
+        allowed=['datastock', 'dataframe'],
         default='datastock',
     )
 
-    return keys, refs, param, dparam, returnas
+    return keys, refs, param, dparam, dkeypar, returnas
 
 
 
@@ -807,58 +811,118 @@ def uniformize(
     keys=None,
     refs=None,
     param=None,
-    dparam=None,
+    lparam=None,
     returnas=None,
 ):
 
     # ------------
     # check inputs
 
-    keys, refs, param, dparam, returnas = _uniformize_check(
+    keys, refs, param, dparam, dkeypar, returnas = _uniformize_check(
         coll=coll,
         keys=keys,
         refs=refs,
         param=param,
-        dparam=dparam,
+        lparam=lparam,
         returnas=returnas,
     )
 
     # ----------------
     # Treat ref by ref
 
-    # dkeys_per_ref = {
-        # k0: {
-            # 'keys': np.array([
-                # k1 for k1 in lkeys if k0 in coll.ddata[k1]['ref']
-            # ]),
-        # },
-        # for k0 in refs
-    # }
-
-    # # sort by number of ref
-    # for k0, v0 in dkeys_per_ref.items():
-        # nref = np.array([len(coll.ddata[k1]['ref']) for k1 in v0['keys']])
-        # inds = np.argsort(nref)
-        # dkeys_per_ref[k0]['keys'] = v0['keys'][inds]
-        # dkeys_per_ref[k0]['nref'] = nref[inds]
+    # instanciate
+    stu = coll.__class__()
 
     # group refs according to param
+    lp = ['dim', 'quant', 'name', 'units']
+    dindnd = {}
     for k0, v0 in dparam.items():
         hasref, ref, key, val, dind = coll.get_ref_vector_common(
             keys=v0['keys'],
-            ref=v0['ref'],
             **{param: k0},
+        )
+
+        # add ref
+        if ref is not None:
+            nref = int(coll.dref[ref]['size'])
+        else:
+            assert val is not None
+            ref = f'n{k0}'
+            nref = int(val.size)
+        stu.add_ref(key=ref, size=nref)
+
+        # add ref data
+        if key is not None:
+            val = np.copy(coll.ddata[key]['data'])
+        else:
+            key = k0
+        stu.add_data(
+            key=key,
+            data=val,
+            ref=ref,
+            **{kp: str(coll.ddata[key][kp]) for kp in lp},
+        )
+
+        if dind is None:
+            continue
+
+        # add other data
+        for k1, v1 in dind.items():
+
+            # add 1d arrays
+            if len(coll.ddata[k1]['ref']) == 1:
+
+                cskip = (
+                    coll.ddata[k1]['monot'] == (True,)
+                    and coll.ddata[k1][param] == k0
+                )
+                if cskip:
+                    continue
+
+                val1 = np.copy(coll.ddata[k1]['data'])[v1['ind']]
+                stu.add_data(
+                    key=k1,
+                    data=val1,
+                    ref=ref,
+                    **{kp: coll.ddata[k1][kp] for kp in lp},
+                )
+
+            else:
+
+                # index of ref
+                ref1 = coll.ddata[k1]['ref']
+                iref1 = dkeypar[k1].index(k0)
+
+                # store nd arrays
+                if k1 not in dindnd.keys():
+                    dindnd[k1] = {
+                        'ref': [None for ii in ref1],
+                        'data': np.copy(coll.ddata[k1]['data'])
+                    }
+
+                dindnd[k1]['ref'][iref1] = ref
+                if iref1 == 0:
+                    dindnd[k1]['data'] = dindnd[k1]['data'][dind[k1]['ind'], ...]
+                elif iref1 == 1:
+                    dindnd[k1]['data'] = dindnd[k1]['data'][:, dind[k1]['ind'], ...]
+                elif iref1 == 2:
+                    dindnd[k1]['data'] = dindnd[k1]['data'][:, :, dind[k1]['ind'], ...]
+
+    # -------------
+    # add nd arrays
+
+    for k0, v0 in dindnd.items():
+        stu.add_data(
+            key=k0,
+            data=v0['data'],
+            ref=tuple(v0['ref']),
+            **{kp: coll.ddata[k0][kp] for kp in lp},
         )
 
     # ---------
     # return
 
-    if returnas == 'datastock':
+    if returnas == 'dataframe':
+        pass
 
-        out = coll.__class__()
-
-    else:
-
-        out = None
-
-    return out
+    return stu
