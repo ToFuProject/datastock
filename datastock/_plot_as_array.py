@@ -62,12 +62,14 @@ def plot_as_array(
     rotation=None,
     inverty=None,
     bck=None,
+    interp=None,
     # figure-specific
     dax=None,
     dmargin=None,
     fs=None,
     dcolorbar=None,
     dleg=None,
+    label=None,
     connect=None,
     inplace=None,
 ):
@@ -101,7 +103,8 @@ def plot_as_array(
         rotation,
         inverty,
         bck,
-        dcolorbar, dleg, connect,
+        interp,
+        dcolorbar, dleg, label, connect,
     ) = _plot_as_array_check(
         ndim=ndim,
         coll=coll2,
@@ -121,9 +124,11 @@ def plot_as_array(
         rotation=rotation,
         inverty=inverty,
         bck=bck,
+        interp=interp,
         # figure
         dcolorbar=dcolorbar,
         dleg=dleg,
+        label=label,
         connect=connect,
     )
 
@@ -191,6 +196,7 @@ def plot_as_array(
             bstr_dict=bstr_dict,
             rotation=rotation,
             inverty=inverty,
+            interp=interp,
             # figure-specific
             dax=dax,
             dmargin=dmargin,
@@ -227,12 +233,14 @@ def plot_as_array(
             rotation=rotation,
             inverty=inverty,
             bck=bck,
+            interp=interp,
             # figure-specific
             dax=dax,
             dmargin=dmargin,
             fs=fs,
             dcolorbar=dcolorbar,
             dleg=dleg,
+            label=label,
         )
 
     # --------------------------
@@ -378,10 +386,12 @@ def _plot_as_array_check(
     rotation=None,
     inverty=None,
     bck=None,
+    interp=None,
     # figure
     dcolorbar=None,
     dleg=None,
     data=None,
+    label=None,
     connect=None,
 ):
 
@@ -566,6 +576,14 @@ def _plot_as_array_check(
         allowed=['lines', 'envelop', False],
     )
 
+    # interp
+    interp = _generic_check._check_var(
+        interp, 'interp',
+        default='nearest',
+        types=str,
+        allowed=['nearest', 'bilinear', 'bicubic']
+    )
+
     # dcolorbar
     defdcolorbar = {
         # 'location': 'right',
@@ -590,6 +608,13 @@ def _plot_as_array_check(
         types=(bool, dict),
     )
 
+    # label
+    label = _generic_check._check_var(
+        label, 'label',
+        default=True,
+        types=bool,
+    )
+
     # connect
     connect = _generic_check._check_var(
         connect, 'connect',
@@ -610,7 +635,8 @@ def _plot_as_array_check(
         rotation,
         inverty,
         bck,
-        dcolorbar, dleg, connect,
+        interp,
+        dcolorbar, dleg, label, connect,
     )
 
 
@@ -847,6 +873,7 @@ def plot_as_array_2d(
     bstr_dict=None,
     rotation=None,
     inverty=None,
+    interp=None,
     # figure-specific
     dax=None,
     dmargin=None,
@@ -1019,7 +1046,7 @@ def plot_as_array_2d(
         im = ax.imshow(
             dataplot,
             extent=extent,
-            interpolation='nearest',
+            interpolation=interp,
             origin='lower',
             aspect=aspect,
             cmap=cmap,
@@ -1269,12 +1296,14 @@ def plot_as_array_3d(
     rotation=None,
     inverty=None,
     bck=None,
+    interp=None,
     # figure-specific
     dax=None,
     dmargin=None,
     fs=None,
     dcolorbar=None,
     dleg=None,
+    label=None,
 ):
 
     # --------------
@@ -1330,137 +1359,35 @@ def plot_as_array_3d(
     # plot - prepare
 
     if dax is None:
-
-        if fs is None:
-            fs = (15, 9)
-
-        if dmargin is None:
-            dmargin = {
-                'left': 0.05, 'right': 0.95,
-                'bottom': 0.06, 'top': 0.90,
-                'hspace': 0.2, 'wspace': 0.3,
-            }
-
-        fig = plt.figure(figsize=fs)
-        fig.suptitle(key, size=14, fontweight='bold')
-        gs = gridspec.GridSpec(ncols=6, nrows=6, **dmargin)
-
-        # axes for image
-        ax0 = fig.add_subplot(gs[:4, 2:4], aspect='auto')
-        ax0.tick_params(
-            axis="x",
-            bottom=False, top=True,
-            labelbottom=False, labeltop=True,
+        dax = _plot_as_array_3d_create_axes(
+            fs=fs,
+            dmargin=dmargin,
         )
-        ax0.xaxis.set_label_position('top')
-
-        # axes for vertical profile
-        ax1 = fig.add_subplot(gs[:4, 4], sharey=ax0)
-        ax1.set_xlabel('data')
-        ax1.set_ylabel(labY)
-        ax1.tick_params(
-            axis="y",
-            left=False, right=True,
-            labelleft=False, labelright=True,
-        )
-        ax1.tick_params(
-            axis="x",
-            bottom=False, top=True,
-            labelbottom=False, labeltop=True,
-        )
-        ax1.yaxis.set_label_position('right')
-        ax1.xaxis.set_label_position('top')
-
-        # axes for horizontal profile
-        ax2 = fig.add_subplot(gs[4:, 2:4], sharex=ax0)
-        ax2.set_ylabel('data')
-        ax2.set_xlabel(labX)
-
-        ax1.set_xlim(ymin, ymax)
-        ax2.set_ylim(ymin, ymax)
-
-        # axes for traces
-        ax3 = fig.add_subplot(gs[:3, :2])
-        ax3.set_ylabel('data')
-        ax3.set_xlabel(labZ)
-
-        ax1.set_xlim(ymin, ymax)
-        ax2.set_ylim(ymin, ymax)
-        ax3.set_ylim(ymin, ymax)
-
-        # axes for text
-        ax4 = fig.add_subplot(gs[:3, 5], frameon=False)
-        ax4.set_xticks([])
-        ax4.set_yticks([])
-        ax5 = fig.add_subplot(gs[3:, 5], frameon=False)
-        ax5.set_xticks([])
-        ax5.set_yticks([])
-        ax6 = fig.add_subplot(gs[4:, :2], frameon=False)
-        ax6.set_xticks([])
-        ax6.set_yticks([])
-
-        if xstr:
-            ax0.set_xticks(dataX)
-            ax0.set_xticklabels(
-                coll.ddata[keyX]['data'],
-                rotation=rotation,
-                horizontalalignment='left',
-                verticalalignment='bottom',
-            )
-            ax2.set_xticks(dataX)
-            ax2.set_xticklabels(
-                coll.ddata[keyX]['data'],
-                rotation=rotation,
-                horizontalalignment='right',
-                verticalalignment='top',
-            )
-        else:
-            ax0.set_xlabel(labX)
-            ax2.set_xlabel(labX)
-
-        if ystr:
-            ax0.set_yticks(dataY)
-            ax0.set_yticklabels(
-                coll.ddata[keyY]['data'],
-                rotation=rotation,
-                horizontalalignment='right',
-                verticalalignment='top',
-            )
-            ax1.set_yticks(dataY)
-            ax1.set_yticklabels(
-                coll.ddata[keyY]['data'],
-                rotation=rotation,
-                horizontalalignment='left',
-                verticalalignment='bottom',
-            )
-        else:
-            ax0.set_ylabel(labY)
-            ax1.set_ylabel(labY)
-
-        if zstr:
-            ax3.set_yticks(dataZ)
-            ax3.set_yticklabels(
-                coll.ddata[keyZ]['data'],
-                rotation=rotation,
-                horizontalalignment='right',
-                verticalalignment='top',
-            )
-        else:
-            ax3.set_ylabel(labZ)
-
-        dax = {
-            # data
-            'matrix': {'handle': ax0, 'type': 'matrix', 'inverty': inverty},
-            'vertical': {'handle': ax1, 'type': 'misc', 'inverty': inverty},
-            'horizontal': {'handle': ax2, 'type': 'misc'},
-            'traces': {'handle': ax3, 'type': 'misc'},
-            # text
-            'textX': {'handle': ax4, 'type': 'text'},
-            'textY': {'handle': ax5, 'type': 'text'},
-            'textZ': {'handle': ax6, 'type': 'text'},
-        }
 
     dax = _generic_check._check_dax(dax=dax, main='matrix')
+
+    if label:
+        _plot_as_array_3d_label_axes(
+            coll=coll,
+            dax=dax,
+            key=key,
+            labX=labX,
+            labY=labY,
+            labZ=labZ,
+            ymin=ymin,
+            ymax=ymax,
+            xstr=xstr,
+            ystr=ystr,
+            zstr=zstr,
+            keyX=keyX,
+            keyY=keyY,
+            keyZ=keyZ,
+            dataX=dataX,
+            dataY=dataY,
+            dataZ=dataZ,
+            inverty=inverty,
+            rotation=rotation,
+        )
 
     # ---------------
     # plot fixed part
@@ -1534,7 +1461,7 @@ def plot_as_array_3d(
         im = ax.imshow(
             dataplot,
             extent=extent,
-            interpolation='nearest',
+            interpolation=interp,
             origin='lower',
             aspect=aspect,
             cmap=cmap,
@@ -1572,7 +1499,6 @@ def plot_as_array_3d(
                 markeredgecolor=color_dict['X'][ii],
                 markerfacecolor='None',
             )
-
 
             # update coll
             kh = f'h{ii:02.0f}'
@@ -1793,3 +1719,215 @@ def plot_as_array_3d(
         )
 
     return coll, dax, dgroup
+
+
+def _plot_as_array_3d_create_axes(
+    fs=None,
+    dmargin=None,
+):
+
+    if fs is None:
+        fs = (15, 9)
+
+    if dmargin is None:
+        dmargin = {
+            'left': 0.05, 'right': 0.95,
+            'bottom': 0.06, 'top': 0.90,
+            'hspace': 0.2, 'wspace': 0.3,
+        }
+
+    fig = plt.figure(figsize=fs)
+    gs = gridspec.GridSpec(ncols=6, nrows=6, **dmargin)
+
+    # axes for image
+    ax0 = fig.add_subplot(gs[:4, 2:4], aspect='auto')
+
+    # axes for vertical profile
+    ax1 = fig.add_subplot(gs[:4, 4], sharey=ax0)
+
+    # axes for horizontal profile
+    ax2 = fig.add_subplot(gs[4:, 2:4], sharex=ax0)
+
+    # axes for traces
+    ax3 = fig.add_subplot(gs[:3, :2])
+
+    # axes for text
+    ax4 = fig.add_subplot(gs[:3, 5], frameon=False)
+    ax5 = fig.add_subplot(gs[3:, 5], frameon=False)
+    ax6 = fig.add_subplot(gs[4:, :2], frameon=False)
+
+    # dax
+    dax = {
+        # data
+        'matrix': {'handle': ax0, 'type': 'matrix'},
+        'vertical': {'handle': ax1, 'type': 'misc'},
+        'horizontal': {'handle': ax2, 'type': 'misc'},
+        'traces': {'handle': ax3, 'type': 'misc'},
+        # text
+        'textX': {'handle': ax4, 'type': 'text'},
+        'textY': {'handle': ax5, 'type': 'text'},
+        'textZ': {'handle': ax6, 'type': 'text'},
+    }
+    return dax
+
+
+def _plot_as_array_3d_label_axes(
+    coll=None,
+    dax=None,
+    key=None,
+    labX=None,
+    labY=None,
+    labZ=None,
+    ymin=None,
+    ymax=None,
+    xstr=None,
+    ystr=None,
+    zstr=None,
+    keyX=None,
+    keyY=None,
+    keyZ=None,
+    dataX=None,
+    dataY=None,
+    dataZ=None,
+    inverty=None,
+    rotation=None,
+):
+
+    # fig
+    fig = list(dax.values())[0]['handle'].figure
+    fig.suptitle(key, size=14, fontweight='bold')
+
+    # axes for image
+    kax = 'matrix'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+        ax.tick_params(
+            axis="x",
+            bottom=False, top=True,
+            labelbottom=False, labeltop=True,
+        )
+        ax.xaxis.set_label_position('top')
+
+        # x text ticks
+        if xstr:
+            ax.set_xticks(dataX)
+            ax.set_xticklabels(
+                coll.ddata[keyX]['data'],
+                rotation=rotation,
+                horizontalalignment='left',
+                verticalalignment='bottom',
+            )
+        else:
+            ax.set_xlabel(labX)
+
+        # y text ticks
+        if ystr:
+            ax.set_yticks(dataY)
+            ax.set_yticklabels(
+                coll.ddata[keyY]['data'],
+                rotation=rotation,
+                horizontalalignment='right',
+                verticalalignment='top',
+            )
+        else:
+            ax.set_ylabel(labY)
+
+        dax[kax]['inverty'] = inverty
+
+    # axes for vertical profile
+    kax = 'vertical'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+        ax.set_xlabel('data')
+        ax.set_ylabel(labY)
+        ax.tick_params(
+            axis="y",
+            left=False, right=True,
+            labelleft=False, labelright=True,
+        )
+        ax.tick_params(
+            axis="x",
+            bottom=False, top=True,
+            labelbottom=False, labeltop=True,
+        )
+        ax.yaxis.set_label_position('right')
+        ax.xaxis.set_label_position('top')
+
+        ax.set_xlim(ymin, ymax)
+
+        # y text ticks
+        if ystr:
+            ax.set_yticks(dataY)
+            ax.set_yticklabels(
+                coll.ddata[keyY]['data'],
+                rotation=rotation,
+                horizontalalignment='left',
+                verticalalignment='bottom',
+            )
+        else:
+            ax.set_ylabel(labY)
+
+        dax[kax]['inverty'] = inverty
+
+    # axes for horizontal profile
+    kax = 'horizontal'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+        ax.set_ylabel('data')
+        ax.set_xlabel(labX)
+
+        ax.set_ylim(ymin, ymax)
+
+        # x text ticks
+        if xstr:
+            ax.set_xticks(dataX)
+            ax.set_xticklabels(
+                coll.ddata[keyX]['data'],
+                rotation=rotation,
+                horizontalalignment='right',
+                verticalalignment='top',
+            )
+        else:
+            ax.set_xlabel(labX)
+
+    # axes for traces
+    kax = 'traces'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+        ax.set_ylabel('data')
+        ax.set_xlabel(labZ)
+
+        ax.set_ylim(ymin, ymax)
+
+        # z text ticks
+        if zstr:
+            ax.set_yticks(dataZ)
+            ax.set_yticklabels(
+                coll.ddata[keyZ]['data'],
+                rotation=rotation,
+                horizontalalignment='right',
+                verticalalignment='top',
+            )
+        else:
+            ax.set_ylabel(labZ)
+
+    # axes for text
+    kax = 'textX'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+        ax.set_xticks([])
+        ax.set_yticks([])
+
+    kax = 'textY'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+        ax.set_xticks([])
+        ax.set_yticks([])
+
+    kax = 'textZ'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+        ax.set_xticks([])
+        ax.set_yticks([])
+
+    return dax

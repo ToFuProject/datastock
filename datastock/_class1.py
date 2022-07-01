@@ -16,6 +16,9 @@ from . import _class1_check
 from ._class0 import *
 from . import _class1_compute
 from . import _class1_interpolate
+from . import _class1_uniformize
+from . import _export_dataframe
+from . import _find_plateau
 
 
 #############################################
@@ -437,12 +440,29 @@ class DataStock1(DataStock0):
     # General use methods
     ###########
 
-    def to_DataFrame(self, which=None):
-        which, dd = self.__check_which(which, return_dict=True)
-        if which is None:
-            return
-        import pandas as pd
-        return pd.DataFrame(dd)
+    # ---------------------
+    # export methods
+    # ---------------------
+
+    def to_DataFrame(self, which=None, keys=None):
+        """ Export a set of uniform data arrays to a pandas DataFrame
+
+        To be done
+
+        """
+        return _export_dataframe.to_dataframe(
+            coll=self,
+            which=which,
+            keys=keys,
+        )
+
+    def find_plateau(self, keys=None, ref=None):
+        """ Typically used for time-traces, identify plateau phases """
+        return _find_plateau.find_plateau(
+            coll=self,
+            keys=keys,
+            ref=ref,
+        )
 
     # ---------------------
     # Key selection methods
@@ -536,7 +556,7 @@ class DataStock1(DataStock0):
             self._dobj[which] = dd
 
     # ---------------------
-    # Methods interpolating
+    # Getting a common reference vector
     # ---------------------
 
     def get_ref_vector(
@@ -553,8 +573,6 @@ class DataStock1(DataStock0):
         values=None,
         indices=None,
         ind_strict=None,
-        # which ref / dimension
-        **kwdargs,
     ):
         """ Return the monotonous vector associated to a ref of key
 
@@ -570,77 +588,34 @@ class DataStock1(DataStock0):
         >>> st.add_data(key='t0', data=t0)
         >>> st.add_data(key='x', data=x)
         >>> st.add_data(key='xt', data=xt)
-        >>> hasref, hasvect, ref, key_vect, t, ind, indu, indr = st.get_ref_vector(key='xt', ref='nt', values=[2, 3, 3.1, 5])
+        >>> hasref, hasvect, ref, key_vect, dind = st.get_ref_vector(key='xt', ref='nt', values=[2, 3, 3.1, 5])
 
-        In the qbove example:
-            - hasref = True: 'xt' does have 'nt' has ref
+        In the above example:
+            - hasref = True: 'xt' has 'nt' has ref
             - hasvect = True: there is a monotonous vector with ref 'nt'
             - ref = 'nt'
             - key_vect = 't0'
-            - t = [2, 3, 3.1, 5]: the desired time points
-            - ind = [2, 3, 3, 5]: the indices of t in t0
-            - indu = [2, 3, 5]: the unique indices of t in t0
-            - indr = (3, 4) bool array showing, for each indu, matching ind
+            - dind = {
+                'key': [2, 3, 3.1, 5],  # the desired time points
+                'ind':  [2, 3, 3, 5],   # the indices of t in t0
+                'indu': [2, 3, 5]       # the unique indices of t in t0
+                'indr': (3, 4),         # bool array showing, for each indu, matching ind
+                'indok': [True, False, ...]
+              }
 
         """
 
-        # ------------
-        # check inputs
-
-        # key
-        lkok = list(self.ddata.keys())
-        key = _generic_check._check_var(
-            key, 'key',
-            types=str,
-            allowed=lkok,
-        )
-
-        # ref
-        refok = self.ddata[key]['ref']
-        if ref is not None:
-            lkok = list(self.dref.keys())
-            ref = _generic_check._check_var(
-                ref, 'ref',
-                types=str,
-                allowed=lkok,
-            )
-
-            hasref = ref in refok
-            if hasref:
-                refok = (ref,)
-            else:
-                refok = tuple()
-
-        else:
-            hasref = None
-
-        # ------------------------------------------------
-        # get list of monotonous vectors with relevant ref
-
-        lk_vect = [
-            k0 for k0 in self.select(
-                which='data',
-                log='all',
-                returnas=str,
-                monot=(True,),
-                dim=dim,
-                quant=quant,
-                name=name,
-                units=units,
-                **kwdargs,
-            )
-            if self.ddata[k0]['ref'][0] in refok
-        ]
-
-        return _class1_interpolate.get_ref_vector(
+        return _class1_uniformize.get_ref_vector(
             # ressources
             ddata=self._ddata,
             dref=self._dref,
             # inputs
             key=key,
             ref=ref,
-            hasref=hasref,
-            lk_vect=lk_vect,
+            dim=dim,
+            quant=quant,
+            name=name,
+            units=units,
             # parameters
             values=values,
             indices=indices,
@@ -660,8 +635,6 @@ class DataStock1(DataStock0):
         values=None,
         indices=None,
         ind_strict=None,
-        # which ref / dimension
-        **kwdargs,
     ):
         """ Return a unique ref vector and a dict of indices
 
@@ -675,46 +648,49 @@ class DataStock1(DataStock0):
 
         """
 
-        # ------------
-        # check inputs
-
-        keys = _generic_check._check_var_iter(
-            keys, 'keys',
-            types=(list, tuple),
-            types_iter=str,
-            allowed=self.ddata.keys(),
-        )
-
-        # ---------------------------
-        # Get ref vector for each key
-
-        din = {
-            k0: self.get_ref_vector(
-                key=k0,
-                ref=ref,
-                dim=dim,
-                quant=quant,
-                name=name,
-                units=units,
-                **kwdargs,
-            )
-            for k0 in keys
-        }
-
-        # ---------------------------
-        # Compute unique vector
-
-        return _class1_interpolate.get_ref_vector_common(
+        return _class1_uniformize.get_ref_vector_common(
             # ressources
             ddata=self._ddata,
             dref=self._dref,
             # inputs
-            din=din,
+            keys=keys,
+            # for selecting ref vector
+            ref=ref,
+            dim=dim,
+            quant=quant,
+            name=name,
+            units=units,
             # parameters
             values=values,
             indices=indices,
             ind_strict=ind_strict,
         )
+
+    # ---------------------
+    # Uniformize
+    # ---------------------
+
+    def uniformize(
+        self,
+        keys=None,
+        refs=None,
+        param=None,
+        lparam=None,
+        returnas=None,
+    ):
+
+        return _class1_uniformize.uniformize(
+            coll=self,
+            keys=keys,
+            refs=refs,
+            param=param,
+            lparam=lparam,
+            returnas=returnas,
+        )
+
+    # ---------------------
+    # Interpolation
+    # ---------------------
 
     def interpolate(
         self,

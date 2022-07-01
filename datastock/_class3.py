@@ -35,12 +35,14 @@ class DataStock3(DataStock2):
         rotation=None,
         inverty=None,
         bck=None,
+        interp=None,
         # figure-specific
         dax=None,
         dmargin=None,
         fs=None,
         dcolorbar=None,
         dleg=None,
+        label=None,
         connect=None,
         inplace=None,
     ):
@@ -65,12 +67,14 @@ class DataStock3(DataStock2):
             rotation=rotation,
             inverty=inverty,
             bck=bck,
+            interp=interp,
             # figure-specific
             dax=dax,
             dmargin=dmargin,
             fs=fs,
             dcolorbar=dcolorbar,
             dleg=dleg,
+            label=label,
             connect=connect,
             inplace=inplace,
         )
