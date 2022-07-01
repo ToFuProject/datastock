@@ -5,9 +5,6 @@ import os
 
 
 
-# common
-import pandas
-
 
 
 # #############################################################################
@@ -45,6 +42,9 @@ def to_dataframe(
 
     # ----------------------------------
     # instanciate and populate dataframe
+
+    # import optional dependency
+    import pandas
 
     # instanciate
     df = pandas.DataFrame()
