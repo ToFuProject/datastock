@@ -27,7 +27,7 @@ def to_dataframe(
         "\nExport to pandas DataFrame is not implemented yet!\n"
         "It would nice right?  and probably not too hard to implement...\n\n"
         "=> you can volunteer to make it happen here:\n"
-        "https://github.com/ToFuProject/datastock/issues/46i\n\n"
+        "https://github.com/ToFuProject/datastock/issues/46\n\n"
         "estimated difficulty level: 2/5"
     )
     raise NotImplementedError(msg)
