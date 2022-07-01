@@ -472,11 +472,12 @@ def get_ref_vector_common(
             if not np.all(iok):
                 if key_vector is None or ind_strict:
                     val = val[iok]
-                    for k0, v0 in dkeys.items():
-                        dind[k0]['ind'] = dind[k0]['ind'][iok]
-                        dind[k0]['indok'] = dind[k0]['indok'][iok]
-                    if key_vector is not None:
-                        key_vector = None
+                    # TBC
+                    # for k0, v0 in dkeys.items():
+                        # dind[k0]['ind'] = dind[k0]['ind'][iok]
+                        # dind[k0]['indok'] = dind[k0]['indok'][iok]
+                    # if key_vector is not None:
+                        # key_vector = None
 
             # try to identify identical pre-existing vector
             if key_vector is None:
@@ -581,11 +582,11 @@ def _get_ref_vector_common_values(
                     dkeys[k0]['ind'] = dindi['ind']
                     dkeys[k0]['indok'] = dindi['indok']
 
-                # indu, indr
-                dkeys[k0]['indu'] = np.unique(dkeys[k0]['ind'])
-                dkeys[k0]['indr'] = np.array([
-                    dkeys[k0]['ind'] == iu for iu in dkeys[k0]['indu']
-                ])
+                    # indu, indr
+                    dkeys[k0]['indu'] = np.unique(dkeys[k0]['ind'])
+                    dkeys[k0]['indr'] = np.array([
+                        dkeys[k0]['ind'] == iu for iu in dkeys[k0]['indu']
+                    ])
 
                 # val_out
                 if haschanged is False:

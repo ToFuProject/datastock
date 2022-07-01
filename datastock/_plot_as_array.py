@@ -1368,6 +1368,7 @@ def plot_as_array_3d(
 
     if label:
         _plot_as_array_3d_label_axes(
+            coll=coll,
             dax=dax,
             key=key,
             labX=labX,
@@ -1385,6 +1386,7 @@ def plot_as_array_3d(
             dataY=dataY,
             dataZ=dataZ,
             inverty=inverty,
+            rotation=rotation,
         )
 
     # ---------------
@@ -1770,6 +1772,7 @@ def _plot_as_array_3d_create_axes(
 
 
 def _plot_as_array_3d_label_axes(
+    coll=None,
     dax=None,
     key=None,
     labX=None,
@@ -1787,6 +1790,7 @@ def _plot_as_array_3d_label_axes(
     dataY=None,
     dataZ=None,
     inverty=None,
+    rotation=None,
 ):
 
     # fig

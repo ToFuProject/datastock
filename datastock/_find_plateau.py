@@ -88,7 +88,7 @@ def find_plateau(
 # #############################################################################
 
 
-def _to_dataframe__check(
+def _find_plateau_check(
     coll=None,
     keys=None,
     ref=None,

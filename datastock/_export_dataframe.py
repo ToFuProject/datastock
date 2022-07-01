@@ -63,7 +63,7 @@ def to_dataframe(
 # #############################################################################
 
 
-def _to_dataframe__check(
+def _to_dataframe_check(
     coll=None,
     which=None,
     keys=None,
