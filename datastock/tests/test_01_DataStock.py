@@ -252,7 +252,7 @@ class Test02_Manipulate():
         (
             hasref, hasvector,
             ref, key_vector,
-            values, indices, indu, ind_reverse, indok,
+            values, dind,
         ) = self.st.get_ref_vector(
             key='prof0',
             ref='nx',
@@ -260,11 +260,11 @@ class Test02_Manipulate():
             ind_strict=False,
         )
         assert hasref is True and hasvector is True
-        assert values.size == indices.size == 4
-        assert ind_reverse.shape == (2, 4)
+        assert values.size == dind['ind'].size == 4
+        assert dind['indr'].shape == (2, 4)
 
     def test07_get_ref_vector_common(self):
-        hasref, hasvect, val, dout = self.st.get_ref_vector_common(
+        hasref, ref, key, val, dout = self.st.get_ref_vector_common(
             keys=['t0', 'prof0', 'prof1', 't3'],
             dim='time',
         )
