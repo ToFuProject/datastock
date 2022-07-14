@@ -90,9 +90,6 @@ def get_ref_vector(
         refok = (ref,)
     elif key is not None:
         refok = ddata[key]['ref']
-        if len(refok) == 1:
-            hasref = True
-            ref = refok[0]
 
     # identify possible vect
     if hasref is not False:
