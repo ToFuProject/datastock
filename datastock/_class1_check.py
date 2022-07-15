@@ -151,9 +151,6 @@ def _check_conflicts(dd=None, dd0=None, dd_name=None, returnas=None):
                         and not scpsp.issparse(v0[kk])
                         and v0[kk] == dd0[k0][kk]
                     )
-                    or (
-                        v0[kk] == dd0[k0][kk]
-                    )
                 )
             )
         ]
