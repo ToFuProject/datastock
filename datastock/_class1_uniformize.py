@@ -81,6 +81,8 @@ def get_ref_vector(
     hasref = None
     if ref is not None and key is not None:
         hasref = ref in ddata[key]['ref']
+        if not hasref:
+            ref = None
     elif ref is not None:
         hasref = True
 
@@ -134,7 +136,7 @@ def get_ref_vector(
             hasref = False
             ref = None
 
-    # consistencu check
+    # consistency check
     assert hasref == (ref is not None)
     assert hasvect == (key_vector is not None)
 
@@ -198,7 +200,8 @@ def _get_ref_vector_values(
     # values vs indices
     if values is not None and indices is not None:
         msg = "Please provide values xor indices, not both!"
-        raise Exception(msg)
+        warnings.warn(msg)
+        indices = None
 
     # values vs hasvect
     if values is not None and hasvect is not True:
@@ -238,10 +241,31 @@ def _get_ref_vector_values(
         ref_values = ddata[key_values]['ref'][0]
         values = ddata[key_values]['data']
 
+    # values = array => array or str
     elif isinstance(values, (np.ndarray, list, tuple)) or np.isscalar(values):
         values = np.atleast_1d(values).ravel()
-        key_values = None
-        ref_values = None
+
+        # Try to identify match with a known vector
+        key_values = _get_ref_vector_find_identical(
+            # ressources
+            ddata=ddata,
+            dref=dref,
+            # for selecting ref vector
+            ref=ref,
+            dim=dim,
+            quant=quant,
+            name=name,
+            units=units,
+            # for comparison
+            val=values,
+        )
+
+        # case
+        if key_values is None:
+            ref_values = None
+
+        else:
+            ref_values = ddata[key_values]['ref'][0]
 
     elif values is not None:
         msg = f"Unexpected values: {values}"
@@ -331,6 +355,53 @@ def _get_ref_vector_values(
     }
 
     return dind
+
+
+def _get_ref_vector_find_identical(
+    # ressources
+    ddata=None,
+    dref=None,
+    # for selecting ref vector
+    ref=None,
+    dim=None,
+    quant=None,
+    name=None,
+    units=None,
+    # for comparison
+    val=None
+):
+
+    # get list of all available ref vectors
+    lkok = []
+    for ii, k0 in enumerate(ddata.keys()):
+        _, hasvecti, _, key_vecti = get_ref_vector(
+            ddata=ddata,
+            dref=dref,
+            key=k0,
+            ref=ref,
+            dim=dim,
+            quant=quant,
+            name=name,
+            units=units,
+            values=None,
+            indices=None,
+        )[:4]
+        if hasvecti and key_vecti not in lkok:
+            lkok.append(key_vecti)
+
+    # extract those which match
+    lkok = [
+        k0 for k0 in lkok
+        if ddata[k0]['data'].size == val.size
+        and np.allclose(ddata[k0]['data'], val)
+    ]
+
+    # cases
+    if len(lkok) == 1:
+        key = lkok[0]
+    else:
+        key = None
+    return key
 
 
 # #############################################################################
@@ -481,7 +552,7 @@ def get_ref_vector_common(
 
             # try to identify identical pre-existing vector
             if key_vector is None:
-                key_vector = _get_ref_vector_common_find_identical(
+                key_vector = _get_ref_vector_find_identical(
                     # ressources
                     ddata=ddata,
                     dref=dref,
@@ -598,53 +669,6 @@ def _get_ref_vector_common_values(
                     assert np.allclose(val_out, dindi['data'])
 
     return key_vector, val_out
-
-
-def _get_ref_vector_common_find_identical(
-    # ressources
-    ddata=None,
-    dref=None,
-    # for selecting ref vector
-    ref=None,
-    dim=None,
-    quant=None,
-    name=None,
-    units=None,
-    # for comparison
-    val=None
-):
-
-    # get list of all available ref vectors
-    lkok = []
-    for ii, k0 in enumerate(ddata.keys()):
-        _, hasvecti, _, key_vecti = get_ref_vector(
-            ddata=ddata,
-            dref=dref,
-            key=k0,
-            ref=ref,
-            dim=dim,
-            quant=quant,
-            name=name,
-            units=units,
-            values=None,
-            indices=None,
-        )[:4]
-        if hasvecti and key_vecti not in lkok:
-            lkok.append(key_vecti)
-
-    # extract those which match
-    lkok = [
-        k0 for k0 in lkok
-        if ddata[k0]['data'].size == val.size
-        and np.allclose(ddata[k0]['data'], val)
-    ]
-
-    # cases
-    if len(lkok) == 1:
-        key = lkok[0]
-    else:
-        key = None
-    return key
 
 
 # #############################################################################
