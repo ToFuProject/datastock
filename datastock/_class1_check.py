@@ -1887,7 +1887,7 @@ def _show_get_fields(which=None, dobj=None, lparam=None, dshow=None):
             and not (which == 'axes' and kk == 'bck')
             and all([
                 not isinstance(v1[kk], dict)
-                for v1 in self._dobj[which].values()
+                for v1 in dobj[which].values()
             ])
         ]
     else:
