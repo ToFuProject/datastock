@@ -133,7 +133,7 @@ class DataStock1(DataStock0):
 
         # show dict
         if which not in self._dshow.keys():
-            lk = self.get_lparam(which=k0)
+            lk = self.get_lparam(which=which)
             lk = [
                 kk for kk in lk
                 if 'func' not in kk
