@@ -60,6 +60,7 @@ class DataStock1(DataStock0):
     _show_in_summary_core = ['shape', 'ref']
     _show_in_summary = 'all'
     _max_ndim = None
+    _dshow = {}
 
     def __init__(
         self,
@@ -129,6 +130,22 @@ class DataStock1(DataStock0):
         dobj = {which: {key: kwds}}
         # Check consistency
         self.update(dobj=dobj, dref=None, harmonize=harmonize)
+
+        # show dict
+        if which not in self._dshow.keys():
+            lk = self.get_lparam(which=k0)
+            lk = [
+                kk for kk in lk
+                if 'func' not in kk
+                and 'class' not in kk
+                and kk not in ['handle']
+                and not (which == 'axes' and kk == 'bck')
+                and all([
+                    not isinstance(v1[kk], dict)
+                    for v1 in self._dobj[which].values()
+                ])
+            ]
+            self._dshow[which] = lk
 
     # ---------------------
     # Removing ref / quantities
@@ -861,21 +878,13 @@ class DataStock1(DataStock0):
         if anyobj:
             for k0, v0 in self._dobj.items():
                 if 'obj' in show_which or k0 in show_which:
-                    lk = self.get_lparam(which=k0)
                     lk = [
-                        kk for kk in lk
-                        if 'func' not in kk
-                        and 'class' not in kk
-                        and kk not in ['handle']
-                        and not (k0 == 'axes' and kk == 'bck')
-                        and all([
-                            not isinstance(v1[kk], dict)
-                            for v1 in v0.values()
-                        ])
+                        kk for kk in self._dshow[k0]
+                        if kk.split('.')[0] in self.get_lparam(which=k0)
                     ]
-                    lcol.append([k0] + [pp for pp in lk])
+                    lcol.append([k0] + [pp.split('.')[-1] for pp in lk])
                     lar.append([
-                        [k1] + [str(v1[kk]) for kk in lk]
+                        [k1] + _class1_check._show_extract(dobj=v1, lk=lk)
                         for k1, v1 in v0.items()
                     ])
 
