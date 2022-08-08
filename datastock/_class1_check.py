@@ -1876,6 +1876,25 @@ def _select(dd=None, dd_name=None, log=None, returnas=None, **kwdargs):
 #############################################
 
 
+def _show_get_fields(which=None, dobj=None, lparam=None, dshow=None):
+    # show dict
+    if which not in dshow.keys():
+        lk = [
+            kk for kk in lparam
+            if 'func' not in kk
+            and 'class' not in kk
+            and kk not in ['handle']
+            and not (which == 'axes' and kk == 'bck')
+            and all([
+                not isinstance(v1[kk], dict)
+                for v1 in self._dobj[which].values()
+            ])
+        ]
+    else:
+        lk = dshow[which]
+        lk = [kk for kk in dshow[which] if kk.split('.')[0] in lparam]
+    return lk
+
 def _show_extract(dobj=None, lk=None):
 
     lv0 = []

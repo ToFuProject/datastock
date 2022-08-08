@@ -878,10 +878,12 @@ class DataStock1(DataStock0):
         if anyobj:
             for k0, v0 in self._dobj.items():
                 if 'obj' in show_which or k0 in show_which:
-                    lk = [
-                        kk for kk in self._dshow[k0]
-                        if kk.split('.')[0] in self.get_lparam(which=k0)
-                    ]
+                    lk = _class1_check._show_get_fields(
+                        which=k0,
+                        dobj=self._dobj,
+                        lparam=self.get_lparam(which=k0),
+                        dshow=self._dshow,
+                    )
                     lcol.append([k0] + [pp.split('.')[-1] for pp in lk])
                     lar.append([
                         [k1] + _class1_check._show_extract(dobj=v1, lk=lk)
