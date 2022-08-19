@@ -315,6 +315,124 @@ def _check_dict_valid_keys(
 
 # #############################################################################
 # #############################################################################
+#                   Utilities for vector basis
+# #############################################################################
+
+
+def _get_horizontal_unitvect(ee=None):
+    if np.abs(ee[2]) < 1. - 1e-10:
+        eout = np.r_[ee[1], -ee[0], 0]
+    else:
+        eout = np.r_[1, 0, 0.]
+    return _check_flat1darray(eout, 'eout', size=dim, dtype=float, norm=True)
+
+
+def _get_vertical_unitvect(ee=None):
+    if np.abs(ee[2]) < 1. - 1e-10:
+        eh = np.sum(ee[:2]**2)
+        eout = np.r_[-ee[2]*ee[0], -ee[2]*ee[1], eh]
+    else:
+        eout = _get_horizontal_unitvect(ee=ee)
+    return _check_flat1darray(eout, 'eout', size=dim, dtype=float, norm=True)
+
+
+def _check_vectbasis(
+    e0=None,
+    e1=None,
+    e2=None,
+    dim=None,
+    tol=None,
+):
+
+    # dim
+    dim = _check_var(dim, 'dim', types=int, default=3, allowed=[2, 3])
+
+    # tol
+    tol = _check_var(tol, 'tol', types=float, default=1.e-14, sign='>0.')
+
+    # check is provided
+    if e0 is not None:
+        e0 = _check_flat1darray(e0, 'e0', size=dim, dtype=float, norm=True)
+    if e1 is not None:
+        e1 = _check_flat1darray(e1, 'e1', size=dim, dtype=float, norm=True)
+    if e2 is not None:
+        e2 = _check_flat1darray(e2, 'e2', size=dim, dtype=float, norm=True)
+
+    # vectors
+    if dim == 2:
+
+        if e0 is None and e1 is None:
+            msg = "Please provide e0 and/or e1!"
+            raise Exception(msg)
+
+        # complete if missing
+        if e0 is None:
+            e0 = np.r_[e1[1], -e1[0]]
+        if e1 is None:
+            e1 = np.r_[-e0[1], e0[0]]
+
+        # perpendicularity
+        if np.abs(np.sum(e0*e1)) > tol:
+            msg = "Non-perpendicular"
+            raise Exception(msg)
+
+        # direct
+        if np.abs(np.cross(e0, e1).tolist() - 1.) < tol:
+            msg = "Non-direct basis"
+            raise Exception(msg)
+
+        return e0, e1
+
+    else:
+        if e0 is None and e1 is None and e2 is None:
+            msg = "Please provide at least e0, e1 or e2!"
+            raise Exception(msg)
+
+        # complete if 2 missing
+        if e0 is None and e1 is None:
+            e1 = _get_horizontal_unitvect(ee=e2)
+        elif e0 is None and e2 is None:
+            e2 = _get_vertical_unitvect(ee=e2)
+        elif e1 is None and e2 is None:
+            e2 = _get_vertical_unitvect(ee=e2)
+
+        # complete if 1 missing
+        if e0 is None:
+            e0 = np.cross(e1, e2)
+            e0 = _check_flat1darray(e0, 'e0', size=dim, dtype=float, norm=True)
+        if e1 is None:
+            e1 = np.cross(e2, e0)
+            e1 = _check_flat1darray(e1, 'e1', size=dim, dtype=float, norm=True)
+        if e2 is None:
+            e2 = np.cross(e0, e1)
+            e2 = _check_flat1darray(e2, 'e2', size=dim, dtype=float, norm=True)
+
+        # perpendicularity
+        lv = [
+            (('e0', 'e1'), (e0, e1)),
+            (('e0', 'e2'), (e0, e2)),
+            (('e1', 'e2'), (e1, e2)),
+        ]
+        dperp = {
+            f'{eis}.{ejs}': np.abs(np.sum(ei*ej))
+            for (eis, ejs), (ei, ej) in lv
+            if np.abs(np.sum(ei*ej)) > tol
+        }
+        if len(dperp) > 0:
+            lstr = [f"\t- {k0}: {v0}" for k0, v0 in dperp.items()]
+            msg = "Non-perpendicular vectors:\n" + "\n".join(lstr)
+            raise Exception(msg)
+
+        # direct
+        if not np.allclose(np.cross(e0, e1), e2, atol=tol, rtol=1e-6):
+            msg = "Non-direct basis"
+            raise Exception(msg)
+
+        return e0, e1, e2
+
+
+# #############################################################################
+# #############################################################################
 #                   Utilities for naming keys
 # #############################################################################
 
