@@ -175,6 +175,46 @@ def _check_var_iter(
     return var
 
 
+def _check_flat1darray(
+    var=None,
+    varname=None,
+    dtype=None,
+    size=None,
+    norm=None,
+):
+
+    # Default inputs
+    if norm is None:
+        norm = False
+
+    # Return None of None
+    if var is None:
+        return None
+
+    # Format to flat 1d array and check size
+    var = np.atleast_1d(var).ravel()
+
+    # size
+    if size is None and var.size != size:
+        msg = (
+            f"Arg {varname} should be convertible to a 1d np.ndarray with:\n"
+            f"\t- size = {size}\n"
+            f"\t- dtype = {dtype}\n"
+            f"Provided:\n{var}"
+        )
+        raise Exception(msg)
+
+    # dtype
+    if dtype is not None:
+        var = var.astype(dtype)
+
+    # Normalize
+    if norm is True:
+        var = var / np.linalg.norm(var)
+
+    return var
+
+
 # ##################################################################
 # ##################################################################
 #               Utilities for checking dict
@@ -222,11 +262,24 @@ def _check_dict_valid_keys(
     # keys types constraints
     if isinstance(dkeys, dict):
         for k0, v0 in dkeys.items():
-            var[k0] = _check_var(
-                var[k0],
-                f"{varname}['{k0}']",
-                **v0,
-            )
+            if any(['iter' in ss for ss in v0.keys()]):
+                var[k0] = _check_var_iter(
+                    var[k0],
+                    f"{varname}['{k0}']",
+                    **v0,
+                )
+            elif 'dtype' in v0.keys() or 'size' in v0.keys():
+                var[k0] = _check_flat1darray(
+                    var[k0],
+                    f"{varname}['{k0}']",
+                    **v0,
+                )
+            else:
+                var[k0] = _check_var(
+                    var[k0],
+                    f"{varname}['{k0}']",
+                    **v0,
+                )
 
     return var
 
