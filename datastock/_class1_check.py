@@ -1809,23 +1809,65 @@ def _select(dd=None, dd_name=None, log=None, returnas=None, **kwdargs):
 #############################################
 
 
+def _get_lparam_show_append(which, key, val, lparam, for_show):
+
+    c0 = (
+        callable(val)
+        or 'class' in key
+        or 'handle' in key
+        or (which == 'axes' and key == 'bck')
+        or isinstance(val, dict)
+    )
+    if key not in lparam and ((not for_show) or (for_show and not c0)):
+        lparam.append(key)
+
+
+def _get_lparam(which=None, dd=None, for_show=None):
+
+    if for_show:
+        lparam = []
+        for k0, v0 in dd.items():
+            for k1, v1 in v0.items():
+                if isinstance(v1, dict):
+                    for k2, v2 in v1.items():
+                        k3 = f'{k1}.{k2}'
+                        _get_lparam_show_append(
+                            which, k3, v2, lparam, for_show,
+                        )
+                else:
+                    _get_lparam_show_append(
+                        which, k1, v1, lparam, for_show,
+                    )
+
+    else:
+        lparam = list(list(dd.values())[0].keys())
+
+    return lparam
+
+
 def _show_get_fields(which=None, dobj=None, lparam=None, dshow=None):
+
     # show dict
     if which not in dshow.keys():
-        lk = [
-            kk for kk in lparam
-            if 'func' not in kk
-            and 'class' not in kk
-            and kk not in ['handle']
-            and not (which == 'axes' and kk == 'bck')
-            and all([
-                not isinstance(v1[kk], dict)
-                for v1 in dobj[which].values()
-            ])
-        ]
+        lk = lparam
+
     else:
         lk = dshow[which]
-        lk = [kk for kk in dshow[which] if kk.split('.')[0] in lparam]
+
+        if isinstance(lk, list):
+            lk = [
+                kk for kk in dshow[which]
+                if kk in lparam
+            ]
+        elif isinstance(lk, tuple):
+            lk = [
+                kk for kk in lparam
+                if kk not in dshow[which]
+            ]
+        else:
+            msg = f"Unreckognized dshow['{which}']"
+            raise Exception(msg)
+
     return lk
 
 def _show_extract(dobj=None, lk=None):
@@ -1837,7 +1879,7 @@ def _show_extract(dobj=None, lk=None):
         for ii in range(len(lk0)):
             if ii == 0:
                 v0 = dobj[lk0[ii]]
-            else:
+            elif v0 is not None:
                 v0 = v0[lk0[ii]]
 
         lv0.append(str(v0))

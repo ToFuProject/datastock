@@ -86,9 +86,9 @@ def _check_var(
     if sign is not None:
         err = False
         if np.isscalar(var):
-            if not eval(f'{var} {sign}'):
+            if not eval(f'var {sign}'):
                 err = True
-        elif not np.all(eval(f'np.asarray({var}) {sign}')):
+        elif not np.all(eval(f'np.asarray(var) {sign}')):
             err = True
 
         if err is True:
@@ -214,7 +214,7 @@ def _check_flat1darray(
 
     # sign
     if sign is not None:
-        if np.all(eval(f'np.asarray({var}) {sign}')):
+        if not np.all(eval(f'var {sign}')):
             msg = (
                 f"Arg {varname} must be {sign}\n"
                 f"Provided: {var}"
@@ -287,6 +287,9 @@ def _check_dict_valid_keys(
                 if var.get(k0) is None:
                     var[k0] = None
                     continue
+
+            if 'can_be_None' in v0:
+                del v0['can_be_None']
 
             vv = var.get(k0)
 
