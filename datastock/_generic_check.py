@@ -392,9 +392,9 @@ def _check_vectbasis(
         if e0 is None and e1 is None:
             e1 = _get_horizontal_unitvect(ee=e2)
         elif e0 is None and e2 is None:
-            e2 = _get_vertical_unitvect(ee=e2)
+            e2 = _get_vertical_unitvect(ee=e1)
         elif e1 is None and e2 is None:
-            e2 = _get_vertical_unitvect(ee=e2)
+            e2 = _get_vertical_unitvect(ee=e0)
 
         # complete if 1 missing
         if e0 is None:
