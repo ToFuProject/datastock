@@ -196,14 +196,17 @@ def _check_flat1darray(
     var = np.atleast_1d(var).ravel()
 
     # size
-    if size is None and var.size != size:
-        msg = (
-            f"Arg {varname} should be convertible to a 1d np.ndarray with:\n"
-            f"\t- size = {size}\n"
-            f"\t- dtype = {dtype}\n"
-            f"Provided:\n{var}"
-        )
-        raise Exception(msg)
+    if size is None:
+        if np.isscalar(size):
+            size = [size]
+        if var.size not in size:
+            msg = (
+                f"Arg {varname} should be a 1d np.ndarray with:\n"
+                f"\t- size = {size}\n"
+                f"\t- dtype = {dtype}\n"
+                f"Provided:\n{var}"
+            )
+            raise Exception(msg)
 
     # dtype
     if dtype is not None:
