@@ -180,6 +180,7 @@ def _check_flat1darray(
     varname=None,
     dtype=None,
     size=None,
+    sign=None,
     norm=None,
 ):
 
@@ -208,6 +209,15 @@ def _check_flat1darray(
     if dtype is not None:
         var = var.astype(dtype)
 
+    # sign
+    if sign is not None:
+        if np.all(eval(f'np.asarray({var}) {sign}')):
+            msg = (
+                f"Arg {varname} must be {sign}\n"
+                f"Provided: {var}"
+            )
+            raise Exception(msg)
+
     # Normalize
     if norm is True:
         var = var / np.linalg.norm(var)
@@ -227,6 +237,7 @@ def _check_dict_valid_keys(
     dkeys=None,
     has_all_keys=None,
     has_only_keys=None,
+    keys_can_be_None=None,
 ):
     """ Check dict has expected keys """
 
@@ -261,7 +272,22 @@ def _check_dict_valid_keys(
 
     # keys types constraints
     if isinstance(dkeys, dict):
+
+        if keys_can_be_None is not None:
+            for k0, v0 in dkeys.items():
+                dkeys[k0]['can_be_None'] = keys_can_be_None
+
         for k0, v0 in dkeys.items():
+
+            # policy vs None
+            if v0.get('can_be_None', False) is True:
+                if var.get(k0) is None:
+                    var[k0] = None
+                    continue
+
+            vv = var.get(k0)
+
+            # routine to call
             if any(['iter' in ss for ss in v0.keys()]):
                 var[k0] = _check_var_iter(
                     var[k0],
