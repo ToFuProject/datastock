@@ -324,7 +324,7 @@ def _get_horizontal_unitvect(ee=None):
         eout = np.r_[ee[1], -ee[0], 0]
     else:
         eout = np.r_[1, 0, 0.]
-    return _check_flat1darray(eout, 'eout', size=dim, dtype=float, norm=True)
+    return _check_flat1darray(eout, 'eout', size=3, dtype=float, norm=True)
 
 
 def _get_vertical_unitvect(ee=None):
@@ -333,7 +333,7 @@ def _get_vertical_unitvect(ee=None):
         eout = np.r_[-ee[2]*ee[0], -ee[2]*ee[1], eh]
     else:
         eout = _get_horizontal_unitvect(ee=ee)
-    return _check_flat1darray(eout, 'eout', size=dim, dtype=float, norm=True)
+    return _check_flat1darray(eout, 'eout', size=3, dtype=float, norm=True)
 
 
 def _check_vectbasis(
