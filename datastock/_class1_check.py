@@ -36,10 +36,6 @@ _DDEF_PARAMS = {
 }
 
 
-_IREF = 'n'
-_IDATA = 'd'
-
-
 _DATA_NONE = False
 
 
@@ -299,6 +295,7 @@ def _remove_ref(
     ddefparams_obj=None,
     data_none=None,
     max_ndim=None,
+    dshort=None,
 ):
     """ Remove a ref (or list of refs) and all associated data """
 
@@ -328,6 +325,7 @@ def _remove_ref(
         data_none=data_none,
         max_ndim=max_ndim,
         harmonize=True,
+        dshort=dshort,
     )
 
 
@@ -345,6 +343,7 @@ def _remove_data(
     ddefparams_obj=None,
     data_none=None,
     max_ndim=None,
+    dshort=None,
 ):
     """ Remove a ref (or list of refs) and all associated data """
 
@@ -391,6 +390,7 @@ def _remove_data(
         data_none=data_none,
         max_ndim=max_ndim,
         harmonize=True,
+        dshort=dshort,
     )
 
 
@@ -408,6 +408,7 @@ def _remove_obj(
     ddefparams_obj=None,
     data_none=None,
     max_ndim=None,
+    dshort=None,
 ):
 
     # ------------
@@ -450,6 +451,7 @@ def _remove_obj(
         data_none=data_none,
         max_ndim=max_ndim,
         harmonize=True,
+        dshort=dshort,
     )
 
 
@@ -509,6 +511,7 @@ def _check_dref(
     dref=None,
     dref0=None,
     ddata0=None,
+    dshort=None,
 ):
     """ Check and format dref
 
@@ -538,16 +541,8 @@ def _check_dref(
     for k0, v0 in dref.items():
 
         # key
-        nmax = _generic_check._name_key(
-            dd=dref0, dd_name='dref0', keyroot=_IREF,
-        )[1]
-        key = f'{_IREF}{nmax:02.0f}'
-
-        key = _generic_check._check_var(
-            k0,
-            'k0',
-            types=str,
-            default=key,
+        key = _generic_check._obj_key(
+            d0=dref0, short=dshort.get('ref', 'n'), key=k0,
         )
 
         # v0
@@ -713,6 +708,7 @@ def _get_suitable_ref(
     dref0=None,
     dref_add=None,
     axis=None,
+    dshort=None,
 ):
     """  For each dimension of data.shape, identify the relevant ref index """
 
@@ -741,18 +737,18 @@ def _get_suitable_ref(
 
     # no match => create new ref
     else:
-        nmax0 = _generic_check._name_key(
-            dd=dref0, dd_name='dref', keyroot=_IREF,
-        )[1]
-        nmax1 = _generic_check._name_key(
-            dd=dref_add, dd_name='dref_add', keyroot=_IREF,
-        )[1]
-        lref = f'{_IREF}{max(nmax0, nmax1):02.0f}'
+        key = _generic_check._obj_key(d0=dref0, short=dshort['ref'])
 
     return lref, size
 
 
-def _check_data_ref(k0=None, ddata=None, dref0=None, dref_add=None):
+def _check_data_ref(
+    k0=None,
+    ddata=None,
+    dref0=None,
+    dref_add=None,
+    dshort=None,
+):
 
     if dref_add is None:
         dref_add = {}
@@ -767,6 +763,7 @@ def _check_data_ref(k0=None, ddata=None, dref0=None, dref_add=None):
                 dref0=dref0,
                 dref_add=dref_add,
                 axis=ii,
+                dshort=dshort,
             )
 
             if ref not in dref0.keys() and ref not in dref_add.keys():
@@ -808,6 +805,7 @@ def _check_ddata(
     reserved_keys=None,
     data_none=None,
     max_ndim=None,
+    dshort=None,
 ):
 
     # ----------------
@@ -903,16 +901,8 @@ def _check_ddata(
     for k0, v0 in ddata.items():
 
         # key
-        nmax = _generic_check._name_key(
-            dd=ddata0, dd_name='ddata0', keyroot=_IDATA,
-        )[1]
-        key = f'{_IDATA}{nmax:02.0f}'
-
-        key = _generic_check._check_var(
-            k0,
-            'k0',
-            types=str,
-            default=key,
+        key = _generic_check._obj_key(
+            d0=ddata0, short=dshort['data'], key=k0,
         )
 
         # convert to dict if needed
@@ -932,7 +922,11 @@ def _check_ddata(
             ddata[k0]['ref'] = (v0['ref'],)
 
         _check_data_ref(
-            k0=k0, ddata=ddata, dref0=dref0, dref_add=dref_add,
+            k0=k0,
+            ddata=ddata,
+            dref0=dref0,
+            dref_add=dref_add,
+            dshort=dshort,
         )
 
         ddata2[key] = dict(ddata[k0])
@@ -976,6 +970,7 @@ def _check_ddata(
 def _check_dobj(
     dobj=None,
     dobj0=None,
+    dshort=None,
 ):
 
     # ----------------
@@ -1026,16 +1021,11 @@ def _check_dobj(
         # set None to default keys if any None
         dobj2[k0] = {}
         for k1 in v0.keys():
-            nmax = _generic_check._name_key(
-                dd=dobj0.get(k0, {}), dd_name=f"dobj0['{k0}']", keyroot=k0[:3],
-            )[1]
-            key = f'{k0[:3]}{nmax:02.0f}'
 
-            key = _generic_check._check_var(
-                k1,
-                'k1',
-                types=str,
-                default=key,
+            key = _generic_check._obj_key(
+                d0=dobj0.get(k0, {}),
+                short=dshort.get(k0, k0[:4]),
+                key=k1,
             )
 
             dobj2[k0][key] = dict(dobj[k0][k1])
@@ -1240,6 +1230,7 @@ def _consistency(
     data_none=None,
     max_ndim=None,
     harmonize=None,
+    dshort=None,
 ):
 
     # --------------
@@ -1255,7 +1246,7 @@ def _consistency(
     # dref
 
     dref, ddata_add = _check_dref(
-        dref=dref, dref0=dref0, ddata0=ddata0,
+        dref=dref, dref0=dref0, ddata0=ddata0, dshort=dshort,
     )
     if ddata_add is not None:
         if ddata is None:
@@ -1273,6 +1264,7 @@ def _consistency(
         reserved_keys=reserved_keys,
         data_none=data_none,
         max_ndim=max_ndim,
+        dshort=dshort,
     )
     if dref_add is not None:
         dref0.update(dref_add)
@@ -1282,7 +1274,7 @@ def _consistency(
     # dobj
 
     dobj = _check_dobj(
-        dobj=dobj, dobj0=dobj0,
+        dobj=dobj, dobj0=dobj0, dshort=dshort,
     )
     for k0, v0 in dobj.items():
         if k0 not in dobj0.keys():
@@ -1366,65 +1358,6 @@ def _consistency(
             if pp not in self._reserved_all and pp not in lparam:
                 lparam.append(pp)
 """
-
-
-# #############################################################################
-# #############################################################################
-#               Switch ref
-# #############################################################################
-
-
-# DEPRECATED ?
-# def switch_ref(
-    # new_ref=None,
-    # ddata=None,
-    # dref=None,
-    # dobj0=None,
-    # reserved_keys=None,
-    # ddefparams_data=None,
-    # data_none=None,
-    # max_ndim=None,
-# ):
-    # """Use the provided key as ref (if valid) """
-
-    # # Check input
-    # c0 = (
-        # new_ref in ddata.keys()
-        # and ddata[new_ref].get('monot') == (True,)
-    # )
-    # if not c0:
-        # msg = (
-            # "\nArg new_ref must be a key to a valid ref (monotonous)!\n"
-            # + "\t- Provided: {}\n\n".format(new_ref)
-            # + "Available valid ref candidates:\n"
-            # + "\t- {}".format('\n\t- '.join(list(dref.keys())))
-        # )
-        # raise Exception(msg)
-
-    # # Substitute in dref
-    # old_ref = ddata[new_ref]['ref'][0]
-    # dref[new_ref] = dict(dref[old_ref])
-    # del dref[old_ref]
-
-    # # substitute in ddata['ref']
-    # for k0, v0 in ddata.items():
-        # if v0.get('ref') is not None and old_ref in v0['ref']:
-            # new = tuple([rr for rr in v0['ref']])
-            # ddata[k0]['ref'] = tuple([
-                # new_ref if rr == old_ref else rr
-                # for rr in v0['ref']
-            # ])
-
-    # return _consistency(
-        # ddata=ddata, ddata0={},
-        # dref=dref, dref0={},
-        # dobj=None, dobj0=dobj0,
-        # reserved_keys=None,
-        # ddefparams_data=ddefparams_data,
-        # ddefparams_obj=None,
-        # data_none=None,
-        # max_ndim=None,
-    # )
 
 
 # #############################################################################

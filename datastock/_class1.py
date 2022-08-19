@@ -53,6 +53,12 @@ class DataStock1(DataStock0):
          },
     }
 
+    # short names
+    _dshort = {
+        'ref': 'n',
+        'data': 'd',
+    }
+
     # _dallowed_params = None
     _data_none = None
     _reserved_keys = None
@@ -110,6 +116,7 @@ class DataStock1(DataStock0):
             data_none=self._data_none,
             max_ndim=self._max_ndim,
             harmonize=harmonize,
+            dshort=self._dshort,
         )
 
     # ---------------------
@@ -794,6 +801,16 @@ class DataStock1(DataStock0):
 
         if show_which is None:
             show_which = ['ref', 'data', 'obj']
+        elif isinstance(show_which, tuple):
+            if 'obj' in show_which:
+                show_which = [
+                    k0 for k0 in ['ref', 'data'] if k0 not in show_which
+                ]
+            else:
+                show_which = [
+                    k0 for k0 in ['ref', 'data'] + list(self._dobj.keys())
+                    if k0 not in show_which
+                ]
 
         lcol, lar = [], []
 
@@ -900,11 +917,11 @@ class DataStock1(DataStock0):
             returnas=returnas,
         )
 
-    def show_all(self):
-        self.show(show_which=None)
-
     def show_data(self):
         self.show(show_which=['ref', 'data'])
+
+    def show_obj(self):
+        self.show(show_which=('ref', 'data'))
 
     def show_interactive(self):
         self.show(show_which=['axes', 'mobile', 'interactivity'])

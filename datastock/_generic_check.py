@@ -31,6 +31,7 @@ def _check_var(
     default=None,
     allowed=None,
     excluded=None,
+    sign=None,
 ):
     """ Check a variable, with options
 
@@ -77,6 +78,22 @@ def _check_var(
         if var in excluded:
             msg = (
                 f"Arg {varname} must not be in {excluded}!\n"
+                f"Provided: {var}"
+            )
+            raise Exception(msg)
+
+    # sign
+    if sign is not None:
+        err = False
+        if np.isscalar(var):
+            if not eval(f'{var} {sign}'):
+                err = True
+        elif not np.all(eval(f'np.asarray({var}) {sign}')):
+            err = True
+
+        if err is True:
+            msg = (
+                f"Arg {varname} must be {sign}\n"
                 f"Provided: {var}"
             )
             raise Exception(msg)
@@ -158,30 +175,86 @@ def _check_var_iter(
     return var
 
 
+# ##################################################################
+# ##################################################################
+#               Utilities for checking dict
+# ##################################################################
+
+
+def _check_dict_valid_keys(
+    var=None,
+    varname=None,
+    dkeys=None,
+    has_all_keys=None,
+    has_only_keys=None,
+):
+    """ Check dict has expected keys """
+
+    # check type
+    if not isinstance(var, dict):
+        msg = f"Arg {varname} must be a dict!\nProvided: {type(var)}"
+        raise Exception(msg)
+
+    # derive lkeys
+    if isinstance(dkeys, dict):
+        lkeys = list(dkeys.keys())
+    else:
+        lkeys = dkeys
+
+    # has_all_keys
+    if has_all_keys is True:
+        if not all([k0 in var.keys() for k0 in lkeys]):
+            msg = (
+                f"Arg {varname} should have all keys:\n{sorted(lkeys)}\n"
+                f"Provided:\n{sorted(var.keys())}"
+            )
+            raise Exception(msg)
+
+    # has_only_keys
+    if has_only_keys is True:
+        if not all([k0 in lkeys for k0 in var.keys()]):
+            msg = (
+                f"Arg {varname} should have only keys:\n{sorted(lkeys)}\n"
+                f"Provided:\n{sorted(var.keys())}"
+            )
+            raise Exception(msg)
+
+    # keys types constraints
+    if isinstance(dkeys, dict):
+        for k0, v0 in dkeys.items():
+            var[k0] = _check_var(
+                var[k0],
+                f"{varname}['{k0}']",
+                **v0,
+            )
+
+    return var
+
+
 # #############################################################################
 # #############################################################################
 #                   Utilities for naming keys
 # #############################################################################
 
 
-def _name_key(dd=None, dd_name=None, keyroot='key'):
-    """ Return existing default keys and their number as a dict
+def _obj_key(d0=None, short=None, key=None):
+    lout = list(d0.keys())
+    if key is None:
+        if len(lout) == 0:
+            nb = 0
+        else:
+            lnb = [
+                int(k0[2:]) for k0 in lout if k0.startswith(short)
+                and k0[2:].isnumeric()
+            ]
+            nb = min([ii for ii in range(max(lnb)+2) if ii not in lnb])
+        key = f'{short}{nb}'
 
-    Used to automatically iterate on dict keys
-
-    """
-
-    dk = {
-        kk: int(kk[len(keyroot):])
-        for kk in dd.keys()
-        if kk.startswith(keyroot)
-        and kk[len(keyroot):].isnumeric()
-    }
-    if len(dk) == 0:
-        nmax = 0
-    else:
-        nmax = max([v0 for v0 in dk.values()]) + 1
-    return dk, nmax
+    return _check_var(
+        key, 'key',
+        types=str,
+        excluded=lout,
+    )
 
 
 # #############################################################################
