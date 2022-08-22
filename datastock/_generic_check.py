@@ -189,21 +189,17 @@ def _check_flat1darray(
     if norm is None:
         norm = False
 
-    # Return None of None
-    if var is None:
-        return None
-
     # can_be_None
     if can_be_None is None:
         can_be_None = False
 
     # Format to flat 1d array and check size
     if var is None:
-        if can_be_None is False:
+        if can_be_None is True:
+            return
+        else:
             msg = f"Arg {varname} is None!"
             raise Exception(msg)
-        else:
-            return
 
     var = np.atleast_1d(var).ravel()
 
