@@ -204,7 +204,7 @@ def _check_flat1darray(
     var = np.atleast_1d(var).ravel()
 
     # size
-    if size is None:
+    if size is not None:
         if np.isscalar(size):
             size = [size]
         if var.size not in size:
