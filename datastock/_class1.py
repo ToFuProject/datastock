@@ -53,6 +53,12 @@ class DataStock1(DataStock0):
          },
     }
 
+    # short names
+    _dshort = {
+        'ref': 'n',
+        'data': 'd',
+    }
+
     # _dallowed_params = None
     _data_none = None
     _reserved_keys = None
@@ -110,6 +116,7 @@ class DataStock1(DataStock0):
             data_none=self._data_none,
             max_ndim=self._max_ndim,
             harmonize=harmonize,
+            dshort=self._dshort,
         )
 
     # ---------------------
@@ -133,7 +140,7 @@ class DataStock1(DataStock0):
 
         # show dict
         if which not in self._dshow.keys():
-            lk = self.get_lparam(which=which)
+            lk = self.get_lparam(which=which, for_show=True)
             lk = [
                 kk for kk in lk
                 if 'func' not in kk
@@ -214,7 +221,7 @@ class DataStock1(DataStock0):
             return_dict=return_dict,
         )
 
-    def get_lparam(self, which=None):
+    def get_lparam(self, which=None, for_show=None):
         """ Return the list of params for the chosen dict
 
         which can be:
@@ -223,7 +230,9 @@ class DataStock1(DataStock0):
             - dobj[<which>]
         """
         which, dd = self.__check_which(which, return_dict=True)
-        return list(list(dd.values())[0].keys())
+        if which in ['ref', 'data']:
+            for_show = False
+        return _class1_check._get_lparam(dd=dd, for_show=for_show)
 
     def get_param(
         self,
@@ -794,6 +803,16 @@ class DataStock1(DataStock0):
 
         if show_which is None:
             show_which = ['ref', 'data', 'obj']
+        elif isinstance(show_which, tuple):
+            if 'obj' in show_which:
+                show_which = [
+                    k0 for k0 in ['ref', 'data'] if k0 not in show_which
+                ]
+            else:
+                show_which = [
+                    k0 for k0 in ['ref', 'data'] + list(self._dobj.keys())
+                    if k0 not in show_which
+                ]
 
         lcol, lar = [], []
 
@@ -881,7 +900,7 @@ class DataStock1(DataStock0):
                     lk = _class1_check._show_get_fields(
                         which=k0,
                         dobj=self._dobj,
-                        lparam=self.get_lparam(which=k0),
+                        lparam=self.get_lparam(which=k0, for_show=True),
                         dshow=self._dshow,
                     )
                     lcol.append([k0] + [pp.split('.')[-1] for pp in lk])
@@ -900,11 +919,11 @@ class DataStock1(DataStock0):
             returnas=returnas,
         )
 
-    def show_all(self):
-        self.show(show_which=None)
-
     def show_data(self):
         self.show(show_which=['ref', 'data'])
+
+    def show_obj(self):
+        self.show(show_which=('ref', 'data'))
 
     def show_interactive(self):
         self.show(show_which=['axes', 'mobile', 'interactivity'])

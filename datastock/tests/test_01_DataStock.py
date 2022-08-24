@@ -243,6 +243,9 @@ class Test02_Manipulate():
 
     def test05_show(self):
         self.st.show()
+        self.st.show_data()
+        self.st.show_obj()
+        self.st.show_interactive()
 
     # ------------------------
     #   Interpolate

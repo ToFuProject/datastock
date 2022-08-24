@@ -31,6 +31,7 @@ def _check_var(
     default=None,
     allowed=None,
     excluded=None,
+    sign=None,
 ):
     """ Check a variable, with options
 
@@ -77,6 +78,22 @@ def _check_var(
         if var in excluded:
             msg = (
                 f"Arg {varname} must not be in {excluded}!\n"
+                f"Provided: {var}"
+            )
+            raise Exception(msg)
+
+    # sign
+    if sign is not None:
+        err = False
+        if np.isscalar(var):
+            if not eval(f'var {sign}'):
+                err = True
+        elif not np.all(eval(f'np.asarray(var) {sign}')):
+            err = True
+
+        if err is True:
+            msg = (
+                f"Arg {varname} must be {sign}\n"
                 f"Provided: {var}"
             )
             raise Exception(msg)
@@ -158,30 +175,297 @@ def _check_var_iter(
     return var
 
 
+def _check_flat1darray(
+    var=None,
+    varname=None,
+    dtype=None,
+    size=None,
+    sign=None,
+    norm=None,
+    can_be_None=None,
+):
+
+    # Default inputs
+    if norm is None:
+        norm = False
+
+    # can_be_None
+    if can_be_None is None:
+        can_be_None = False
+
+    # Format to flat 1d array and check size
+    if var is None:
+        if can_be_None is True:
+            return
+        else:
+            msg = f"Arg {varname} is None!"
+            raise Exception(msg)
+
+    var = np.atleast_1d(var).ravel()
+
+    # size
+    if size is None:
+        if np.isscalar(size):
+            size = [size]
+        if var.size not in size:
+            msg = (
+                f"Arg {varname} should be a 1d np.ndarray with:\n"
+                f"\t- size = {size}\n"
+                f"\t- dtype = {dtype}\n"
+                f"Provided:\n{var}"
+            )
+            raise Exception(msg)
+
+    # dtype
+    if dtype is not None:
+        var = var.astype(dtype)
+
+    # sign
+    if sign is not None:
+        if not np.all(eval(f'var {sign}')):
+            msg = (
+                f"Arg {varname} must be {sign}\n"
+                f"Provided: {var}"
+            )
+            raise Exception(msg)
+
+    # Normalize
+    if norm is True:
+        var = var / np.linalg.norm(var)
+
+    return var
+
+
+# ##################################################################
+# ##################################################################
+#               Utilities for checking dict
+# ##################################################################
+
+
+def _check_dict_valid_keys(
+    var=None,
+    varname=None,
+    dkeys=None,
+    has_all_keys=None,
+    has_only_keys=None,
+    keys_can_be_None=None,
+):
+    """ Check dict has expected keys """
+
+    # check type
+    if not isinstance(var, dict):
+        msg = f"Arg {varname} must be a dict!\nProvided: {type(var)}"
+        raise Exception(msg)
+
+    # derive lkeys
+    if isinstance(dkeys, dict):
+        lkeys = list(dkeys.keys())
+    else:
+        lkeys = dkeys
+
+    # has_all_keys
+    if has_all_keys is True:
+        if not all([k0 in var.keys() for k0 in lkeys]):
+            msg = (
+                f"Arg {varname} should have all keys:\n{sorted(lkeys)}\n"
+                f"Provided:\n{sorted(var.keys())}"
+            )
+            raise Exception(msg)
+
+    # has_only_keys
+    if has_only_keys is True:
+        if not all([k0 in lkeys for k0 in var.keys()]):
+            msg = (
+                f"Arg {varname} should have only keys:\n{sorted(lkeys)}\n"
+                f"Provided:\n{sorted(var.keys())}"
+            )
+            raise Exception(msg)
+
+    # keys types constraints
+    if isinstance(dkeys, dict):
+
+        if keys_can_be_None is not None:
+            for k0, v0 in dkeys.items():
+                dkeys[k0]['can_be_None'] = keys_can_be_None
+
+        for k0, v0 in dkeys.items():
+
+            # policy vs None
+            if v0.get('can_be_None', False) is True:
+                if var.get(k0) is None:
+                    var[k0] = None
+                    continue
+
+            if 'can_be_None' in v0:
+                del v0['can_be_None']
+
+            vv = var.get(k0)
+
+            # routine to call
+            if any(['iter' in ss for ss in v0.keys()]):
+                var[k0] = _check_var_iter(
+                    var[k0],
+                    f"{varname}['{k0}']",
+                    **v0,
+                )
+            elif 'dtype' in v0.keys() or 'size' in v0.keys():
+                var[k0] = _check_flat1darray(
+                    var[k0],
+                    f"{varname}['{k0}']",
+                    **v0,
+                )
+            else:
+                var[k0] = _check_var(
+                    var[k0],
+                    f"{varname}['{k0}']",
+                    **v0,
+                )
+
+    return var
+
+
+# #############################################################################
+# #############################################################################
+#                   Utilities for vector basis
+# #############################################################################
+
+
+def _get_horizontal_unitvect(ee=None):
+    if np.abs(ee[2]) < 1. - 1e-10:
+        eout = np.r_[ee[1], -ee[0], 0]
+    else:
+        eout = np.r_[1, 0, 0.]
+    return _check_flat1darray(eout, 'eout', size=3, dtype=float, norm=True)
+
+
+def _get_vertical_unitvect(ee=None):
+    if np.abs(ee[2]) < 1. - 1e-10:
+        eh = np.sum(ee[:2]**2)
+        eout = np.r_[-ee[2]*ee[0], -ee[2]*ee[1], eh]
+    else:
+        eout = _get_horizontal_unitvect(ee=ee)
+    return _check_flat1darray(eout, 'eout', size=3, dtype=float, norm=True)
+
+
+def _check_vectbasis(
+    e0=None,
+    e1=None,
+    e2=None,
+    dim=None,
+    tol=None,
+):
+
+    # dim
+    dim = _check_var(dim, 'dim', types=int, default=3, allowed=[2, 3])
+
+    # tol
+    tol = _check_var(tol, 'tol', types=float, default=1.e-14, sign='>0.')
+
+    # check is provided
+    if e0 is not None:
+        e0 = _check_flat1darray(e0, 'e0', size=dim, dtype=float, norm=True)
+    if e1 is not None:
+        e1 = _check_flat1darray(e1, 'e1', size=dim, dtype=float, norm=True)
+    if e2 is not None:
+        e2 = _check_flat1darray(e2, 'e2', size=dim, dtype=float, norm=True)
+
+    # vectors
+    if dim == 2:
+
+        if e0 is None and e1 is None:
+            msg = "Please provide e0 and/or e1!"
+            raise Exception(msg)
+
+        # complete if missing
+        if e0 is None:
+            e0 = np.r_[e1[1], -e1[0]]
+        if e1 is None:
+            e1 = np.r_[-e0[1], e0[0]]
+
+        # perpendicularity
+        if np.abs(np.sum(e0*e1)) > tol:
+            msg = "Non-perpendicular"
+            raise Exception(msg)
+
+        # direct
+        if np.abs(np.cross(e0, e1).tolist() - 1.) < tol:
+            msg = "Non-direct basis"
+            raise Exception(msg)
+
+        return e0, e1
+
+    else:
+        if e0 is None and e1 is None and e2 is None:
+            msg = "Please provide at least e0, e1 or e2!"
+            raise Exception(msg)
+
+        # complete if 2 missing
+        if e0 is None and e1 is None:
+            e1 = _get_horizontal_unitvect(ee=e2)
+        elif e0 is None and e2 is None:
+            e2 = _get_vertical_unitvect(ee=e1)
+        elif e1 is None and e2 is None:
+            e2 = _get_vertical_unitvect(ee=e0)
+
+        # complete if 1 missing
+        if e0 is None:
+            e0 = np.cross(e1, e2)
+            e0 = _check_flat1darray(e0, 'e0', size=dim, dtype=float, norm=True)
+        if e1 is None:
+            e1 = np.cross(e2, e0)
+            e1 = _check_flat1darray(e1, 'e1', size=dim, dtype=float, norm=True)
+        if e2 is None:
+            e2 = np.cross(e0, e1)
+            e2 = _check_flat1darray(e2, 'e2', size=dim, dtype=float, norm=True)
+
+        # perpendicularity
+        lv = [
+            (('e0', 'e1'), (e0, e1)),
+            (('e0', 'e2'), (e0, e2)),
+            (('e1', 'e2'), (e1, e2)),
+        ]
+        dperp = {
+            f'{eis}.{ejs}': np.abs(np.sum(ei*ej))
+            for (eis, ejs), (ei, ej) in lv
+            if np.abs(np.sum(ei*ej)) > tol
+        }
+        if len(dperp) > 0:
+            lstr = [f"\t- {k0}: {v0}" for k0, v0 in dperp.items()]
+            msg = "Non-perpendicular vectors:\n" + "\n".join(lstr)
+            raise Exception(msg)
+
+        # direct
+        if not np.allclose(np.cross(e0, e1), e2, atol=tol, rtol=1e-6):
+            msg = "Non-direct basis"
+            raise Exception(msg)
+
+        return e0, e1, e2
+
+
 # #############################################################################
 # #############################################################################
 #                   Utilities for naming keys
 # #############################################################################
 
 
-def _name_key(dd=None, dd_name=None, keyroot='key'):
-    """ Return existing default keys and their number as a dict
+def _obj_key(d0=None, short=None, key=None):
+    lout = list(d0.keys())
+    if key is None:
+        if len(lout) == 0:
+            nb = 0
+        else:
+            lnb = [
+                int(k0[len(short):]) for k0 in lout if k0.startswith(short)
+                and k0[len(short):].isnumeric()
+            ]
+            nb = min([ii for ii in range(max(lnb)+2) if ii not in lnb])
+        key = f'{short}{nb}'
 
-    Used to automatically iterate on dict keys
-
-    """
-
-    dk = {
-        kk: int(kk[len(keyroot):])
-        for kk in dd.keys()
-        if kk.startswith(keyroot)
-        and kk[len(keyroot):].isnumeric()
-    }
-    if len(dk) == 0:
-        nmax = 0
-    else:
-        nmax = max([v0 for v0 in dk.values()]) + 1
-    return dk, nmax
+    return _check_var(
+        key, 'key',
+        types=str,
+        excluded=lout,
+    )
 
 
 # #############################################################################
