@@ -85,11 +85,21 @@ def _check_var(
     # sign
     if sign is not None:
         err = False
+
+        if isinstance(sign, str):
+            sign = [sign]
+
         if np.isscalar(var):
-            if not eval(f'var {sign}'):
-                err = True
-        elif not np.all(eval(f'np.asarray(var) {sign}')):
-            err = True
+            for ss in sign:
+                if not eval(f'var {ss}'):
+                    err = True
+                    break
+        else:
+            vv = np.asarray(var)
+            for ss in sign:
+                if not np.all(eval(f'vv {ss}')):
+                    err = True
+                    break
 
         if err is True:
             msg = (
