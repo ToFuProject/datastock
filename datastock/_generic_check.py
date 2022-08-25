@@ -85,11 +85,21 @@ def _check_var(
     # sign
     if sign is not None:
         err = False
+
+        if isinstance(sign, str):
+            sign = [sign]
+
         if np.isscalar(var):
-            if not eval(f'var {sign}'):
-                err = True
-        elif not np.all(eval(f'np.asarray(var) {sign}')):
-            err = True
+            for ss in sign:
+                if not eval(f'var {ss}'):
+                    err = True
+                    break
+        else:
+            vv = np.asarray(var)
+            for ss in sign:
+                if not np.all(eval(f'vv {ss}')):
+                    err = True
+                    break
 
         if err is True:
             msg = (
@@ -204,7 +214,7 @@ def _check_flat1darray(
     var = np.atleast_1d(var).ravel()
 
     # size
-    if size is None:
+    if size is not None:
         if np.isscalar(size):
             size = [size]
         if var.size not in size:
@@ -222,12 +232,17 @@ def _check_flat1darray(
 
     # sign
     if sign is not None:
-        if not np.all(eval(f'var {sign}')):
-            msg = (
-                f"Arg {varname} must be {sign}\n"
-                f"Provided: {var}"
-            )
-            raise Exception(msg)
+
+        if isinstance(sign, str):
+            sign = [sign]
+
+        for ss in sign:
+            if not np.all(eval(f'var {ss}')):
+                msg = (
+                    f"Arg {varname} must be {ss}\n"
+                    f"Provided: {var}"
+                )
+                raise Exception(msg)
 
     # Normalize
     if norm is True:
