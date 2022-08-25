@@ -232,12 +232,17 @@ def _check_flat1darray(
 
     # sign
     if sign is not None:
-        if not np.all(eval(f'var {sign}')):
-            msg = (
-                f"Arg {varname} must be {sign}\n"
-                f"Provided: {var}"
-            )
-            raise Exception(msg)
+
+        if isinstance(sign, str):
+            sign = [sign]
+
+        for ss in sign:
+            if not np.all(eval(f'var {ss}')):
+                msg = (
+                    f"Arg {varname} must be {ss}\n"
+                    f"Provided: {var}"
+                )
+                raise Exception(msg)
 
     # Normalize
     if norm is True:
