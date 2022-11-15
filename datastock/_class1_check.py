@@ -8,6 +8,7 @@ import warnings
 # Common
 import numpy as np
 import scipy.sparse as scpsp
+import astropy.units as asunits
 
 
 from . import _generic_check
@@ -29,7 +30,7 @@ _DDEF_PARAMS = {
         'dim':    (str, ''),
         'quant':  (str, ''),
         'name':   (str, ''),
-        'units':  (str, ''),
+        'units':  ((str, asunits.core.UnitBase), ''),
     },
     'dobj': {
     },
@@ -1055,6 +1056,7 @@ def _harmonize_params(
     lkeys=None,
     reserved_keys=None,
     ddefparams=None,
+    astropy_units=None,
 ):
 
     # ------------------
@@ -1066,6 +1068,8 @@ def _harmonize_params(
         reserved_keys = _DRESERVED_KEYS[dd_name]
     if ddefparams is None:
         ddefparams = _DDEF_PARAMS[dd_name]
+    if astropy_units is None:
+        astropy_units = True
 
     # ------------------
     # list of param keys
@@ -1118,6 +1122,16 @@ def _harmonize_params(
     for k0 in lparams:
         for k1, v1 in dd.items():
             dd[k1][k0] = dd[k1].get(k0)
+
+    # ----------------------------------------
+    # convert units to astropy units
+
+    if astropy_units is True:
+        for k1, v1 in dd.items():
+            if v1.get('units') is not None and v1['units'] != '':
+                if isinstance(v1['units'], str):
+                    if hasattr(asunits, v1['units']):
+                        dd[k1]['units'] = eval(f"asunits.{v1['units']}")
 
     # -------------------
     # Check against dobj0
@@ -1411,7 +1425,11 @@ def _get_param(
     if returnas == dict:
         out = {k0: {k1: dd[k1][k0] for k1 in key} for k0 in param}
     else:
-        out = {k0: np.array([dd[k1][k0] for k1 in key]) for k0 in param}
+        out = {
+            k0: np.array([str(dd[k1][k0]) for k1 in key]) if k0 == 'units'
+            else np.array([dd[k1][k0] for k1 in key])
+            for k0 in param
+        }
 
     return out
 
@@ -1882,5 +1900,14 @@ def _show_extract(dobj=None, lk=None):
             elif v0 is not None:
                 v0 = v0[lk0[ii]]
 
-        lv0.append(str(v0))
+        # formatting
+        if isinstance(v0, float):
+            lv0.append(f'{v0:.3e}')
+        elif isinstance(v0, np.ndarray) and v0.size == 3:
+            if v0.dtype == np.float:
+                lv0.append(str([f'{vv:.3e}' for vv in v0]))
+            else:
+                lv0.append(str(v0))
+        else:
+            lv0.append(str(v0))
     return lv0

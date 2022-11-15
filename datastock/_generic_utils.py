@@ -2,6 +2,7 @@
 
 import numpy as np
 import scipy.sparse as scpsp
+import astropy.units as asunits
 
 
 from . import _generic_check
@@ -365,7 +366,7 @@ def compare_dict(d0=None, d1=None, dname=None, returnas=None, verb=None):
 
         # functions
         elif callable(d0[k0]):
-            if d0[k0] == d1[k0]:
+            if d0[k0] != d1[k0]:
                 dkeys[key] = "!= callable"
 
         # dict
@@ -379,6 +380,11 @@ def compare_dict(d0=None, d1=None, dname=None, returnas=None, verb=None):
             )
             if isinstance(dd, dict):
                 dkeys.update(dd)
+
+        # units (astropy)
+        elif isinstance(d0[k0], asunits.core.UnitBase):
+            if d0[k0] != d1[k0]:
+                dkeys[key] = f'!= astropy units ({d0[k0]} vs {d1[k0]})'
 
         # not implemented cases
         else:

@@ -39,17 +39,9 @@ class DataStock1(DataStock0):
     # Fixed (class-wise) dictionary of default properties
     _ddef = {
         'params': {
-            'dref': {
-            },
-            'ddata': {
-                'units':  (str, ''),
-                'dim':    (str, ''),
-                'quant':  (str, ''),
-                'name':   (str, ''),
-                'source': (str, ''),
-            },
-            'dobj': {
-            },
+            'dref': None,
+            'ddata': None,
+            'dobj': None,
          },
     }
 
