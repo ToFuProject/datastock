@@ -1902,10 +1902,15 @@ def _show_extract(dobj=None, lk=None):
 
         # formatting
         if isinstance(v0, float):
-            lv0.append(f'{v0:.3e}')
+            lv0.append(f'{v0:.2e}')
         elif isinstance(v0, np.ndarray) and v0.size == 3:
             if v0.dtype == np.float:
-                lv0.append(str([f'{vv:.3e}' for vv in v0]))
+                lv0.append(
+                    np.array2string(
+                        v0,
+                        formatter={'float': lambda x: f'{x:.3e}'},
+                    ),
+                )
             else:
                 lv0.append(str(v0))
         else:
