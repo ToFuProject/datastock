@@ -7,6 +7,7 @@ import copy
 
 # Common
 import numpy as np
+import astropy.units as asunits
 
 
 # library-specific
@@ -39,17 +40,15 @@ class DataStock1(DataStock0):
     # Fixed (class-wise) dictionary of default properties
     _ddef = {
         'params': {
-            'dref': {
-            },
+            'dref': {},
             'ddata': {
-                'units':  (str, ''),
+                'source': (str, ''),
                 'dim':    (str, ''),
                 'quant':  (str, ''),
                 'name':   (str, ''),
-                'source': (str, ''),
+                'units':  ((str, asunits.core.UnitBase), ''),
             },
-            'dobj': {
-            },
+            'dobj': {},
          },
     }
 

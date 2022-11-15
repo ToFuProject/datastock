@@ -6,6 +6,7 @@ import datetime as dtm
 
 
 import numpy as np
+import astropy.units as asunits
 
 
 from . import _generic_check
@@ -70,7 +71,7 @@ def save(
         types=bool,
     )
 
-    # ----------------------
+    # -----------------------
     # store initial data type
 
     dtypes = {
@@ -78,6 +79,11 @@ def save(
         for k0, v0 in dflat.items()
     }
     dflat.update(dtypes)
+
+    # convert astropy units to str
+    for k0, v0 in dflat.items():
+        if isinstance(v0, asunits.core.UnitBase):
+            dflat[k0] = str(v0)
 
     # ----------------------
     # save / print / return
@@ -159,9 +165,9 @@ def load(
             dout[k0] = list(dflat[k0])
         elif typ == 'str':
             dout[k0] = str(dflat[k0])
-        elif typ == 'int':
+        elif typ in ['int', 'int32', 'int64']:
             dout[k0] = int(dflat[k0])
-        elif typ == 'float':
+        elif typ in ['float', 'float32', 'float64']:
             dout[k0] = float(dflat[k0])
         elif typ == 'bool':
             dout[k0] = bool(dflat[k0])
@@ -169,6 +175,8 @@ def load(
             dout[k0] = None
         elif typ == 'ndarray':
             dout[k0] = dflat[k0]
+        elif 'Unit' in typ:
+            dout[k0] = eval(f"asunits.{v0}")
         else:
             msg = (
                 f"Don't know how to deal with dflat['{k0}']: {typ}"
