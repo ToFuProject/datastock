@@ -165,9 +165,9 @@ def load(
             dout[k0] = list(dflat[k0])
         elif typ == 'str':
             dout[k0] = str(dflat[k0])
-        elif typ == 'int':
+        elif typ in ['int', 'int32', 'int64']:
             dout[k0] = int(dflat[k0])
-        elif typ == 'float':
+        elif typ in ['float', 'float32', 'float64']:
             dout[k0] = float(dflat[k0])
         elif typ == 'bool':
             dout[k0] = bool(dflat[k0])
