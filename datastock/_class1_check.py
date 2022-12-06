@@ -1130,8 +1130,10 @@ def _harmonize_params(
         for k1, v1 in dd.items():
             if v1.get('units') is not None and v1['units'] != '':
                 if isinstance(v1['units'], str):
-                    if hasattr(asunits, v1['units']):
-                        dd[k1]['units'] = eval(f"asunits.{v1['units']}")
+                    try:
+                        dd[k1]['units'] = asunits.Unit(v1['units'])
+                    except Exception as err:
+                        pass
 
     # -------------------
     # Check against dobj0

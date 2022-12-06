@@ -176,7 +176,7 @@ def load(
         elif typ == 'ndarray':
             dout[k0] = dflat[k0]
         elif 'Unit' in typ:
-            dout[k0] = eval(f"asunits.{v0}")
+            dout[k0] = asunits.Unit(v0.tolist())
         else:
             msg = (
                 f"Don't know how to deal with dflat['{k0}']: {typ}"
