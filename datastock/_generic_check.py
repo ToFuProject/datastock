@@ -562,7 +562,7 @@ def _check_dax(dax=None, main=None):
                 or (
                     isinstance(v0, dict)
                     and issubclass(v0.get('handle').__class__, plt.Axes)
-                    and v0.get('type') in _LALLOWED_AXESTYPES
+                    # and v0.get('type') in _LALLOWED_AXESTYPES
                 )
             )
             for k0, v0 in dax.items()
@@ -570,9 +570,14 @@ def _check_dax(dax=None, main=None):
     )
     if not c0:
         msg = (
+            "Wrong dax:\n"
+            "Should be a dict of plt.Axes or of dict of plt.Axes in 'handle'\n"
         )
-        import pdb; pdb.set_trace()     # DB
-        pass
+        if isinstance(dax, dict):
+            lstr = [f"\t- '{k0}': {v0}" for k0, v0 in dax.items()]
+            msg += "\n" + "\n".join(lstr)
+        else:
+            msg += f"{dax}"
         raise Exception(msg)
 
     for k0, v0 in dax.items():
