@@ -192,6 +192,7 @@ def _check_flat1darray(
     size=None,
     sign=None,
     norm=None,
+    unique=None,
     can_be_None=None,
 ):
 
@@ -212,6 +213,10 @@ def _check_flat1darray(
             raise Exception(msg)
 
     var = np.atleast_1d(var).ravel()
+            
+    # sort
+    if unique is True:
+        var = np.unique(var)
 
     # size
     if size is not None:
