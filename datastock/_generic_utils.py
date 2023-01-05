@@ -431,24 +431,60 @@ def compare_obj(obj0=None, obj1=None, returnas=None, verb=None):
 # #################################################################
 
 
-def flatten_dict(din=None, parent_key=None, sep=None):
+def flatten_dict(
+        din=None, 
+        parent_key=None, 
+        sep=None,
+        asarray=None,
+        with_types=None,
+        type_str=None,
+    ):
     """ Return a flattened version of the input dict """
 
     # ------------
     # check inputs
 
+    # sep
     sep = _generic_check._check_var(
         sep, 'sep',
         default='.',
         types=str,
     )
 
+    # parent_key
     if parent_key is not None:
         parent_key = _generic_check._check_var(
             parent_key, 'parent_key',
             default='.',
             types=str,
         )
+
+    # asarray
+    asarray = _generic_check._check_var(
+        asarray, 'asarray',
+        default=False,
+        types=bool,
+    )
+    
+    # with_types
+    with_types = _generic_check._check_var(
+        with_types, 'with_types',
+        default=False,
+        types=bool,
+    )
+
+    # with_types
+    type_str = _generic_check._check_var(
+        type_str, 'type_str',
+        default='_type',
+        types=str,
+    )
+
+    # --------
+    # flatten
+
+    if with_types:
+        dtypes = {}
 
     # --------
     # flatten
@@ -464,11 +500,47 @@ def flatten_dict(din=None, parent_key=None, sep=None):
 
         # value
         if isinstance(v0, dict):
-            items.extend(flatten_dict(v0, key, sep=sep).items())
+            items.extend(
+                flatten_dict(
+                    v0,
+                    key,
+                    sep=sep,
+                    asarray=asarray,
+                    with_types=with_types,
+                    type_str=type_str,
+                ).items()
+            )
+            
         else:
-            items.append((key, v0))
+            
+            # get class
+            cc = v0.__class__.__name__
+            
+            # store type?
+            if with_types:
+                dtypes[f'{key}{type_str}'] = cc                
+            
+            # asarray
+            if asarray:
+                
+                # astropy unit to str
+                if 'Unit' in cc:
+                    v0 = str(v0)
 
-    return dict(items)
+                items.append((key, np.asarray(v0)))
+                
+            else:
+                items.append((key, v0))
+
+    # --------
+    # return
+
+    if with_types:
+        dout = dict(items)
+        dout.update(dtypes)
+        return dout
+    else:
+        return dict(items)
 
 
 def _reshape_dict(k0, v0, dinit={}, sep=None):

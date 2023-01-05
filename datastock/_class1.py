@@ -42,11 +42,11 @@ class DataStock1(DataStock0):
         'params': {
             'dref': {},
             'ddata': {
-                'source': (str, ''),
-                'dim':    (str, ''),
-                'quant':  (str, ''),
-                'name':   (str, ''),
-                'units':  ((str, asunits.core.UnitBase), ''),
+                'source': {'cls': str, 'def': ''},
+                'dim':    {'cls': str, 'def': ''},
+                'quant':  {'cls': str, 'def': ''},
+                'name':   {'cls': str, 'def': ''},
+                'units':  {'cls': (str, asunits.core.UnitBase), 'def': ''},
             },
             'dobj': {},
          },
