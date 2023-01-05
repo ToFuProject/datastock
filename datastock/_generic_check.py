@@ -192,6 +192,7 @@ def _check_flat1darray(
     size=None,
     sign=None,
     norm=None,
+    unique=None,
     can_be_None=None,
 ):
 
@@ -212,6 +213,10 @@ def _check_flat1darray(
             raise Exception(msg)
 
     var = np.atleast_1d(var).ravel()
+            
+    # sort
+    if unique is True:
+        var = np.unique(var)
 
     # size
     if size is not None:
@@ -319,19 +324,19 @@ def _check_dict_valid_keys(
             # routine to call
             if any(['iter' in ss for ss in v0.keys()]):
                 var[k0] = _check_var_iter(
-                    var[k0],
+                    var.get(k0),
                     f"{varname}['{k0}']",
                     **v0,
                 )
             elif 'dtype' in v0.keys() or 'size' in v0.keys():
                 var[k0] = _check_flat1darray(
-                    var[k0],
+                    var.get(k0),
                     f"{varname}['{k0}']",
                     **v0,
                 )
             else:
                 var[k0] = _check_var(
-                    var[k0],
+                    var.get(k0),
                     f"{varname}['{k0}']",
                     **v0,
                 )
