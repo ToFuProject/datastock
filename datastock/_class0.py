@@ -17,7 +17,7 @@ class DataStock0(object):
     def __init__(self):
         self.__object = object()
 
-    def to_dict(self, flatten=None, sep=None):
+    def to_dict(self, flatten=None, sep=None, asarray=None, with_types=None):
         """ Return a flat dict view of the object's attributes
 
         Useful for:
@@ -67,7 +67,13 @@ class DataStock0(object):
         # optional flattening
 
         if flatten is True:
-            dout = _generic_utils.flatten_dict(dout, parent_key=None, sep=sep)
+            dout = _generic_utils.flatten_dict(
+                dout,
+                parent_key=None,
+                sep=sep,
+                asarray=asarray,
+                with_types=with_types,
+            )
 
         return dout
 
@@ -168,7 +174,12 @@ class DataStock0(object):
 
         # call parent method
         return _saveload.save(
-            dflat=self.to_dict(flatten=True, sep=sep),
+            dflat=self.to_dict(
+                flatten=True,
+                sep=sep,
+                asarray=True,
+                with_types=True,
+            ),
             path=path,
             name=name,
             clsname=self.__class__.__name__,
