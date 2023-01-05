@@ -2,6 +2,7 @@
 
 
 # common
+import copy
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -269,6 +270,7 @@ def _check_dict_valid_keys(
     has_all_keys=None,
     has_only_keys=None,
     keys_can_be_None=None,
+    return_copy=None,
 ):
     """ Check dict has expected keys """
 
@@ -276,6 +278,10 @@ def _check_dict_valid_keys(
     if not isinstance(var, dict):
         msg = f"Arg {varname} must be a dict!\nProvided: {type(var)}"
         raise Exception(msg)
+
+    # copy
+    if return_copy is True:
+        var = copy.deepcopy(var)
 
     # derive lkeys
     if isinstance(dkeys, dict):
@@ -302,6 +308,7 @@ def _check_dict_valid_keys(
             raise Exception(msg)
 
     # keys types constraints
+    lkarray = ['dtype', 'size']
     if isinstance(dkeys, dict):
 
         if keys_can_be_None is not None:
@@ -316,30 +323,33 @@ def _check_dict_valid_keys(
                     var[k0] = None
                     continue
 
-            if 'can_be_None' in v0:
-                del v0['can_be_None']
-
             vv = var.get(k0)
 
             # routine to call
-            if any(['iter' in ss for ss in v0.keys()]):
-                var[k0] = _check_var_iter(
-                    var.get(k0),
-                    f"{varname}['{k0}']",
-                    **v0,
-                )
-            elif 'dtype' in v0.keys() or 'size' in v0.keys():
+            if any([ss in v0.keys() for ss in lkarray]):
                 var[k0] = _check_flat1darray(
                     var.get(k0),
                     f"{varname}['{k0}']",
                     **v0,
                 )
+                
             else:
-                var[k0] = _check_var(
-                    var.get(k0),
-                    f"{varname}['{k0}']",
-                    **v0,
-                )
+                if 'can_be_None' in v0:
+                    del v0['can_be_None']
+                
+                if any(['iter' in ss for ss in v0.keys()]):
+                    var[k0] = _check_var_iter(
+                        var.get(k0),
+                        f"{varname}['{k0}']",
+                        **v0,
+                    )
+                    
+                else:
+                    var[k0] = _check_var(
+                        var.get(k0),
+                        f"{varname}['{k0}']",
+                        **v0,
+                    )
 
     return var
 
