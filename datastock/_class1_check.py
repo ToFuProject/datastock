@@ -1091,11 +1091,34 @@ def _harmonize_params(
         )
         lparams = set(lparams).intersection(lkeys)
 
+    # ----------------
+    # check ddefparams
+    
+    if not isinstance(ddefparams, dict):
+        msg = f"Arg ddefparams must be a dict!\nProvided: {type(ddefparams)}"
+        raise Exception(msg)
+        
+    lv0 = ['def', 'cls']
+    for k0, v0 in ddefparams.items():
+        c0 = (
+            isinstance(v0, dict)
+            and all([ss in v0.keys() for ss in lv0])
+        )
+        if not c0:
+            msg = (
+                f"ddefparams['{k0}'] must be dict with keys:\n"
+                "\t- 'def': default value\n"
+                "\t- 'cls': expected class\n"
+                f"Provided: {v0}"
+            )
+            raise Exception(msg)
+
     # ----------------------------------------
     # check param types and set default values
 
     dfail = {}
     for k0, v0 in ddefparams.items():
+        
         for k1, v1 in dd.items():
 
             # Set to default if None
