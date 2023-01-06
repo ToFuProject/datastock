@@ -51,10 +51,19 @@ def _check_var(
     # set to default
     if var is None:
         var = default
-    if var is None and allowed is not None and len(allowed) == 1:
-        if not isinstance(allowed, list):
-            allowed = list(allowed)
-        var = allowed[0]
+        
+    if allowed is not None and not isinstance(allowed, list):
+        allowed = list(allowed)
+        
+    if allowed is not None:
+        if var is None and len(allowed) == 1:
+            var = allowed[0]
+        elif var not in allowed:
+            msg = (
+                f"Arg {varname} must be in {allowed}!\n"
+                f"Provided: {var}"
+            )
+            raise Exception(msg)
 
     # check type
     if types is not None:
@@ -62,15 +71,6 @@ def _check_var(
             msg = (
                 f"Arg {varname} must be of type {types}!\n"
                 f"Provided: {type(var)}"
-            )
-            raise Exception(msg)
-
-    # check if allowed
-    if allowed is not None:
-        if var not in allowed:
-            msg = (
-                f"Arg {varname} must be in {allowed}!\n"
-                f"Provided: {var}"
             )
             raise Exception(msg)
 
