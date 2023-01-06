@@ -215,9 +215,14 @@ def _check_flat1darray(
 
     var = np.atleast_1d(var).ravel()
             
-    # sort
+    # unique
     if unique is True:
-        var = np.unique(var)
+        if not np.allclose(var, np.unique(var)):
+            msg = (
+                "Arg {varname} must be a sorted array of unique values!\n"
+                f"Provided: {var}"
+            )
+            raise Exception(msg)
 
     # size
     if size is not None:
