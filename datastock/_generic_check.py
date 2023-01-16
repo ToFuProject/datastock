@@ -483,7 +483,17 @@ def _check_vectbasis(
 # #############################################################################
 
 
-def _obj_key(d0=None, short=None, key=None):
+def _obj_key(d0=None, short=None, key=None, ndigits=None):
+    
+    # check input
+    ndigits = _check_var(
+        ndigits, 'ndigits',
+        types=int,
+        default=2,
+        sign='>0',
+    )
+    
+    # get key
     lout = list(d0.keys())
     if key is None:
         if len(lout) == 0:
@@ -494,7 +504,7 @@ def _obj_key(d0=None, short=None, key=None):
                 and k0[len(short):].isnumeric()
             ]
             nb = min([ii for ii in range(max(lnb)+2) if ii not in lnb])
-        key = f'{short}{nb}'
+        key = f'{short}{nb:0{ndigits}.0f}'
 
     return _check_var(
         key, 'key',
