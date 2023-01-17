@@ -786,13 +786,19 @@ def _check_data_ref(
     # length match but unknown ref or size mismatch
     else:
         for ii, ss in enumerate(ddata[k0]['shape']):
+            
+            ri = ddata[k0]['ref'][ii]
             if ddata[k0]['ref'][ii] not in dref0.keys():
                 if ddata[k0]['ref'][ii] not in dref_add.keys():
                     dref_add[ddata[k0]['ref'][ii]] = {'size': ss}
 
-            elif ss != dref0[ddata[k0]['ref'][ii]]['size']:
+            elif ss != dref0[ri]['size']:
                 msg = (
-                    f"Mismatching ref size and shape for ddata['{k0}']"
+                    f"Mismatching ref size and shape for ddata['{k0}']\n"
+                    f"\t- ddata['{k0}']['ref'] = {ddata[k0]['ref']}\n"
+                    f"\t- dref['{ri}']['size'] = {dref0[ri]['size']}\n"
+                    f"\t- ddata['{k0}']['data'].shape = {ddata[k0]['shape']}\n"
+                    f"\t- ind: {ii}"
                 )
                 raise Exception(msg)
 
