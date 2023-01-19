@@ -6,9 +6,11 @@ Created on Thu Jan  5 20:14:40 2023
 """
 
 
+import itertools as itt
+
+
 import numpy as np
 import scipy.stats as scpst
-import astropy.units as asunits
 
 
 # specific
@@ -38,7 +40,7 @@ def binning(
     # keys
     (
      key, key_ref_vect,
-     axis, units, units_ref, val_out,
+     axis, units, units_ref,
      ) = _binning_check_keys_options(
         coll=coll,
         key=key,
@@ -47,19 +49,25 @@ def binning(
     )
     
     # bins
-    bins, units_bins = _binning_check_bins(
+    bins, units_bins, db = _binning_check_bins(
         bins,
         vect=coll.ddata[key_ref_vect]['data'],
     )
     
     # units
-    units = _units(units=units, units_ref=units_ref, units_bins=units_bins)
+    units = _units(
+        key=key,
+        units=units,
+        units_ref=units_ref,
+        units_bins=units_bins,
+    )
         
     # ------------
     # bsplines
     
     val = _bin(
         bins=bins,
+        db=db,
         vect=coll.ddata[key_ref_vect]['data'],
         data=coll.ddata[key]['data'],
         axis=axis,
@@ -77,37 +85,37 @@ def _binning_check_keys_options(
     coll=None,
     key=None,
     key_ref_vect=None,
-    val_out=None,
 ):
-    
-    # --------------
-    # key_ref_vector
-    
-    lok = [k0 for k0, v0 in coll.ddata.items() if v0['monot'] == (True,)]
-    extra_msg = "Identify ref vector using get_ref_vector(key)"
-    key_ref_vect = _generic_check._check_var_iter(
-        key_ref_vect, 'key_ref_vect',
-        types=str,
-        allowed=lok,
-        extra_msg=extra_msg,
-    )
     
     # ---------
     # keys
 
-    lok = [
-        k0 for k0, v0 in coll.ddata.items()
-        if coll.get_ref_vector(key=k0, warn=False)[3] == key_ref_vect
-    ]
-
     # key   
-    extra_msg = "Identify ref vector using get_ref_vector(key)"
     key = _generic_check._check_var_iter(
         key, 'key',
         types=str,
-        allowed=lok,
+        allowed=list(coll.ddata.keys()),
+    )
+    
+    # --------------
+    # key_ref_vector
+    
+    lrefv = [
+        k0 for k0, v0 in coll.ddata.items()
+        if v0['monot'] == (True,)
+        and v0['ref'][0] in coll.ddata[key]['ref']
+    ]
+    
+    extra_msg = "Identify ref vector using get_ref_vector(key)"
+    key_ref_vect = _generic_check._check_var_iter(
+        key_ref_vect, 'key_ref_vect',
+        types=str,
+        allowed=lrefv,
         extra_msg=extra_msg,
     )
+    
+    # --------------
+    # axis and units
     
     # axis
     axis = coll.ddata[key]['ref'].index(coll.ddata[key_ref_vect]['ref'][0])
@@ -116,16 +124,7 @@ def _binning_check_keys_options(
     units = coll.ddata[key]['units']
     units_ref = coll.ddata[key_ref_vect]['units']
     
-    # --------------
-    # others
-    
-    val_out = _generic_check._check_var(
-        val_out, 'val_out',
-        default=np.nan,
-        allowed=[False, np.nan, 0.],
-    )
-    
-    return key, key_ref_vect, axis, units, units_ref, val_out
+    return key, key_ref_vect, axis, units, units_ref
 
 
 def _binning_check_bins(
@@ -180,18 +179,39 @@ def _binning_check_bins(
         )
         raise Exception(msg)
         
-    return bins, bins_units
+    return bins, bins_units, db
 
 
 def _units(
+    key=None,
     units=None,
     units_ref=None,
     units_bins=None,
 ):
     
+    if units in [None, '']:
+        return ''
     
+    elif units_ref in [None, ''] and units_bins in [None, '']:
+        return ''
     
-    return units
+    elif units_ref in [None, '']:
+        return units * units_bins
+    
+    elif units_bins in [None, '']:
+        return units * units_ref
+    
+    elif units_ref == units_bins:
+        return units * units_ref
+    
+    else:
+        msg = (
+            "Units do not agree between ref vector and bins for '{key}'!\n"
+            f"\t- units     : {units}\n"
+            f"\t- units_ref : {units_ref}\n"
+            f"\t- units_bins: {units_bins}\n"
+        )
+        raise Exception(msg)
 
 
 # ####################################
@@ -205,41 +225,58 @@ def _bin(
     vect=None,
     data=None,
     axis=None,
-    bin_method=None,
-    val_out=None,
 ):
     
+    indin = (vect >= bins[0]) & (vect <= bins[-1])
+    vect = vect[indin]
+    
     if data.ndim == 1:
+        
+        data = data[indin]
+        
         val = scpst.binned_statistic(
             vect,
             data,
             bins=bins,
             statistic='sum',
-        )[0] * db
-        
-        indout = (vect < bins[0]) | (vect > bins[-1])
-        val[indout] = val_out
+        )[0]
         
     else:
-            
-        # initialize
+        
+        # remove out
+        sli = tuple([
+            indin if ii == axis else slice(None)
+            for ii in range(data.ndim)
+        ])
+        data = data[sli]
+        
+        # shape
         shape = list(data.shape)
         shape[axis] = bins.size - 1
-        val = np.full(tuple(shape), val_out)
+        shape_other = np.r_[shape[:axis], shape[axis+1:]]
         
-        # in
-        indin = (vect >= bins[0]) & (vect <= bins[-1])
+        # indices
+        linds = [range(nn) for nn in shape_other]
+        indi = list(range(data.ndim-1))
+        indi.insert(axis, None)
         
-        for ind in itt.product():
+        
+        # initialize val
+        val = np.zeros(tuple(shape), dtype=data.dtype)
+        
+        for ind in itt.product(*linds):
             
-            sli = []
+            sli = [
+                slice(None) if ii == axis else ind[indi[ii]]
+                for ii in range(len(shape))
+            ]
             
             # bin
-            val[sli_v] = scpst.binned_statistic(
-                vect[indin],
-                data[sli_d],
+            val[sli] = scpst.binned_statistic(
+                vect,
+                data[sli],
                 bins=bins,
                 statistic='sum',
-            )[0] * db
+            )[0]
         
-    return val
+    return val * db
