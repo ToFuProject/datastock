@@ -287,7 +287,7 @@ class Test02_Manipulate():
     def test08_binning(self):
         
         bins = np.linspace(1, 5, 10)
-        lk = [('y', None), ('y', 'x'), ('prof0', 't0'), ('prof0', 'x')]
+        lk = [('y', None), ('y', 'nx'), ('prof0', 'nt0'), ('prof0', 'x')]
         
         for (k0, kr) in lk:
             val, units = self.st.binning(

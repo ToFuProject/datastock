@@ -101,14 +101,25 @@ def _binning_check_keys(
         if v0['monot'] == (True,)
         and v0['ref'][0] in coll.ddata[key]['ref']
     ]
+    lref = [
+        k0 for k0, v0 in coll.dref.items()
+        if k0 in coll.ddata[key]['ref']
+        and coll.get_ref_vector(ref=k0)[1]
+    ]
+    
+    if ref_key is None and len(lrefv) == 1:
+        ref_key = lrefv[0]
     
     extra_msg = "Identify ref vector using get_ref_vector(key)"
     ref_key = _generic_check._check_var(
         ref_key, 'ref_key',
         types=str,
-        allowed=lrefv,
+        allowed=lrefv + lref,
         extra_msg=extra_msg,
     )
+    
+    if ref_key in lref:
+        ref_key = coll.get_ref_vector(ref=ref_key)[3]
     
     # --------------
     # axis and units
