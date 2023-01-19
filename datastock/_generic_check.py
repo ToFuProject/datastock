@@ -25,6 +25,12 @@ _LALLOWED_AXESTYPES = [
 # #############################################################################
 
 
+def _complete_extra_msg(msg, extra_msg):
+    if extra_msg not in [None, False, '']:
+        msg += f"\n{extra_msg}"
+    return msg
+
+
 def _check_var(
     var,
     varname,
@@ -33,6 +39,7 @@ def _check_var(
     allowed=None,
     excluded=None,
     sign=None,
+    extra_msg=None,
 ):
     """ Check a variable, with options
 
@@ -63,7 +70,7 @@ def _check_var(
                 f"Arg {varname} must be in {allowed}!\n"
                 f"Provided: {var}"
             )
-            raise Exception(msg)
+            raise Exception(_complete_extra_msg(msg, extra_msg))
 
     # check type
     if types is not None:
@@ -72,7 +79,7 @@ def _check_var(
                 f"Arg {varname} must be of type {types}!\n"
                 f"Provided: {type(var)}"
             )
-            raise Exception(msg)
+            raise Exception(_complete_extra_msg(msg, extra_msg))
 
     # check if excluded
     if excluded is not None:
@@ -81,7 +88,7 @@ def _check_var(
                 f"Arg {varname} must not be in {excluded}!\n"
                 f"Provided: {var}"
             )
-            raise Exception(msg)
+            raise Exception(_complete_extra_msg(msg, extra_msg))
 
     # sign
     if sign is not None:
@@ -107,7 +114,7 @@ def _check_var(
                 f"Arg {varname} must be {sign}\n"
                 f"Provided: {var}"
             )
-            raise Exception(msg)
+            raise Exception(_complete_extra_msg(msg, extra_msg))
 
     return var
 
@@ -120,6 +127,7 @@ def _check_var_iter(
     default=None,
     allowed=None,
     excluded=None,
+    extra_msg=None,
 ):
     """ Check a variable supposed to be an iterable, with options
 
@@ -154,7 +162,7 @@ def _check_var_iter(
                 f"Arg {varname} must be of type {types}!\n"
                 f"Provided: {type(var)}"
             )
-            raise Exception(msg)
+            raise Exception(_complete_extra_msg(msg, extra_msg))
 
     # check types_iter
     if types_iter is not None and var is not None:
@@ -163,7 +171,7 @@ def _check_var_iter(
                 f"Arg {varname} must be an iterable of types {types_iter}\n"
                 f"Provided: {[type(vv) for vv in var]}"
             )
-            raise Exception(msg)
+            raise Exception(_complete_extra_msg(msg, extra_msg))
 
     # check if allowed
     if allowed is not None:
@@ -172,7 +180,7 @@ def _check_var_iter(
                 f"Arg {varname} must contain elements in {allowed}!\n"
                 f"Provided: {var}"
             )
-            raise Exception(msg)
+            raise Exception(_complete_extra_msg(msg, extra_msg))
 
     # check if excluded
     if excluded is not None:
@@ -181,7 +189,7 @@ def _check_var_iter(
                 f"Arg {varname} must contain elements not in {excluded}!\n"
                 f"Provided: {var}"
             )
-            raise Exception(msg)
+            raise Exception(_complete_extra_msg(msg, extra_msg))
 
     return var
 
@@ -195,6 +203,7 @@ def _check_flat1darray(
     norm=None,
     unique=None,
     can_be_None=None,
+    extra_msg=None,
 ):
 
     # Default inputs
@@ -211,7 +220,7 @@ def _check_flat1darray(
             return
         else:
             msg = f"Arg {varname} is None!"
-            raise Exception(msg)
+            raise Exception(_complete_extra_msg(msg, extra_msg))
 
     var = np.atleast_1d(var).ravel()
             
@@ -222,7 +231,7 @@ def _check_flat1darray(
                 "Arg {varname} must be a sorted array of unique values!\n"
                 f"Provided: {var}"
             )
-            raise Exception(msg)
+            raise Exception(_complete_extra_msg(msg, extra_msg))
 
     # size
     if size is not None:
@@ -235,7 +244,7 @@ def _check_flat1darray(
                 f"\t- dtype = {dtype}\n"
                 f"Provided:\n{var}"
             )
-            raise Exception(msg)
+            raise Exception(_complete_extra_msg(msg, extra_msg))
 
     # dtype
     if dtype is not None:
@@ -253,7 +262,7 @@ def _check_flat1darray(
                     f"Arg {varname} must be {ss}\n"
                     f"Provided: {var}"
                 )
-                raise Exception(msg)
+                raise Exception(_complete_extra_msg(msg, extra_msg))
 
     # Normalize
     if norm is True:
