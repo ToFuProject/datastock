@@ -46,6 +46,8 @@ def binning(
     # bins
     bins, units_bins, db = _binning_check_bins(
         coll=coll,
+        key=key,
+        ref_key=ref_key,
         bins=bins,
         vect=coll.ddata[ref_key]['data'],
     )
@@ -110,7 +112,7 @@ def _binning_check_keys(
     if ref_key is None and len(lrefv) == 1:
         ref_key = lrefv[0]
     
-    extra_msg = "Identify ref vector using get_ref_vector(key)"
+    extra_msg = f"\n\nIdentify ref vector using get_ref_vector('{key}')"
     ref_key = _generic_check._check_var(
         ref_key, 'ref_key',
         types=str,
@@ -136,6 +138,8 @@ def _binning_check_keys(
 
 def _binning_check_bins(
     coll=None,
+    key=None,
+    ref_key=None,
     bins=None,
     vect=None,
 ):
@@ -182,8 +186,8 @@ def _binning_check_bins(
     dv = np.abs(np.mean(np.diff(vect)))
     if db < 2*dv:
         msg = (
-            "Uncertain binning for '{key}' using ref vect '{ref_key}':\n"
-            "The binning steps are smaller than the 2*ref vector step"
+            f"Uncertain binning for '{key}' using ref vect '{ref_key}':\n"
+            f"Binning steps ({db}) are smaller than 2*ref ({2*dv}) vector step"
         )
         raise Exception(msg)
         
