@@ -598,6 +598,7 @@ class DataStock1(DataStock0):
         values=None,
         indices=None,
         ind_strict=None,
+        warn=None,
     ):
         """ Return the monotonous vector associated to a ref of key
 
@@ -645,6 +646,7 @@ class DataStock1(DataStock0):
             values=values,
             indices=indices,
             ind_strict=ind_strict,
+            warn=warn,
         )
 
     def get_ref_vector_common(
