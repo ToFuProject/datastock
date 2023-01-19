@@ -260,6 +260,7 @@ def _bin(
             indin if ii == axis else slice(None)
             for ii in range(data.ndim)
         ])
+        
         data = data[sli]
         
         # shape
