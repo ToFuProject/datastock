@@ -169,10 +169,10 @@ def _binning_check_bins(
     # bin method
     
     dv = np.abs(np.mean(np.diff(vect)))
-    if dv >= db:
+    if db < 2*dv:
         msg = (
             "Uncertain binning for '{key}' using ref vect '{ref_key}':\n"
-            "The binning steps are smaller than the ref vector step"
+            "The binning steps are smaller than the 2*ref vector step"
         )
         raise Exception(msg)
         
@@ -235,7 +235,7 @@ def _bin(
             vect,
             data,
             bins=bins,
-            statistic='sum',
+            statistic=np.nansum,
         )[0]
         
     else:
@@ -263,17 +263,17 @@ def _bin(
         
         for ind in itt.product(*linds):
             
-            sli = [
+            sli = tuple([
                 slice(None) if ii == axis else ind[indi[ii]]
                 for ii in range(len(shape))
-            ]
+            ])
             
-            # bin
+            # bin            
             val[sli] = scpst.binned_statistic(
                 vect,
                 data[sli],
                 bins=bins,
-                statistic='sum',
+                statistic=np.nansum,
             )[0]
         
     return val * db

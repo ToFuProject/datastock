@@ -63,9 +63,11 @@ def _add_ref(st=None, nc=None, nx=None, lnt=None):
 def _add_data(st=None, nc=None, nx=None, lnt=None):
 
     x = np.linspace(1, 2, nx)
-    y = np.sqrt(0.5 - x**2)
+    y = np.exp((x - 0.5)**2)
+    y[-5] = np.nan
     lt = [np.linspace(0, 10, nt) for nt in lnt]
     lprof = [(1 + np.cos(t)[:, None]) * x[None, :] for t in lt]
+    lprof[0][10, -5] = np.nan
 
     # add data dependening on these references
     st.add_data(
