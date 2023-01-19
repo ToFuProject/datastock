@@ -63,6 +63,7 @@ def _add_ref(st=None, nc=None, nx=None, lnt=None):
 def _add_data(st=None, nc=None, nx=None, lnt=None):
 
     x = np.linspace(1, 2, nx)
+    y = np.sqrt(0.5 - x**2)
     lt = [np.linspace(0, 10, nt) for nt in lnt]
     lprof = [(1 + np.cos(t)[:, None]) * x[None, :] for t in lt]
 
@@ -70,6 +71,15 @@ def _add_data(st=None, nc=None, nx=None, lnt=None):
     st.add_data(
         key='x',
         data=x,
+        dim='distance',
+        quant='radius',
+        units='m',
+        ref='nx',
+    )
+    
+    st.add_data(
+        key='y',
+        data=y,
         dim='distance',
         quant='radius',
         units='m',
@@ -271,8 +281,20 @@ class Test02_Manipulate():
             keys=['t0', 'prof0', 'prof1', 't3'],
             dim='time',
         )
+        
+    def test08_binning(self):
+        
+        bins = np.linspace(1, 5, 10)
+        lk = [('y', None), ('y', 'x'), ('prof0', 't0'), ('prof0', 'nx')]
+        
+        for (k0, kr) in lk:
+            val, units = self.st.binning(
+                key=k0,
+                key_ref_vect=kr,
+                bins=bins,
+            )
 
-    def test08_interpolate(self):
+    def test09_interpolate(self):
         out = self.st.interpolate(
             keys='prof0',
             ref_keys=None,
@@ -293,17 +315,17 @@ class Test02_Manipulate():
     #   Plotting
     # ------------------------
 
-    def test09_plot_as_array(self):
+    def test10_plot_as_array(self):
         dax = self.st.plot_as_array(key='t0')
         dax = self.st.plot_as_array(key='prof0')
         dax = self.st.plot_as_array(key='3d')
         plt.close('all')
 
-    def test10_plot_BvsA_as_distribution(self):
+    def test11_plot_BvsA_as_distribution(self):
         dax = self.st.plot_BvsA_as_distribution(keyA='prof0', keyB='prof0-bis')
         plt.close('all')
 
-    def test11_plot_as_profile1d(self):
+    def test12_plot_as_profile1d(self):
         dax = self.st.plot_as_profile1d(
             key='prof0',
             key_time='t0',
@@ -312,7 +334,7 @@ class Test02_Manipulate():
         )
         plt.close('all')
 
-    def test12_plot_as_mobile_lines(self):
+    def test13_plot_as_mobile_lines(self):
 
         # 3d
         dax = self.st.plot_as_mobile_lines(
@@ -335,7 +357,7 @@ class Test02_Manipulate():
     #   File handling
     # ------------------------
 
-    def test13_copy_equal(self):
+    def test14_copy_equal(self):
         st2 = self.st.copy()
         assert st2 is not self.st
 
@@ -343,10 +365,10 @@ class Test02_Manipulate():
         if msg is not True:
             raise Exception(msg)
 
-    def test14_get_nbytes(self):
+    def test15_get_nbytes(self):
         nb, dnb = self.st.get_nbytes()
 
-    def test15_saveload(self, verb=False):
+    def test16_saveload(self, verb=False):
         pfe = self.st.save(path=_PATH_OUTPUT, verb=verb, return_pfe=True)
         st2 = load(pfe, verb=verb)
         # Just to check the loaded version works fine
