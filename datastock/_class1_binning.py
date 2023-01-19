@@ -26,9 +26,8 @@ from . import _generic_check
 def binning(
     coll=None,
     key=None,
-    key_ref_vect=None,
+    ref_key=None,
     bins=None,
-    val_out=None,
 ):
     """ Return the binned data
 
@@ -38,20 +37,17 @@ def binning(
     # checks
     
     # keys
-    (
-     key, key_ref_vect,
-     axis, units, units_ref,
-     ) = _binning_check_keys_options(
+    key, ref_key, axis, units, units_ref = _binning_check_keys(
         coll=coll,
         key=key,
-        key_ref_vect=key_ref_vect,
-        val_out=val_out,
+        ref_key=ref_key,
     )
     
     # bins
     bins, units_bins, db = _binning_check_bins(
-        bins,
-        vect=coll.ddata[key_ref_vect]['data'],
+        coll=coll,
+        bins=bins,
+        vect=coll.ddata[ref_key]['data'],
     )
     
     # units
@@ -68,7 +64,7 @@ def binning(
     val = _bin(
         bins=bins,
         db=db,
-        vect=coll.ddata[key_ref_vect]['data'],
+        vect=coll.ddata[ref_key]['data'],
         data=coll.ddata[key]['data'],
         axis=axis,
     )
@@ -81,24 +77,24 @@ def binning(
 # ####################################
 
 
-def _binning_check_keys_options(
+def _binning_check_keys(
     coll=None,
     key=None,
-    key_ref_vect=None,
+    ref_key=None,
 ):
     
     # ---------
     # keys
 
     # key   
-    key = _generic_check._check_var_iter(
+    key = _generic_check._check_var(
         key, 'key',
         types=str,
         allowed=list(coll.ddata.keys()),
     )
     
     # --------------
-    # key_ref_vector
+    # ref_keyor
     
     lrefv = [
         k0 for k0, v0 in coll.ddata.items()
@@ -107,8 +103,8 @@ def _binning_check_keys_options(
     ]
     
     extra_msg = "Identify ref vector using get_ref_vector(key)"
-    key_ref_vect = _generic_check._check_var_iter(
-        key_ref_vect, 'key_ref_vect',
+    ref_key = _generic_check._check_var(
+        ref_key, 'ref_key',
         types=str,
         allowed=lrefv,
         extra_msg=extra_msg,
@@ -118,13 +114,13 @@ def _binning_check_keys_options(
     # axis and units
     
     # axis
-    axis = coll.ddata[key]['ref'].index(coll.ddata[key_ref_vect]['ref'][0])
+    axis = coll.ddata[key]['ref'].index(coll.ddata[ref_key]['ref'][0])
     
     # units
     units = coll.ddata[key]['units']
-    units_ref = coll.ddata[key_ref_vect]['units']
+    units_ref = coll.ddata[ref_key]['units']
     
-    return key, key_ref_vect, axis, units, units_ref
+    return key, ref_key, axis, units, units_ref
 
 
 def _binning_check_bins(
@@ -160,21 +156,22 @@ def _binning_check_bins(
     # -----------------
     # check uniformity
     
-    db = np.diff(bins)
+    db = np.abs(np.diff(bins))
     if not np.allclose(db[0], db):
         msg = (
             "Arg bins must be a uniform bin edges vector!"
             f"Provided diff(bins) = {db}"
         )
         raise Exception(msg)
+    db = db[0]
         
     # ----------
     # bin method
     
-    dv = np.abs(np.diff(vect))
+    dv = np.abs(np.mean(np.diff(vect)))
     if dv >= db:
         msg = (
-            "Uncertain binning for '{key}' using ref vect '{key_ref_vect}':\n"
+            "Uncertain binning for '{key}' using ref vect '{ref_key}':\n"
             "The binning steps are smaller than the ref vector step"
         )
         raise Exception(msg)
@@ -252,8 +249,8 @@ def _bin(
         
         # shape
         shape = list(data.shape)
-        shape[axis] = bins.size - 1
-        shape_other = np.r_[shape[:axis], shape[axis+1:]]
+        shape[axis] = int(bins.size - 1)
+        shape_other = np.r_[shape[:axis], shape[axis+1:]].astype(int)
         
         # indices
         linds = [range(nn) for nn in shape_other]

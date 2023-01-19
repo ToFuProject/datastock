@@ -285,12 +285,12 @@ class Test02_Manipulate():
     def test08_binning(self):
         
         bins = np.linspace(1, 5, 10)
-        lk = [('y', None), ('y', 'x'), ('prof0', 't0'), ('prof0', 'nx')]
+        lk = [('y', None), ('y', 'x'), ('prof0', 't0'), ('prof0', 'x')]
         
         for (k0, kr) in lk:
             val, units = self.st.binning(
                 key=k0,
-                key_ref_vect=kr,
+                ref_key=kr,
                 bins=bins,
             )
 

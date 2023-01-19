@@ -16,6 +16,7 @@ from . import _generic_utils
 from . import _class1_check
 from ._class0 import *
 from . import _class1_compute
+from . import _class1_binning
 from . import _class1_interpolate
 from . import _class1_uniformize
 from . import _export_dataframe
@@ -713,6 +714,25 @@ class DataStock1(DataStock0):
             param=param,
             lparam=lparam,
             returnas=returnas,
+        )
+    
+    # ---------------------
+    # Binning
+    # ---------------------
+
+    def binning(
+        self,
+        key=None,
+        ref_key=None,
+        bins=None,
+    ):
+        """ return binned data and units along dimension indicated by refkey"""
+        
+        return _class1_binning.binning(
+            coll=self,
+            key=key,
+            ref_key=ref_key,
+            bins=bins,
         )
 
     # ---------------------
