@@ -25,7 +25,7 @@ from . import _generic_check
 
 def binning(
     coll=None,
-    key=None,
+    keys=None,
     ref_key=None,
     bins=None,
 ):
@@ -37,41 +37,51 @@ def binning(
     # checks
     
     # keys
-    key, ref_key, axis, units, units_ref = _binning_check_keys(
+    keys, ref_key, daxis, dunits, units_ref = _check_keys(
         coll=coll,
-        key=key,
+        keys=keys,
         ref_key=ref_key,
+        only1d=True,
     )
+    
+    # because 1d only
+    ref_key = ref_key[0]
+    for k0, v0 in daxis.items():
+        daxis[k0] = v0[0]
+    units_ref = units_ref[0]
     
     # bins
     bins, units_bins, db = _binning_check_bins(
         coll=coll,
-        key=key,
+        keys=keys,
         ref_key=ref_key,
         bins=bins,
         vect=coll.ddata[ref_key]['data'],
     )
     
     # units
-    units = _units(
-        key=key,
-        units=units,
+    dout = _units(
+        dunits=dunits,
         units_ref=units_ref,
         units_bins=units_bins,
     )
-        
+
     # ------------
     # bsplines
     
-    val = _bin(
-        bins=bins,
-        db=db,
-        vect=coll.ddata[ref_key]['data'],
-        data=coll.ddata[key]['data'],
-        axis=axis,
-    )
+    for k0, v0 in dout.items():
+        dout[k0]['data'] = _bin(
+            bins=bins,
+            db=db,
+            vect=coll.ddata[ref_key]['data'],
+            data=coll.ddata[k0]['data'],
+            axis=daxis[k0],
+        )
+        ref = list(coll.ddata[k0]['ref'])
+        ref[daxis[k0]] = None
+        dout[k0]['ref'] = tuple(ref)
 
-    return val, units
+    return dout
     
     
 # ####################################
@@ -79,66 +89,126 @@ def binning(
 # ####################################
 
 
-def _binning_check_keys(
+def _check_keys(
     coll=None,
-    key=None,
+    keys=None,
     ref_key=None,
+    only1d=None,
 ):
-    
-    # ---------
-    # keys
 
-    # key   
-    key = _generic_check._check_var(
-        key, 'key',
-        types=str,
-        allowed=list(coll.ddata.keys()),
+    # only1d
+    only1d = _generic_check._check_var(
+        only1d, 'only1d',
+        types=bool,
+        default=True,
     )
     
-    # --------------
-    # ref_keyor
+    maxd = 1 if only1d else 2
     
-    lrefv = [
-        k0 for k0, v0 in coll.ddata.items()
-        if v0['monot'] == (True,)
-        and v0['ref'][0] in coll.ddata[key]['ref']
-    ]
-    lref = [
-        k0 for k0, v0 in coll.dref.items()
-        if k0 in coll.ddata[key]['ref']
-        and coll.get_ref_vector(ref=k0)[1]
-    ]
+    # ---------------
+    # keys vs ref_key
     
-    if ref_key is None and len(lrefv) == 1:
-        ref_key = lrefv[0]
-    
-    extra_msg = f"\n\nIdentify ref vector using get_ref_vector('{key}')"
-    ref_key = _generic_check._check_var(
-        ref_key, 'ref_key',
-        types=str,
-        allowed=lrefv + lref,
-        extra_msg=extra_msg,
+    # ref_key
+    if ref_key is not None:
+        
+        # basic checks
+        if isinstance(ref_key, str):
+            ref_key = (ref_key,)
+        
+        lref = list(coll.dref.keys())
+        ldata = list(coll.ddata.keys())
+        
+        ref_key = list(_generic_check._check_var_iter(
+            ref_key, 'ref_key',
+            types=(list, tuple),
+            types_iter=str,
+            allowed=lref + ldata,
+        ))
+        
+        # check vs maxd
+        if len(ref_key) > maxd:
+            msg = (
+                f"Arg ref_key shall have no more than {maxd} elements!\n"
+                f"Provided: {ref_key}"
+            )
+            raise Exception(msg)
+        
+        # check vs valid vectors
+        for ii, rr in enumerate(ref_key):
+            if rr in lref:
+                kwd = {'ref': rr}
+            else:
+                kwd = {'key': rr}
+            hasref, hasvect, ref, ref_key[ii] = coll.get_ref_vector(**kwd)[:4]
+                
+            if not (hasref and hasvect):
+                msg = (
+                    f"Provided ref_key[{ii}] not a valid ref or ref vector!\n"
+                    "Provided: {rr}"
+                )
+                raise Exception(msg)
+            
+        lok_keys = [
+            k0 for k0, v0 in coll.ddata.items()
+            if all([coll.ddata[rr]['ref'][0] in v0['ref'] for rr in ref_key])
+        ]
+        
+        if keys is None:
+            keys = lok_keys
+    else:
+        lok_keys = list(coll.ddata.keys())
+        
+    # keys
+    if isinstance(keys, str):
+        keys = [keys]
+        
+    keys = _generic_check._check_var_iter(
+        keys, 'keys',
+        types=list,
+        types_iter=str,
+        allowed=lok_keys,
     )
     
-    if ref_key in lref:
-        ref_key = coll.get_ref_vector(ref=ref_key)[3]
+    # ref_key
+    if ref_key is None:
+        hasref, ref, ref_key, val, dkeys = coll.get_ref_vector_common(
+            keys=keys,
+        )
+        if ref_key is None:
+            msg = (
+                f"No matching ref vector found for:\n"
+                f"\t- keys: {keys}\n"
+                f"\t- hasref: {hasref}\n"
+                f"\t- ref: {ref}\n"
+                f"\t- ddata['{keys[0]}']['ref'] = {coll.ddata[keys[0]]['ref']} "
+            )
+            raise Exception(msg)
+        ref_key = (ref_key,)
+        
+    # ------------------------
+    # daxis, dunits, units_ref
     
-    # --------------
-    # axis and units
+    # daxis
+    daxis = {
+        k0: [
+            coll.ddata[k0]['ref'].index(coll.ddata[rr]['ref'][0])
+            for rr in ref_key
+        ]
+        for k0 in keys
+    }
     
-    # axis
-    axis = coll.ddata[key]['ref'].index(coll.ddata[ref_key]['ref'][0])
+    # dunits
+    dunits = {k0: coll.ddata[k0]['units'] for k0 in keys}
     
-    # units
-    units = coll.ddata[key]['units']
-    units_ref = coll.ddata[ref_key]['units']
-    
-    return key, ref_key, axis, units, units_ref
+    # units_ref
+    units_ref = [coll.ddata[rr]['units'] for rr in ref_key]
+
+    return keys, ref_key, daxis, dunits, units_ref
 
 
 def _binning_check_bins(
     coll=None,
-    key=None,
+    keys=None,
     ref_key=None,
     bins=None,
     vect=None,
@@ -186,7 +256,7 @@ def _binning_check_bins(
     dv = np.abs(np.mean(np.diff(vect)))
     if db < 2*dv:
         msg = (
-            f"Uncertain binning for '{key}' using ref vect '{ref_key}':\n"
+            f"Uncertain binning for '{sorted(keys)}', ref vect '{ref_key}':\n"
             f"Binning steps ({db}) are smaller than 2*ref ({2*dv}) vector step"
         )
         raise Exception(msg)
@@ -195,37 +265,41 @@ def _binning_check_bins(
 
 
 def _units(
-    key=None,
-    units=None,
+    dunits=None,
     units_ref=None,
     units_bins=None,
 ):
     
-    if units in [None, '']:
-        return ''
-    
-    elif units_ref in [None, ''] and units_bins in [None, '']:
-        return ''
-    
-    elif units_ref in [None, '']:
-        return units * units_bins
-    
-    elif units_bins in [None, '']:
-        return units * units_ref
-    
-    elif units_ref == units_bins:
-        return units * units_ref
-    
-    else:
-        msg = (
-            "Units do not agree between ref vector and bins for '{key}'!\n"
-            f"\t- units     : {units}\n"
-            f"\t- units_ref : {units_ref}\n"
-            f"\t- units_bins: {units_bins}\n"
-        )
-        raise Exception(msg)
+    dout = {}
+    for k0, v0 in dunits.items():
+        if v0 in [None, '']:
+            dout[k0] = {'units': ''}
+        
+        elif units_ref in [None, ''] and units_bins in [None, '']:
+            dout[k0] = {'units': ''}
+        
+        elif units_ref in [None, '']:
+            dout[k0] = {'units': v0 * units_bins}
+        
+        elif units_bins in [None, '']:
+            dout[k0] = {'units': v0 * units_ref}
+        
+        elif units_ref == units_bins:
+            dout[k0] = {'units': v0 * units_ref}
+        
+        else:
+            msg = (
+                "Units do not agree between ref vector and bins for '{k0}'!\n"
+                f"\t- units     : {v0}\n"
+                f"\t- units_ref : {units_ref}\n"
+                f"\t- units_bins: {units_bins}\n"
+            )
+            raise Exception(msg)
+            
+    return dout
 
 
+# ####################################
 # ####################################
 #       bin
 # ####################################
@@ -272,7 +346,6 @@ def _bin(
         linds = [range(nn) for nn in shape_other]
         indi = list(range(data.ndim-1))
         indi.insert(axis, None)
-        
         
         # initialize val
         val = np.zeros(tuple(shape), dtype=data.dtype)

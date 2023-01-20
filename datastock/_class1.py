@@ -722,7 +722,7 @@ class DataStock1(DataStock0):
 
     def binning(
         self,
-        key=None,
+        keys=None,
         ref_key=None,
         bins=None,
     ):
@@ -730,7 +730,7 @@ class DataStock1(DataStock0):
         
         return _class1_binning.binning(
             coll=self,
-            key=key,
+            keys=keys,
             ref_key=ref_key,
             bins=bins,
         )
@@ -743,12 +743,10 @@ class DataStock1(DataStock0):
         self,
         # interpolation base
         keys=None,
-        ref_keys=None,
-        ref_quant=None,
+        ref_key=None,
         # interpolation pts
-        pts_axis0=None,
-        pts_axis1=None,
-        pts_axis2=None,
+        x0=None,
+        x1=None,
         # parameters
         grid=None,
         deg=None,
@@ -760,23 +758,19 @@ class DataStock1(DataStock0):
 
         """
         return _class1_interpolate.interpolate(
+            coll=self,
             # interpolation base
             keys=keys,
-            ref_keys=ref_keys,
-            ref_quant=ref_quant,
+            ref_key=ref_key,
             # interpolation pts
-            pts_axis0=pts_axis0,
-            pts_axis1=pts_axis1,
-            pts_axis2=pts_axis2,
+            x0=x0,
+            x1=x1,
             # parameters
             grid=grid,
             deg=deg,
             deriv=deriv,
             log_log=log_log,
             return_params=return_params,
-            # ressources
-            ddata=self._ddata,
-            dref=self._dref,
         )
 
     # ---------------------

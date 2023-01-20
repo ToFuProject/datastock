@@ -65,7 +65,7 @@ def _add_data(st=None, nc=None, nx=None, lnt=None):
     x = np.linspace(1, 2, nx)
     y = np.exp((x - 0.5)**2)
     y[-5] = np.nan
-    lt = [np.linspace(0, 10, nt) for nt in lnt]
+    lt = [np.linspace(1, 10, nt) for nt in lnt]
     lprof = [(1 + np.cos(t)[:, None]) * x[None, :] for t in lt]
     lprof[0][10, -5] = np.nan
 
@@ -287,31 +287,57 @@ class Test02_Manipulate():
     def test08_binning(self):
         
         bins = np.linspace(1, 5, 10)
-        lk = [('y', None), ('y', 'nx'), ('prof0', 'nt0'), ('prof0', 'x')]
+        lk = [
+            ('y', None, 0),
+            ('y', 'nx', 0),
+            (None, 'nt0', 0),
+            ('prof0', 'nt0', 0),
+            ('prof0', 'x', 1),
+        ]
         
-        for (k0, kr) in lk:
-            val, units = self.st.binning(
-                key=k0,
+        for (k0, kr, ax) in lk:
+            dout = self.st.binning(
+                keys=k0,
                 ref_key=kr,
                 bins=bins,
             )
+            
+            k0 = list(dout.keys())[0]
+            shape = list(self.st.ddata[k0]['data'].shape)
+            shape[ax] = bins.size - 1
+            assert dout[k0]['data'].shape == tuple(shape)
 
     def test09_interpolate(self):
-        out = self.st.interpolate(
-            keys='prof0',
-            ref_keys=None,
-            ref_quant=None,
-            pts_axis0=[1.5, 2.5],
-            pts_axis1=[1., 2.],
-            pts_axis2=None,
-            grid=False,
-            deg=2,
-            deriv=None,
-            log_log=False,
-            return_params=False,
-        )
-        assert isinstance(out, dict)
-        assert isinstance(out['prof0'], np.ndarray)
+        
+        lk = ['y', 'y', 'prof0', 'prof0', 'prof0']
+        lref = [None, 'nx', 't0', ['nt0', 'nx'], ['t0', 'x']]
+        lax = [[0], [0], [0], [0, 1], [0, 1]]
+        lgrid = [False, False, False, False, True]
+        llog = [False, False, False, True, False]
+        
+        x2d = np.array([[1.5, 2.5], [1, 2]])
+        lx0 = [x2d, [1.5, 2.5], [1.5, 2.5], x2d, [1.5, 2.5]]
+        lx1 = [None, None, None, x2d, [1.2, 2.3]]
+        
+        for kk, rr, aa, lg, gg, x0, x1 in zip(lk, lref, lax, llog, lgrid, lx0, lx1):
+            dout = self.st.interpolate(
+                keys=kk,
+                ref_key=rr,
+                x0=x0,
+                x1=x1,
+                grid=gg,
+                deg=2,
+                deriv=None,
+                log_log=lg,
+                return_params=False,
+            )
+            
+            assert isinstance(dout, dict)
+            assert isinstance(dout[kk]['data'], np.ndarray)
+            shape = list(self.st.ddata[kk]['data'].shape)
+            x0s = np.array(x0).shape if gg is False else (len(x0), len(x1))
+            shape = tuple(np.r_[shape[:aa[0]], x0s, shape[aa[-1]+1:]])
+            assert dout[kk]['data'].shape == tuple(shape), (dout[kk]['data'].shape, shape, kk, rr)
 
     # ------------------------
     #   Plotting

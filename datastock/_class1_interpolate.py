@@ -3,6 +3,7 @@
 
 # Builtin
 import warnings
+import itertools as itt
 
 
 # Common
@@ -12,6 +13,7 @@ import scipy.interpolate as scpinterp
 
 # local
 from . import _generic_check
+from. import _class1_binning
 
 
 # #############################################################################
@@ -21,23 +23,19 @@ from . import _generic_check
 
 
 def interpolate(
+    coll=None,
     # interpolation base
     keys=None,
-    ref_keys=None,
-    ref_quant=None,
+    ref_key=None,
     # interpolation pts
-    pts_axis0=None,
-    pts_axis1=None,
-    pts_axis2=None,
+    x0=None,
+    x1=None,
     grid=None,
     # parameters
     deg=None,
     deriv=None,
     log_log=None,
     return_params=None,
-    # ressources
-    ddata=None,
-    dref=None,
 ):
     """ Interpolate at desired points on desired data
 
@@ -58,46 +56,77 @@ def interpolate(
 
     """
 
-    # --------------
+    # -------------
     # check inputs
-
+    
+    # keys
+    keys, ref_key, daxis, dunits, units_ref = _class1_binning._check_keys(
+        coll=coll,
+        keys=keys,
+        ref_key=ref_key,
+        only1d=False,
+    )
+    
+    # params
     (
-        ref_keys, keys,
         deg, deriv,
-        pts_axis0, pts_axis1, pts_axis2,
+        x0, x1,
         log_log, grid, ndim, return_params,
-    ) = _check(
+    ) = _check_params(
+        coll=coll,
         # interpolation base
         keys=keys,
-        ref_keys=ref_keys,
-        ref_quant=ref_quant,
+        ref_key=ref_key,      # ddata keys
         # interpolation pts
-        pts_axis0=pts_axis0,
-        pts_axis1=pts_axis1,
-        pts_axis2=pts_axis2,
+        x0=x0,
+        x1=x1,
         # parameters
+        grid=grid,
         deg=deg,
         deriv=deriv,
-        grid=grid,
         log_log=log_log,
         return_params=return_params,
-        # ressources
-        ddata=ddata,
-        dref=dref,
     )
 
-    # ----------------
-    # Interpolate
+    # ------------
+    # prepare
 
-    shape = pts_axis0.shape
-    dvalues = {k0: np.full(shape, np.nan) for k0 in keys}
+    dshape = {}
+    for k0 in keys:
+        
+        dshape[k0] = _get_shapes_axis_ind(
+            axis=daxis[k0],
+            shape_coefs=coll.ddata[k0]['data'].shape,
+            shape_x=x0.shape,
+            shape_bs=[coll.ddata[k0]['data'].shape[aa] for aa in daxis[k0]],
+        )
+        
+    dout = {
+        k0: {'data': np.full(dshape[k0]['shape_val'], np.nan)}
+        for k0 in keys
+    }
     derr = {}
 
     # x must be increasing
-    x = ddata[ref_keys[0]]['data']
+    x = coll.ddata[ref_key[0]]['data']
     dx = x[1] - x[0]
     if dx < 0:
         x = x[::-1]
+
+    # indokx
+    indokx0 = (
+        np.isfinite(x0)
+        & (x0 >= x.min()) & (x0 <= x.max())
+    )
+        
+    if log_log is True:
+        indokx0 &= (x0 > 0)
+
+    # ------------
+    # Interpolate
+    
+    print()
+    print(keys, ref_key, ndim)
 
     # treat oer dimnesionality
     if ndim == 1:
@@ -106,130 +135,73 @@ def interpolate(
         for ii, k0 in enumerate(keys):
 
             try:
-                # x must be strictly increasing
-                if dx > 0:
-                    y = ddata[k0]['data']
-                else:
-                    y = ddata[k0]['data'][::-1]
-
-                # only keep finite y
-                indok = np.isfinite(y)
-                xi = x[indok]
-                y = y[indok]
-
-                # Interpolate on finite values within boundaries only
-                indok = (
-                    np.isfinite(pts_axis0)
-                    & (pts_axis0 >= xi[0]) & (pts_axis0 <= xi[-1])
+                dout[k0]['data'] = _interp1d(
+                    out=dout[k0]['data'],
+                    data=coll.ddata[k0]['data'],
+                    dshape=dshape[k0],
+                    x=x,
+                    x0=x0,
+                    axis=daxis[k0][0],
+                    dx=dx,
+                    log_log=log_log,
+                    deg=deg,
+                    deriv=deriv,
+                    indokx0=indokx0,
                 )
-                if log_log is True:
-                    indok &= pts_axis0 > 0
-                indok = indok.nonzero()[0]
-
-                # sort for more efficient evaluation
-                indok = indok[np.argsort(pts_axis0[indok])]
-
-                # Instanciate interpolation, using finite values only
-                if log_log is True:
-                    dvalues[k0][indok] = np.exp(
-                        scpinterp.InterpolatedUnivariateSpline(
-                            np.log(xi),
-                            np.log(y),
-                            k=deg,
-                            ext='zeros',
-                        )(np.log(pts_axis0[indok]), nu=deriv)
-                    )
-
-                else:
-                    dvalues[k0][indok] = scpinterp.InterpolatedUnivariateSpline(
-                        xi,
-                        y,
-                        k=deg,
-                        ext='zeros',
-                    )(pts_axis0[indok], nu=deriv)
+                print('success')
 
             except Exception as err:
+                raise err
                 derr[k0] = str(err)
 
     elif ndim == 2:
 
         # x, y
-        y = ddata[ref_keys[1]]['data']
+        y = coll.ddata[ref_key[1]]['data']
         dy = y[1] - y[0]
         if dy < 0:
             y = y[::-1]
+            
+        indokx0 &= (
+            np.isfinite(x1)
+            & (x1 >= y.min()) & (x1 <= y.max())
+        )
+        if log_log is True:
+            indokx0 &= (x1 > 0)
 
         # loop on keys
         for ii, k0 in enumerate(keys):
 
             try:
-
-                # adjust z order
-                z = ddata[k0]['data']
-                if dx < 0:
-                    z = np.flip(z, axis=0)
-                if dy < 0:
-                    z = np.flip(z, axis=1)
-
-                # only keep finite y
-                indok = np.isfinite(z)
-                indokx = np.all(indok, axis=1)
-                indoky = np.all(indok, axis=0)
-                xi = x[indokx]
-                yi = y[indoky]
-                z = z[indokx, :][:, indoky]
-
-                # Interpolate on finite values within boundaries only
-                indok = (
-                    np.isfinite(pts_axis0)
-                    & np.isfinite(pts_axis1)
-                    & (pts_axis0 >= xi[0]) & (pts_axis0 <= xi[-1])
-                    & (pts_axis1 >= yi[0]) & (pts_axis1 <= yi[-1])
+                dout[k0]['data'] = _interp2d(
+                    out=dout[k0]['data'],
+                    data=coll.ddata[k0]['data'],
+                    dshape=dshape[k0],
+                    x=x,
+                    y=y,
+                    x0=x0,
+                    x1=x1,
+                    axis=daxis[k0],
+                    dx=dx,
+                    dy=dy,
+                    log_log=log_log,
+                    deg=deg,
+                    deriv=deriv,
+                    indokx0=indokx0,
                 )
-                if log_log is True:
-                    indok &= (pts_axis0 > 0) & (pts_axis1 > 0)
-
-                # Instanciate interpolation, using finite values only
-                if log_log is True:
-                    dvalues[k0][indok] = np.exp(
-                        scpinterp.RectBivariateSpline(
-                            np.log(xi),
-                            np.log(yi),
-                            np.log(z),
-                            kx=deg,
-                            ky=deg,
-                            s=0,
-                        )(
-                            np.log(pts_axis0[indok]),
-                            np.log(pts_axis1[indok]),
-                            grid=False,
-                        )
-                    )
-                else:
-                    dvalues[k0][indok] = scpinterp.RectBivariateSpline(
-                        xi,
-                        yi,
-                        z,
-                        kx=deg,
-                        ky=deg,
-                        s=0,
-                    )(
-                        pts_axis0[indok],
-                        pts_axis1[indok],
-                        grid=False,
-                    )
 
             except Exception as err:
+                raise err
                 derr[k0] = str(err)
 
     else:
-        pass
+        raise NotImplementedError()
 
     # ----------------------------
     # raise warning if any failure
 
     if len(derr) > 0:
-        lstr = [f"\t- {k0}: {v0}" for k0, v0 in derr.items()]
+        lstr = [f"\t- '{k0}': {v0}" for k0, v0 in derr.items()]
         msg = (
             "The following keys could not be interpolated:\n"
             + "\n".join(lstr)
@@ -242,18 +214,17 @@ def interpolate(
     if return_params is True:
         dparam = {
             'keys': keys,
-            'ref_keys': ref_keys,
+            'ref_key': ref_key,
             'deg': deg,
             'deriv': deriv,
             'log_log': log_log,
-            'pts_axis0': pts_axis0,
-            'pts_axis1': pts_axis0,
-            'pts_axis2': pts_axis0,
+            'x0': x0,
+            'x1': x1,
             'grid': grid,
         }
-        return dvalues, dparam
+        return dout, dparam
     else:
-        return dvalues
+        return dout
 
 
 # #############################################################################
@@ -262,115 +233,22 @@ def interpolate(
 # #############################################################################
 
 
-def _check_pts(pts=None, pts_name=None):
-    if pts is None:
-        msg = f"Please provide the interpolation points {pts_name}!"
-        raise Exception(msg)
-
-    if not isinstance(pts, np.ndarray):
-        try:
-            pts = np.atleast_1d(pts)
-        except Exception:
-            msg = f"{pts_name} should be convertible to a np.ndarray!"
-            raise Exception(msg)
-    return pts
-
-
-def _check(
+def _check_params(
+    coll=None,
     # interpolation base
     keys=None,
-    ref_keys=None,      # ddata keys
-    ref_quant=None,     # ddata[ref_key]['quant'], not used yet
+    ref_key=None,      # ddata keys
     # interpolation pts
-    pts_axis0=None,
-    pts_axis1=None,
-    pts_axis2=None,
+    x0=None,
+    x1=None,
     # parameters
     grid=None,
     deg=None,
     deriv=None,
     log_log=None,
     return_params=None,
-    # ressources
-    ddata=None,
-    dref=None,
 ):
-
-    # ---
-    # keys
-
-    lkok = list(ddata.keys())
-    if isinstance(keys, str):
-        keys = [keys]
-    keys = _generic_check._check_var_iter(
-        keys, 'keys',
-        types=list,
-        types_iter=str,
-        allowed=lkok,
-    )
-
-    lrefs = set([ddata[kk]['ref'] for kk in keys])
-    if len(lrefs) != 1:
-        msg = (
-            "All interpolation keys must share the same refs!\n"
-            f"\t- keys: {keys}\n"
-            f"\t- refs: {lrefs}\n"
-        )
-        raise Exception(msg)
-
-    ref = ddata[keys[0]]['ref']
-    ndim = ddata[keys[0]]['data'].ndim
-    assert ndim == len(ref)
-    if ndim > 2:
-        msg = "Interpolation not implemented for more than 3 dimensions!"
-        raise NotImplementedError(msg)
-
-    # --------
-    # ref_keys
-
-    if ref_keys is None:
-        ref_keys = [None for rr in ref]
-
-    if isinstance(ref_keys, str):
-        ref_keys = [ref_keys for rr in ref]
-
-    c0 = (
-        isinstance(ref_keys, list)
-        and len(ref_keys) == ndim
-        and all([kk is None or kk in ddata.keys() for kk in ref_keys])
-    )
-    if not c0:
-        msg = (
-            "Arg ref_keys must be a list of keys to monotonous data\n"
-            f"One for each component in data['ref']: {ref}\n"
-            f"Provided: {ref_keys}"
-        )
-        raise Exception(msg)
-
-    # ref_quant
-    lqok = [v0.get('quant') for v0 in ddata.values()] + [None]
-    if ref_quant is None:
-        ref_quant = [None for ii in range(ndim)]
-    ref_quant = _generic_check._check_var_iter(
-        ref_quant, 'ref_quant',
-        types=list,
-        allowed=lqok,
-    )
-
-    # check for each dimension
-    for ii, rr in enumerate(ref):
-        lok = [
-            k1 for k1, v1 in ddata.items()
-            if v1['ref'] == (rr,)
-            and v1['monot'] == (True,)
-            and (ref_quant[ii] is None or v1.get('quant') == ref_quant[ii])
-        ]
-        ref_keys[ii] = _generic_check._check_var(
-            ref_keys[ii], f'ref_keys[{ii}]',
-            types=str,
-            allowed=lok,
-        )
-
+    
     # ---
     # deg
 
@@ -384,6 +262,7 @@ def _check(
     # ---
     # deriv
 
+    ndim = len(ref_key)
     if deriv not in [None, 0] and ndim > 1:
         msg = (
             "Arg deriv can only be used for 1d interpolations!\n"
@@ -409,7 +288,7 @@ def _check(
     )
 
     if log_log is True:
-        lkout = [k0 for k0 in ref_keys if np.any(ddata[k0]['data'] <= 0)]
+        lkout = [k0 for k0 in ref_key if np.any(coll.ddata[k0]['data'] <= 0)]
         if len(lkout) > 0:
             msg = (
                 "The following keys cannot be used as ref / coordinates "
@@ -417,7 +296,7 @@ def _check(
                 f"\t- {lkout}"
             )
             raise Exception(msg)
-        lkout = [k0 for k0 in keys if np.any(ddata[k0]['data'] <= 0)]
+        lkout = [k0 for k0 in keys if np.any(coll.ddata[k0]['data'] <= 0)]
         if len(lkout) > 0:
             msg = (
                 "The following keys cannot be used as data "
@@ -436,13 +315,13 @@ def _check(
     )
 
     # --------------------------
-    # pts_axis0, pts_axis1, grid
+    # x0, x1, grid
 
-    pts_axis0 = _check_pts(pts=pts_axis0, pts_name='pts_axis0')
-    sh0 = pts_axis0.shape
+    x0 = _check_pts(pts=x0, pts_name='x0')
+    sh0 = x0.shape
     if ndim >= 2:
-        pts_axis1 = _check_pts(pts=pts_axis1, pts_name='pts_axis1')
-        sh1 = pts_axis1.shape
+        x1 = _check_pts(pts=x1, pts_name='x1')
+        sh1 = x1.shape
 
         # grid
         grid = _generic_check._check_var(
@@ -451,6 +330,7 @@ def _check(
             types=bool,
         )
 
+    # cases
     if ndim == 1:
 
         pass
@@ -461,19 +341,19 @@ def _check(
             sh = list(sh0) + list(sh1)
             resh = list(sh0) + [1 for ss in sh1]
             pts0 = np.full(sh, np.nan)
-            pts0[...] = pts_axis0.reshape(resh)
+            pts0[...] = x0.reshape(resh)
             resh = [1 for ss in sh0] + list(sh1)
             pts1 = np.full(sh, np.nan)
-            pts1[...] = pts_axis1.reshape(resh)
-            pts_axis0, pts_axis1 = pts0, pts1
+            pts1[...] = x1.reshape(resh)
+            x0, x1 = pts0, pts1
 
         elif sh0 != sh1:
 
             if sh0 == (1,):
-                pts_axis0 = np.full(sh1, pts_axis0[0])
+                x0 = np.full(sh1, x0[0])
 
             elif sh1 == (1,):
-                pts_axis1 = np.full(sh0, pts_axis1[0])
+                x1 = np.full(sh0, x1[0])
 
             else:
                 lc = [
@@ -484,20 +364,20 @@ def _check(
                 if lc[0]:
                     resh = [ss if ss in sh0 else 1 for ss in sh1]
                     pts0 = np.full(sh1, np.nan)
-                    pts0[...] = pts_axis0.reshape(resh)
-                    pts_axis0 = pts0
+                    pts0[...] = x0.reshape(resh)
+                    x0 = pts0
 
                 elif lc[1]:
                     resh = [ss if ss in sh1 else 1 for ss in sh0]
                     pts1 = np.full(sh0, np.nan)
-                    pts1[...] = pts_axis1.reshape(resh)
-                    pts_axis1 = pts1
+                    pts1[...] = x1.reshape(resh)
+                    x1 = pts1
 
                 else:
                     msg = (
                         "No broadcasting solution identified!\n"
-                        f"\t- pts_axis0.shape: {sh0}\n"
-                        f"\t- pts_axis1.shape: {sh1}\n"
+                        f"\t- x0.shape: {sh0}\n"
+                        f"\t- x1.shape: {sh1}\n"
                     )
                     raise Exception(msg)
 
@@ -505,8 +385,272 @@ def _check(
         raise NotImplementedError()
 
     return (
-        ref_keys, keys,
         deg, deriv,
-        pts_axis0, pts_axis1, pts_axis2,
+        x0, x1,
         log_log, grid, ndim, return_params,
     )
+
+
+def _check_pts(pts=None, pts_name=None):
+    if pts is None:
+        msg = f"Please provide the interpolation points {pts_name}!"
+        raise Exception(msg)
+
+    if not isinstance(pts, np.ndarray):
+        try:
+            pts = np.atleast_1d(pts)
+        except Exception:
+            msg = f"{pts_name} should be convertible to a np.ndarray!"
+            raise Exception(msg)
+    return pts
+
+
+# ##################################################################
+# ##################################################################
+#                   get shapes dict
+# ##################################################################
+
+
+def _get_shapes_axis_ind(axis=None, shape_coefs=None, shape_x=None, shape_bs=None):
+    
+    # -------------------------------------------------
+    # initial safety check on coefs vs shapebs vs axis
+    
+    c0 = (
+        len(shape_coefs) >= len(shape_bs)
+        and len(axis) == len(shape_bs)
+        and all([aa == axis[0] + ii for ii, aa in enumerate(axis)])
+        and all([shape_coefs[aa] == shape_bs[ii] for ii, aa in enumerate(axis)])
+    )
+    if not c0:
+        msg = (
+            f"Arg shape_coefs must include {shape_bs}\n"
+            f"\t- axis: {axis}\n"
+            f"\t- shape_coefs: {shape_coefs}\n"
+            f"\t- shape_bs: {shape_bs}\n"
+            f"\t- shape_x: {shape_x}\n"
+        )
+        raise Exception(msg)
+    
+    # ----------------
+    # shape for output 
+    
+    shape_val, axis_x, ind_coefs, ind_x = [], [], [], []
+    ij = 0
+    for ii in range(len(shape_coefs)):
+        if ii == axis[0]:
+            for jj in range(len(shape_x)):
+                shape_val.append(shape_x[jj])
+                axis_x.append(ii + jj)
+                ind_x.append(None)
+            ind_coefs.append(None)
+            
+        elif len(axis) > 1 and ii in axis[1:]:
+            ind_coefs.append(None)
+        else:
+            shape_val.append(shape_coefs[ii])
+            ind_coefs.append(ij)
+            ind_x.append(ij)
+            ij += 1
+    
+    # ----------------
+    # shape_other
+    
+    shape_other = tuple([
+        ss for ii, ss in enumerate(shape_coefs)
+        if ii not in axis
+    ])
+    
+    return {
+        'shape_val': tuple(shape_val),
+        'shape_other': shape_other,
+        'axis_x': axis_x,
+        'ind_coefs': ind_coefs,
+        'ind_x': ind_x,
+    }
+
+
+# ##################################################################
+# ##################################################################
+#                   interpolate
+# ##################################################################
+
+
+def _interp1d(
+    data=None,
+    out=None,
+    dshape=None,
+    x=None,
+    x0=None,
+    axis=None,
+    dx=None,
+    log_log=None,
+    deg=None,
+    deriv=None,
+    indokx0=None,
+):
+
+    # x must be strictly increasing
+    if dx > 0:
+        y = data
+    else:
+        y = np.flip(data, axis)
+
+    # slicing
+    linds = [range(nn) for nn in dshape['shape_other']]
+    indi = list(range(data.ndim - 1))
+    indi.insert(axis, None)
+    
+    print(x.shape, x0.shape, y.shape)
+    print(dshape)
+    print(linds, indi)
+    
+    for ind in itt.product(*linds):
+        
+        sli = [
+            slice(None) if ii == axis else ind[indi[ii]]
+            for ii in range(len(y.shape))
+        ]
+        sli_val = tuple([
+            indokx0 if ii == axis else ind[indi[ii]]
+            for ii in range(len(y.shape))
+        ])
+        
+        # only keep finite y
+        indoki = np.isfinite(y[tuple(sli)])
+        sli[axis] = indoki
+        
+        xi = x[indoki]
+        yi = y[tuple(sli)]
+
+        # Instanciate interpolation, using finite values only
+        if log_log is True:
+            out[sli_val] = np.exp(
+                scpinterp.InterpolatedUnivariateSpline(
+                    np.log(xi),
+                    np.log(yi),
+                    k=deg,
+                    ext='zeros',
+                )(np.log(x0[indokx0]), nu=deriv)
+            )
+
+        else:
+            out[sli_val] = scpinterp.InterpolatedUnivariateSpline(
+                xi,
+                yi,
+                k=deg,
+                ext='zeros',
+            )(x0[indokx0], nu=deriv)
+
+    return out
+
+
+def _interp2d(
+    data=None,
+    out=None,
+    dshape=None,
+    x=None,
+    y=None,
+    x0=None,
+    x1=None,
+    axis=None,
+    dx=None,
+    dy=None,
+    log_log=None,
+    deg=None,
+    deriv=None,
+    indokx0=None,
+):
+    
+    # adjust z order
+    z = data
+    if dx < 0:
+        z = np.flip(z, axis=0)
+    if dy < 0:
+        z = np.flip(z, axis=1)
+        
+    # slicing
+    linds = [range(nn) for nn in dshape['shape_other']]
+    indi = list(range(data.ndim - 2))
+    for ii, aa in enumerate(axis):
+        indi.insert(aa + ii, None)
+
+    # only keep finite y
+    indok = np.isfinite(z)
+    indokx = np.all(indok, axis=1)
+    indoky = np.all(indok, axis=0)
+    xi = x[indokx]
+    yi = y[indoky]
+    z = z[indokx, :][:, indoky]
+
+    # Interpolate on finite values within boundaries only
+    indok = (
+        np.isfinite(x0)
+        & np.isfinite(x1)
+    )
+    if log_log is True:
+        indok &= (x0 > 0) & (x1 > 0)
+
+    # -----------
+    # interpolate
+
+    for ind in itt.product(*linds):
+        
+        sli = [
+            slice(None) if ii in axis else ind[indi[ii]]
+            for ii in range(len(z.shape))
+        ]
+        sli_val = tuple([
+            indokx0 if ii == axis[0] else ind[indi[ii]]
+            for ii in range(len(z.shape))
+            if ii != axis[1]
+        ])
+        
+        # only keep finite y
+        indoki = np.isfinite(z[tuple(sli)])
+        sli[axis[0]] = indoki
+        sli.pop(axis[1])
+        
+        indokix = np.all(indoki, axis=1)
+        indokiy = np.all(indoki, axis=0)
+        xi = x[indokix]
+        yi = y[indokiy]
+        
+        sli[axis[0]] = indokix
+        zi = z[tuple(sli)]
+        sli[axis[0]] = slice(None)
+        sli[axis[1]] = indokiy
+        zi = zi[tuple(sli)]
+
+        # Instanciate interpolation, using finite values only
+        if log_log is True:
+            out[sli_val] = np.exp(
+                scpinterp.RectBivariateSpline(
+                    np.log(xi),
+                    np.log(yi),
+                    np.log(zi),
+                    kx=deg,
+                    ky=deg,
+                    s=0,
+                )(
+                    np.log(x0[indokx0]),
+                    np.log(x1[indokx0]),
+                    grid=False,
+                )
+            )
+
+        else:          
+            out[sli_val] = scpinterp.RectBivariateSpline(
+                xi,
+                yi,
+                zi,
+                kx=deg,
+                ky=deg,
+                s=0,
+            )(
+                x0[indokx0],
+                x1[indokx0],
+                grid=False,
+            )
+            
+    return out
