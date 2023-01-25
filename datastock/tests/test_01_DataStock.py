@@ -309,15 +309,16 @@ class Test02_Manipulate():
 
     def test09_interpolate(self):
 
-        lk = ['y', 'y', 'prof0', 'prof0', 'prof0']
-        lref = [None, 'nx', 't0', ['nt0', 'nx'], ['t0', 'x']]
-        lax = [[0], [0], [0], [0, 1], [0, 1]]
-        lgrid = [False, False, False, False, True]
-        llog = [False, False, False, True, False]
+        lk = ['y', 'y', 'prof0', 'prof0', 'prof0', '3d']
+        lref = [None, 'nx', 't0', ['nt0', 'nx'], ['t0', 'x'], ['t0', 'x']]
+        lax = [[0], [0], [0], [0, 1], [0, 1], [1, 2]]
+        lgrid = [False, False, False, False, True, False]
+        llog = [False, False, False, True, False, False]
 
         x2d = np.array([[1.5, 2.5], [1, 2]])
-        lx0 = [x2d, [1.5, 2.5], [1.5, 2.5], x2d, [1.5, 2.5]]
-        lx1 = [None, None, None, x2d, [1.2, 2.3]]
+        x3d = np.random.random((5, 4, 3))
+        lx0 = [x2d, [1.5, 2.5], [1.5, 2.5], x2d, [1.5, 2.5], x3d]
+        lx1 = [None, None, None, x2d, [1.2, 2.3], x3d]
 
         for kk, rr, aa, lg, gg, x0, x1 in zip(lk, lref, lax, llog, lgrid, lx0, lx1):
             dout = self.st.interpolate(
