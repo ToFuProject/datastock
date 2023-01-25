@@ -58,7 +58,7 @@ def interpolate(
 
     # -------------
     # check inputs
-    
+
     # keys
     keys, ref_key, daxis, dunits, units_ref = _class1_binning._check_keys(
         coll=coll,
@@ -66,7 +66,7 @@ def interpolate(
         ref_key=ref_key,
         only1d=False,
     )
-    
+
     # params
     (
         deg, deriv,
@@ -93,14 +93,14 @@ def interpolate(
 
     dshape = {}
     for k0 in keys:
-        
+
         dshape[k0] = _get_shapes_axis_ind(
             axis=daxis[k0],
             shape_coefs=coll.ddata[k0]['data'].shape,
             shape_x=x0.shape,
             shape_bs=[coll.ddata[k0]['data'].shape[aa] for aa in daxis[k0]],
         )
-        
+
     dout = {
         k0: {'data': np.full(dshape[k0]['shape_val'], np.nan)}
         for k0 in keys
@@ -118,13 +118,13 @@ def interpolate(
         np.isfinite(x0)
         & (x0 >= x.min()) & (x0 <= x.max())
     )
-        
+
     if log_log is True:
         indokx0 &= (x0 > 0)
 
     # ------------
     # Interpolate
-    
+
     print()
     print(keys, ref_key, ndim)
 
@@ -161,7 +161,7 @@ def interpolate(
         dy = y[1] - y[0]
         if dy < 0:
             y = y[::-1]
-            
+
         indokx0 &= (
             np.isfinite(x1)
             & (x1 >= y.min()) & (x1 <= y.max())
@@ -248,7 +248,7 @@ def _check_params(
     log_log=None,
     return_params=None,
 ):
-    
+
     # ---
     # deg
 
@@ -412,10 +412,10 @@ def _check_pts(pts=None, pts_name=None):
 
 
 def _get_shapes_axis_ind(axis=None, shape_coefs=None, shape_x=None, shape_bs=None):
-    
+
     # -------------------------------------------------
     # initial safety check on coefs vs shapebs vs axis
-    
+
     c0 = (
         len(shape_coefs) >= len(shape_bs)
         and len(axis) == len(shape_bs)
@@ -431,10 +431,10 @@ def _get_shapes_axis_ind(axis=None, shape_coefs=None, shape_x=None, shape_bs=Non
             f"\t- shape_x: {shape_x}\n"
         )
         raise Exception(msg)
-    
+
     # ----------------
-    # shape for output 
-    
+    # shape for output
+
     shape_val, axis_x, ind_coefs, ind_x = [], [], [], []
     ij = 0
     for ii in range(len(shape_coefs)):
@@ -444,7 +444,7 @@ def _get_shapes_axis_ind(axis=None, shape_coefs=None, shape_x=None, shape_bs=Non
                 axis_x.append(ii + jj)
                 ind_x.append(None)
             ind_coefs.append(None)
-            
+
         elif len(axis) > 1 and ii in axis[1:]:
             ind_coefs.append(None)
         else:
@@ -452,15 +452,15 @@ def _get_shapes_axis_ind(axis=None, shape_coefs=None, shape_x=None, shape_bs=Non
             ind_coefs.append(ij)
             ind_x.append(ij)
             ij += 1
-    
+
     # ----------------
     # shape_other
-    
+
     shape_other = tuple([
         ss for ii, ss in enumerate(shape_coefs)
         if ii not in axis
     ])
-    
+
     return {
         'shape_val': tuple(shape_val),
         'shape_other': shape_other,
@@ -500,13 +500,13 @@ def _interp1d(
     linds = [range(nn) for nn in dshape['shape_other']]
     indi = list(range(data.ndim - 1))
     indi.insert(axis, None)
-    
+
     print(x.shape, x0.shape, y.shape)
     print(dshape)
     print(linds, indi)
-    
+
     for ind in itt.product(*linds):
-        
+
         sli = [
             slice(None) if ii == axis else ind[indi[ii]]
             for ii in range(len(y.shape))
@@ -515,11 +515,11 @@ def _interp1d(
             indokx0 if ii == axis else ind[indi[ii]]
             for ii in range(len(y.shape))
         ])
-        
+
         # only keep finite y
         indoki = np.isfinite(y[tuple(sli)])
         sli[axis] = indoki
-        
+
         xi = x[indoki]
         yi = y[tuple(sli)]
 
@@ -561,41 +561,25 @@ def _interp2d(
     deriv=None,
     indokx0=None,
 ):
-    
+
     # adjust z order
     z = data
     if dx < 0:
-        z = np.flip(z, axis=0)
+        z = np.flip(z, axis=axis[0])
     if dy < 0:
-        z = np.flip(z, axis=1)
-        
+        z = np.flip(z, axis=axis[1])
+
     # slicing
     linds = [range(nn) for nn in dshape['shape_other']]
     indi = list(range(data.ndim - 2))
     for ii, aa in enumerate(axis):
         indi.insert(aa + ii, None)
 
-    # only keep finite y
-    indok = np.isfinite(z)
-    indokx = np.all(indok, axis=1)
-    indoky = np.all(indok, axis=0)
-    xi = x[indokx]
-    yi = y[indoky]
-    z = z[indokx, :][:, indoky]
-
-    # Interpolate on finite values within boundaries only
-    indok = (
-        np.isfinite(x0)
-        & np.isfinite(x1)
-    )
-    if log_log is True:
-        indok &= (x0 > 0) & (x1 > 0)
-
     # -----------
     # interpolate
 
     for ind in itt.product(*linds):
-        
+
         sli = [
             slice(None) if ii in axis else ind[indi[ii]]
             for ii in range(len(z.shape))
@@ -605,22 +589,15 @@ def _interp2d(
             for ii in range(len(z.shape))
             if ii != axis[1]
         ])
-        
+
         # only keep finite y
         indoki = np.isfinite(z[tuple(sli)])
-        sli[axis[0]] = indoki
-        sli.pop(axis[1])
-        
         indokix = np.all(indoki, axis=1)
         indokiy = np.all(indoki, axis=0)
+
         xi = x[indokix]
         yi = y[indokiy]
-        
-        sli[axis[0]] = indokix
-        zi = z[tuple(sli)]
-        sli[axis[0]] = slice(None)
-        sli[axis[1]] = indokiy
-        zi = zi[tuple(sli)]
+        zi = z[tuple(sli)][indokix, :][:, indokiy]
 
         # Instanciate interpolation, using finite values only
         if log_log is True:
@@ -639,7 +616,7 @@ def _interp2d(
                 )
             )
 
-        else:          
+        else:
             out[sli_val] = scpinterp.RectBivariateSpline(
                 xi,
                 yi,
@@ -652,5 +629,5 @@ def _interp2d(
                 x1[indokx0],
                 grid=False,
             )
-            
+
     return out

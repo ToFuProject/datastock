@@ -78,7 +78,7 @@ def _add_data(st=None, nc=None, nx=None, lnt=None):
         units='m',
         ref='nx',
     )
-    
+
     st.add_data(
         key='y',
         data=y,
@@ -283,9 +283,9 @@ class Test02_Manipulate():
             keys=['t0', 'prof0', 'prof1', 't3'],
             dim='time',
         )
-        
+
     def test08_binning(self):
-        
+
         bins = np.linspace(1, 5, 10)
         lk = [
             ('y', None, 0),
@@ -294,31 +294,31 @@ class Test02_Manipulate():
             ('prof0', 'nt0', 0),
             ('prof0', 'x', 1),
         ]
-        
+
         for (k0, kr, ax) in lk:
             dout = self.st.binning(
                 keys=k0,
                 ref_key=kr,
                 bins=bins,
             )
-            
+
             k0 = list(dout.keys())[0]
             shape = list(self.st.ddata[k0]['data'].shape)
             shape[ax] = bins.size - 1
             assert dout[k0]['data'].shape == tuple(shape)
 
     def test09_interpolate(self):
-        
+
         lk = ['y', 'y', 'prof0', 'prof0', 'prof0']
         lref = [None, 'nx', 't0', ['nt0', 'nx'], ['t0', 'x']]
         lax = [[0], [0], [0], [0, 1], [0, 1]]
         lgrid = [False, False, False, False, True]
         llog = [False, False, False, True, False]
-        
+
         x2d = np.array([[1.5, 2.5], [1, 2]])
         lx0 = [x2d, [1.5, 2.5], [1.5, 2.5], x2d, [1.5, 2.5]]
         lx1 = [None, None, None, x2d, [1.2, 2.3]]
-        
+
         for kk, rr, aa, lg, gg, x0, x1 in zip(lk, lref, lax, llog, lgrid, lx0, lx1):
             dout = self.st.interpolate(
                 keys=kk,
@@ -331,7 +331,7 @@ class Test02_Manipulate():
                 log_log=lg,
                 return_params=False,
             )
-            
+
             assert isinstance(dout, dict)
             assert isinstance(dout[kk]['data'], np.ndarray)
             shape = list(self.st.ddata[kk]['data'].shape)
