@@ -51,12 +51,13 @@ def binning(
     units_ref = units_ref[0]
 
     # bins
-    bins, units_bins, db = _binning_check_bins(
+    bins, units_bins, db, _ = _check_bins(
         coll=coll,
         keys=keys,
         ref_key=ref_key,
         bins=bins,
         vect=coll.ddata[ref_key]['data'],
+        strict=True,
     )
 
     # units
@@ -66,8 +67,8 @@ def binning(
         units_bins=units_bins,
     )
 
-    # ------------
-    # bsplines
+    # --------------
+    # actual binning
 
     for k0, v0 in dout.items():
         dout[k0]['data'] = _bin(
@@ -206,13 +207,23 @@ def _check_keys(
     return keys, ref_key, daxis, dunits, units_ref
 
 
-def _binning_check_bins(
+def _check_bins(
     coll=None,
     keys=None,
     ref_key=None,
     bins=None,
     vect=None,
+    # if bsplines
+    strict=None,
+    deg=None,
 ):
+
+    # check
+    strict = _generic_check._check_var(
+        strict, 'strict',
+        types=bool,
+        default=True,
+    )
 
     # ---------
     # bins
@@ -254,14 +265,22 @@ def _binning_check_bins(
     # bin method
 
     dv = np.abs(np.mean(np.diff(vect)))
-    if db < 2*dv:
-        msg = (
-            f"Uncertain binning for '{sorted(keys)}', ref vect '{ref_key}':\n"
-            f"Binning steps ({db}) are smaller than 2*ref ({2*dv}) vector step"
-        )
-        raise Exception(msg)
 
-    return bins, bins_units, db
+    if strict is True:
+        if db < 2*dv:
+            msg = (
+                f"Uncertain binning for '{sorted(keys)}', ref vect '{ref_key}':\n"
+                f"Binning steps ({db}) are smaller than 2*ref ({2*dv}) vector step"
+            )
+            raise Exception(msg)
+
+        else:
+            npts = None
+
+    else:
+        npts = (deg + 3) * max(1, dv / db)
+
+    return bins, bins_units, db, npts
 
 
 def _units(

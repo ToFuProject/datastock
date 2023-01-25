@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+""" Module holding interpolation routines """
 
 
 # Builtin
@@ -13,13 +14,13 @@ import scipy.interpolate as scpinterp
 
 # local
 from . import _generic_check
-from. import _class1_binning
+from . import _class1_binning
 
 
-# #############################################################################
-# #############################################################################
+# ##################################################################
+# ##################################################################
 #           Interpolate
-# #############################################################################
+# ##################################################################
 
 
 def interpolate(
@@ -60,7 +61,7 @@ def interpolate(
     # check inputs
 
     # keys
-    keys, ref_key, daxis, dunits, units_ref = _class1_binning._check_keys(
+    keys, ref_key, daxis, dunits, _ = _class1_binning._check_keys(
         coll=coll,
         keys=keys,
         ref_key=ref_key,
@@ -91,20 +92,14 @@ def interpolate(
     # ------------
     # prepare
 
-    dshape = {}
-    for k0 in keys:
+    dshape, dout = _prepare_dshape_dout(
+        coll=coll,
+        keys=keys,
+        daxis=daxis,
+        dunits=dunits,
+        x0=x0,
+    )
 
-        dshape[k0] = _get_shapes_axis_ind(
-            axis=daxis[k0],
-            shape_coefs=coll.ddata[k0]['data'].shape,
-            shape_x=x0.shape,
-            shape_bs=[coll.ddata[k0]['data'].shape[aa] for aa in daxis[k0]],
-        )
-
-    dout = {
-        k0: {'data': np.full(dshape[k0]['shape_val'], np.nan)}
-        for k0 in keys
-    }
     derr = {}
 
     # x must be increasing
@@ -124,9 +119,6 @@ def interpolate(
 
     # ------------
     # Interpolate
-
-    print()
-    print(keys, ref_key, ndim)
 
     # treat oer dimnesionality
     if ndim == 1:
@@ -148,10 +140,9 @@ def interpolate(
                     deriv=deriv,
                     indokx0=indokx0,
                 )
-                print('success')
+                dout[k0]['units'] = dunits[k0]
 
             except Exception as err:
-                raise err
                 derr[k0] = str(err)
 
     elif ndim == 2:
@@ -189,9 +180,9 @@ def interpolate(
                     deriv=deriv,
                     indokx0=indokx0,
                 )
+                dout[k0]['units'] = dunits[k0]
 
             except Exception as err:
-                raise err
                 derr[k0] = str(err)
 
     else:
@@ -223,8 +214,8 @@ def interpolate(
             'grid': grid,
         }
         return dout, dparam
-    else:
-        return dout
+
+    return dout
 
 
 # #############################################################################
@@ -389,6 +380,36 @@ def _check_params(
         x0, x1,
         log_log, grid, ndim, return_params,
     )
+
+
+def _prepare_dshape_dout(
+    coll=None,
+    keys=None,
+    daxis=None,
+    dunits=None,
+    x0=None,
+):
+
+    # dshape
+    dshape = {
+        k0: _get_shapes_axis_ind(
+            axis=daxis[k0],
+            shape_coefs=coll.ddata[k0]['data'].shape,
+            shape_x=x0.shape,
+            shape_bs=[coll.ddata[k0]['data'].shape[aa] for aa in daxis[k0]],
+        )
+        for k0 in keys
+    }
+
+    # dout
+    dout = {
+        k0: {
+            'data': np.full(dshape[k0]['shape_val'], np.nan),
+            'units': dunits[k0],
+        }
+        for k0 in keys
+    }
+    return dshape, dout
 
 
 def _check_pts(pts=None, pts_name=None):
