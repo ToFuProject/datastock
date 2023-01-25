@@ -32,6 +32,8 @@ def interpolate(
     x0=None,
     x1=None,
     grid=None,
+    # domain limitation
+    ddomain=None,
     # parameters
     deg=None,
     deriv=None,
@@ -390,7 +392,13 @@ def _prepare_dshape_dout(
     x0=None,
 ):
 
+    # dind
+    domain = coll.get_ref_vector_domain(domain)
+
     # dshape
+    for k0 in keys:
+        pass
+
     dshape = {
         k0: _get_shapes_axis_ind(
             axis=daxis[k0],
@@ -409,7 +417,7 @@ def _prepare_dshape_dout(
         }
         for k0 in keys
     }
-    return dshape, dout
+    return domain, dout
 
 
 def _check_pts(pts=None, pts_name=None):

@@ -587,7 +587,7 @@ class DataStock1(DataStock0):
 
     def get_ref_vector(
         self,
-        # key 
+        # key
         key=None,
         # which ref / dimension
         ref=None,
@@ -715,7 +715,20 @@ class DataStock1(DataStock0):
             lparam=lparam,
             returnas=returnas,
         )
-    
+
+    # ---------------------
+    # domain
+    # ---------------------
+
+    def get_ref_vector_domain(
+        self,
+        domain=None,
+    ):
+        """ Return a dict of index of valid steps based on desired domain
+        """
+
+        return _class1_domain.domain(col=self, domain=domain)
+
     # ---------------------
     # Binning
     # ---------------------
@@ -727,7 +740,7 @@ class DataStock1(DataStock0):
         bins=None,
     ):
         """ return binned data and units along dimension indicated by refkey"""
-        
+
         return _class1_binning.binning(
             coll=self,
             keys=keys,
@@ -976,4 +989,3 @@ class DataStock1(DataStock0):
 __all__ = [
     sorted([k0 for k0 in locals() if k0.startswith('DataStock')])[-1]
 ]
-
