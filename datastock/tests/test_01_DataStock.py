@@ -162,11 +162,12 @@ def _add_obj(st=None, nc=None):
 
 class Test01_Instanciate():
 
-    def setup(self):
-        self.st = DataStock()
-        self.nc = 5
-        self.nx = 80
-        self.lnt = [100, 90, 80, 120, 80]
+    @classmethod
+    def setup_class(cls):
+        cls.st = DataStock()
+        cls.nc = 5
+        cls.nx = 80
+        cls.lnt = [100, 90, 80, 120, 80]
 
     # ------------------------
     #   Populating
@@ -191,15 +192,16 @@ class Test01_Instanciate():
 
 class Test02_Manipulate():
 
-    def setup(self):
-        self.st = DataStock()
-        self.nc = 5
-        self.nx = 80
-        self.lnt = [100, 90, 80, 120, 80]
+    @classmethod
+    def setup_class(cls):
+        cls.st = DataStock()
+        cls.nc = 5
+        cls.nx = 80
+        cls.lnt = [100, 90, 80, 120, 80]
 
-        _add_ref(st=self.st, nc=self.nc, nx=self.nx, lnt=self.lnt)
-        _add_data(st=self.st, nc=self.nc, nx=self.nx, lnt=self.lnt)
-        _add_obj(st=self.st, nc=self.nc)
+        _add_ref(st=cls.st, nc=cls.nc, nx=cls.nx, lnt=cls.lnt)
+        _add_data(st=cls.st, nc=cls.nc, nx=cls.nx, lnt=cls.lnt)
+        _add_obj(st=cls.st, nc=cls.nc)
 
     # ------------------------
     #   Add / remove
