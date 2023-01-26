@@ -286,7 +286,23 @@ class Test02_Manipulate():
             dim='time',
         )
 
-    def test08_binning(self):
+    def test08_domaini_ref(self):
+
+        domain = {
+            'nx': [1.5, 2],
+            'x': (1.5, 2),
+            'y': [[0, 0.9], (0.1, 0.2)],
+            't0': {'domain': [2, 3]},
+            't1': {'domain': [[2, 3], (2.5, 3), [4, 6]]},
+            't2': {'ind': self.st.ddata['t2']['data'] > 5},
+        }
+
+        dout = self.st.get_domain_ref(domain=domain)
+
+        lk = list(domain.keys())
+        assert all([isinstance(dout[k0]['ind'], np.ndarray) for k0 in lk])
+
+    def test09_binning(self):
 
         bins = np.linspace(1, 5, 10)
         lk = [
@@ -309,7 +325,7 @@ class Test02_Manipulate():
             shape[ax] = bins.size - 1
             assert dout[k0]['data'].shape == tuple(shape)
 
-    def test09_interpolate(self):
+    def test10_interpolate(self):
 
         lk = ['y', 'y', 'prof0', 'prof0', 'prof0', '3d']
         lref = [None, 'nx', 't0', ['nt0', 'nx'], ['t0', 'x'], ['t0', 'x']]
@@ -346,17 +362,17 @@ class Test02_Manipulate():
     #   Plotting
     # ------------------------
 
-    def test10_plot_as_array(self):
+    def test11_plot_as_array(self):
         dax = self.st.plot_as_array(key='t0')
         dax = self.st.plot_as_array(key='prof0')
         dax = self.st.plot_as_array(key='3d')
         plt.close('all')
 
-    def test11_plot_BvsA_as_distribution(self):
+    def test12_plot_BvsA_as_distribution(self):
         dax = self.st.plot_BvsA_as_distribution(keyA='prof0', keyB='prof0-bis')
         plt.close('all')
 
-    def test12_plot_as_profile1d(self):
+    def test13_plot_as_profile1d(self):
         dax = self.st.plot_as_profile1d(
             key='prof0',
             key_time='t0',
@@ -365,7 +381,7 @@ class Test02_Manipulate():
         )
         plt.close('all')
 
-    def test13_plot_as_mobile_lines(self):
+    def test14_plot_as_mobile_lines(self):
 
         # 3d
         dax = self.st.plot_as_mobile_lines(
@@ -388,7 +404,7 @@ class Test02_Manipulate():
     #   File handling
     # ------------------------
 
-    def test14_copy_equal(self):
+    def test15_copy_equal(self):
         st2 = self.st.copy()
         assert st2 is not self.st
 
@@ -396,10 +412,10 @@ class Test02_Manipulate():
         if msg is not True:
             raise Exception(msg)
 
-    def test15_get_nbytes(self):
+    def test16_get_nbytes(self):
         nb, dnb = self.st.get_nbytes()
 
-    def test16_saveload(self, verb=False):
+    def test17_saveload(self, verb=False):
         pfe = self.st.save(path=_PATH_OUTPUT, verb=verb, return_pfe=True)
         st2 = load(pfe, verb=verb)
         # Just to check the loaded version works fine

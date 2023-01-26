@@ -16,6 +16,7 @@ from . import _generic_utils
 from . import _class1_check
 from ._class0 import *
 from . import _class1_compute
+from . import _class1_domain
 from . import _class1_binning
 from . import _class1_interpolate
 from . import _class1_uniformize
@@ -720,14 +721,14 @@ class DataStock1(DataStock0):
     # domain
     # ---------------------
 
-    def get_ref_vector_domain(
+    def get_domain_ref(
         self,
         domain=None,
     ):
         """ Return a dict of index of valid steps based on desired domain
         """
 
-        return _class1_domain.domain(col=self, domain=domain)
+        return _class1_domain.domain_ref(coll=self, domain=domain)
 
     # ---------------------
     # Binning
