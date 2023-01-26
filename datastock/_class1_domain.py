@@ -22,6 +22,9 @@ def domain_ref(
     # ---------------
     # check inputs
 
+    if domain is None:
+        return
+
     domain = _check(coll=coll, domain=domain)
 
     # -----------
@@ -73,7 +76,7 @@ def _check(
     if not c0:
         msg = (
             "Arg domain mut be a dict with keys as ref or data\n"
-            "Provided: {domain}"
+            f"Provided: {domain}"
         )
         raise Exception(msg)
 

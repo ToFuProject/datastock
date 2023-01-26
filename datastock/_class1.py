@@ -761,6 +761,8 @@ class DataStock1(DataStock0):
         # interpolation pts
         x0=None,
         x1=None,
+        # domain limitations
+        domain=None,
         # parameters
         grid=None,
         deg=None,
@@ -779,6 +781,8 @@ class DataStock1(DataStock0):
             # interpolation pts
             x0=x0,
             x1=x1,
+            # domain limitations
+            domain=domain,
             # parameters
             grid=grid,
             deg=deg,

@@ -33,7 +33,7 @@ def interpolate(
     x1=None,
     grid=None,
     # domain limitation
-    ddomain=None,
+    domain=None,
     # parameters
     deg=None,
     deriv=None,
@@ -94,12 +94,14 @@ def interpolate(
     # ------------
     # prepare
 
-    dshape, dout = _prepare_dshape_dout(
+    ddata, dout = _prepare_ddata(
         coll=coll,
         keys=keys,
         daxis=daxis,
         dunits=dunits,
         x0=x0,
+        domain=domain,
+        ref_key=ref_key,
     )
 
     derr = {}
@@ -131,8 +133,8 @@ def interpolate(
             try:
                 dout[k0]['data'] = _interp1d(
                     out=dout[k0]['data'],
-                    data=coll.ddata[k0]['data'],
-                    dshape=dshape[k0],
+                    data=ddata[k0]['data'],
+                    dshape=ddata[k0],
                     x=x,
                     x0=x0,
                     axis=daxis[k0][0],
@@ -168,8 +170,8 @@ def interpolate(
             try:
                 dout[k0]['data'] = _interp2d(
                     out=dout[k0]['data'],
-                    data=coll.ddata[k0]['data'],
-                    dshape=dshape[k0],
+                    data=ddata[k0]['data'],
+                    dshape=ddata[k0],
                     x=x,
                     y=y,
                     x0=x0,
@@ -384,40 +386,85 @@ def _check_params(
     )
 
 
-def _prepare_dshape_dout(
+def _prepare_ddata(
     coll=None,
     keys=None,
     daxis=None,
     dunits=None,
     x0=None,
+    # domain limitation
+    domain=None,
+    ref_key=None,
 ):
 
-    # dind
-    domain = coll.get_ref_vector_domain(domain)
+    # ----------------
+    # domain => dvect
 
-    # dshape
+    if domain is not None:
+
+        # get domain
+        domain = coll.get_domain_ref(domain)
+
+        # derive dvect
+        lvectu = sorted({
+            v0['vect'] for v0 in domain.values() if v0['vect'] not in ref_key
+        })
+
+        dvect = {
+            k0: [k1 for k1, v1 in domain.items() if v1['vect'] == k0]
+            for k0 in lvectu
+        }
+
+        # check unicity of vect
+        dfail = {k0: v0 for k0, v0 in dvect.items() if len(v0) > 1}
+        if len(dfail) > 0:
+            lstr = [f"\t- '{k0}': {v0}" for k0, v0 in dfail.items()]
+            msg = (
+                "Some ref vector have been specified with multiple domains!\n"
+                + "\n".join(lstr)
+            )
+            raise Exception(msg)
+
+        # build final dvect
+        dvect = {k0: domain[v0[0]]['ind'] for k0, v0 in dvect.items()}
+
+    # --------
+    # ddata
+
+    ddata = {}
     for k0 in keys:
-        pass
 
-    dshape = {
-        k0: _get_shapes_axis_ind(
+        data = coll.ddata[k0]['data']
+
+        # apply domain
+        if domain is not None:
+            for k1, v1 in dvect.items():
+                ax = coll.ddata[k0]['ref'].index(coll.ddata[k1]['ref'][0])
+                sli = tuple([
+                    v1 if ii == ax else slice(None) for ii in range(data.ndim)
+                ])
+                data = data[sli]
+
+        # build ddata
+        ddata[k0] = {'data': data}
+        ddata[k0].update(_get_shapes_axis_ind(
             axis=daxis[k0],
-            shape_coefs=coll.ddata[k0]['data'].shape,
+            shape_coefs=data.shape,
             shape_x=x0.shape,
-            shape_bs=[coll.ddata[k0]['data'].shape[aa] for aa in daxis[k0]],
-        )
-        for k0 in keys
-    }
+            shape_bs=[data.shape[aa] for aa in daxis[k0]],
+        ))
 
+    # ----
     # dout
+
     dout = {
         k0: {
-            'data': np.full(dshape[k0]['shape_val'], np.nan),
+            'data': np.full(ddata[k0]['shape_val'], np.nan),
             'units': dunits[k0],
         }
         for k0 in keys
     }
-    return domain, dout
+    return ddata, dout
 
 
 def _check_pts(pts=None, pts_name=None):
@@ -529,10 +576,6 @@ def _interp1d(
     linds = [range(nn) for nn in dshape['shape_other']]
     indi = list(range(data.ndim - 1))
     indi.insert(axis, None)
-
-    print(x.shape, x0.shape, y.shape)
-    print(dshape)
-    print(linds, indi)
 
     for ind in itt.product(*linds):
 

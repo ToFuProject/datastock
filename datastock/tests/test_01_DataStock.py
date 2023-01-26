@@ -286,7 +286,7 @@ class Test02_Manipulate():
             dim='time',
         )
 
-    def test08_domaini_ref(self):
+    def test08_domain_ref(self):
 
         domain = {
             'nx': [1.5, 2],
@@ -337,8 +337,13 @@ class Test02_Manipulate():
         x3d = np.random.random((5, 4, 3))
         lx0 = [x2d, [1.5, 2.5], [1.5, 2.5], x2d, [1.5, 2.5], x3d]
         lx1 = [None, None, None, x2d, [1.2, 2.3], x3d]
+        ldom = [None, None, {'nx': [1.5, 2]}, None, None, None]
 
-        for kk, rr, aa, lg, gg, x0, x1 in zip(lk, lref, lax, llog, lgrid, lx0, lx1):
+        zipall = zip(lk, lref, lax, llog, lgrid, lx0, lx1, ldom)
+        for ii, (kk, rr, aa, lg, gg, x0, x1, dom) in enumerate(zipall):
+
+            domain = self.st.get_domain_ref(domain=dom)
+
             dout = self.st.interpolate(
                 keys=kk,
                 ref_key=rr,
@@ -349,13 +354,17 @@ class Test02_Manipulate():
                 deriv=None,
                 log_log=lg,
                 return_params=False,
+                domain=dom,
             )
 
             assert isinstance(dout, dict)
             assert isinstance(dout[kk]['data'], np.ndarray)
             shape = list(self.st.ddata[kk]['data'].shape)
             x0s = np.array(x0).shape if gg is False else (len(x0), len(x1))
-            shape = tuple(np.r_[shape[:aa[0]], x0s, shape[aa[-1]+1:]])
+            if dom is None:
+                shape = tuple(np.r_[shape[:aa[0]], x0s, shape[aa[-1]+1:]])
+            else:
+                shape = tuple(np.r_[x0s, 39]) if ii == 2 else None
             assert dout[kk]['data'].shape == tuple(shape), (dout[kk]['data'].shape, shape, kk, rr)
 
     # ------------------------
