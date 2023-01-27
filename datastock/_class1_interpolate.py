@@ -131,7 +131,7 @@ def interpolate(
         for ii, k0 in enumerate(keys):
 
             try:
-                dout[k0]['data'] = _interp1d(
+                dout[k0]['data'][...] = _interp1d(
                     out=dout[k0]['data'],
                     data=ddata[k0]['data'],
                     dshape=ddata[k0],
@@ -144,7 +144,6 @@ def interpolate(
                     deriv=deriv,
                     indokx0=indokx0,
                 )
-                dout[k0]['units'] = dunits[k0]
 
             except Exception as err:
                 derr[k0] = str(err)
@@ -168,7 +167,7 @@ def interpolate(
         for ii, k0 in enumerate(keys):
 
             try:
-                dout[k0]['data'] = _interp2d(
+                dout[k0]['data'][...] = _interp2d(
                     out=dout[k0]['data'],
                     data=ddata[k0]['data'],
                     dshape=ddata[k0],
@@ -184,7 +183,6 @@ def interpolate(
                     deriv=deriv,
                     indokx0=indokx0,
                 )
-                dout[k0]['units'] = dunits[k0]
 
             except Exception as err:
                 derr[k0] = str(err)
