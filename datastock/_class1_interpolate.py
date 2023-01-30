@@ -73,7 +73,7 @@ def interpolate(
     # params
     (
         deg, deriv,
-        x0, x1,
+        kx0, kx1, x0, x1, refx, dref_com,
         log_log, grid, ndim, return_params,
     ) = _check_params(
         coll=coll,
@@ -102,6 +102,7 @@ def interpolate(
         x0=x0,
         domain=domain,
         ref_key=ref_key,
+        dref_com=dref_com,
     )
 
     derr = {}
@@ -310,20 +311,40 @@ def _check_params(
     # --------------------------
     # x0, x1, grid
 
-    x0 = _check_pts(pts=x0, pts_name='x0')
-    sh0 = x0.shape
-    if ndim >= 2:
-        x1 = _check_pts(pts=x1, pts_name='x1')
-        sh1 = x1.shape
+    lc = [
+        isinstance(x0, str) and (ndim == 1 or isinstance(x1, str)),
+        not isinstance(x0, str) and (ndim == 1 or not isinstance(x1, str)),
+    ]
+    if np.sum(lc) != 1:
+        msg = (
+            "Please x0 (and x1) either as 2 np.ndarrays or as 2 data keys!\n"
+            "Provided:\n"
+            f"\t- x0: {x0}\n"
+            f"\t- x1: {x1}\n"
+        )
+        raise Exception(msg)
 
-        # grid
-        grid = _generic_check._check_var(
-            grid, 'grid',
-            default=sh0 != sh1,
-            types=bool,
+
+    if lc[0]:
+        kx0, kx1, x0, x1, refx, dref_com = _check_x01_str(
+            coll=coll,
+            x0=x0,
+            x1=x1,
+            ref_other=ref_key,
         )
 
-    # cases
+    else:
+
+        kx0, kx1, x0, x1, refx, dref_com = _check_x01_nostr(
+            x0=x0,
+            x1=x1,
+            grid=grid,
+            ndim=ndim,
+        )
+
+    # --------------
+    # cases vs ndim
+
     if ndim == 1:
 
         pass
@@ -379,9 +400,92 @@ def _check_params(
 
     return (
         deg, deriv,
-        x0, x1,
+        kx0, kx1, x0, x1, refx, dref_com,
         log_log, grid, ndim, return_params,
     )
+
+
+def _check_x01_str(
+    coll=None,
+    keys=None,
+    x0=None,
+    x1=None,
+    ndim=None,
+    ref_key=None,
+):
+
+    # ----
+    # x0
+
+    lok = list(coll.ddata.keys())
+    x0 = _generic_check._check_var(
+        x0, 'x0',
+        types=str,
+        allowed=lok,
+    )
+
+    refx = coll.ddata[x0]['ref']
+
+    # ----
+    # x1
+
+    if ndim == 2:
+        lok = [
+            k0 for k0, v0 in coll.ddata.items()
+            if v0['ref'] == refx
+        ]
+        x1 = _generic_check._check_var(
+            x1, 'x1',
+            types=str,
+            allowed=lok,
+        )
+
+    # ---------
+    # extract
+
+    kx0, x0 = x0, coll.ddata[x0]['data']
+    if ndim == 2:
+        kx1, x1 = x1, coll.ddata[x1]['data']
+
+    # -----------------------------
+    # get potential co-varying refs
+
+    dref_com = {
+        k0: [
+            k1  for k1 in coll.ddata[k0]['ref']
+            if k1 not in ref_key
+            and k1 in refx
+        ]
+        for k0 in keys
+    }
+
+    return kx0, kx1, x0, x1, refx, dref_com
+
+
+def _check_x01_nostr(
+    x0=None,
+    x1=None,
+    grid=None,
+    ndim=None,
+):
+
+    kx0, kx1 = None, None
+    refx = None
+
+    x0 = _check_pts(pts=x0, pts_name='x0')
+    sh0 = x0.shape
+    if ndim >= 2:
+        x1 = _check_pts(pts=x1, pts_name='x1')
+        sh1 = x1.shape
+
+        # grid
+        grid = _generic_check._check_var(
+            grid, 'grid',
+            default=sh0 != sh1,
+            types=bool,
+        )
+
+    return kx0, kx1, x0, x1, refx, None
 
 
 def _prepare_ddata(
@@ -393,6 +497,7 @@ def _prepare_ddata(
     # domain limitation
     domain=None,
     ref_key=None,
+    dref_com=None,
 ):
 
     # ----------------
@@ -485,7 +590,12 @@ def _check_pts(pts=None, pts_name=None):
 # ##################################################################
 
 
-def _get_shapes_axis_ind(axis=None, shape_coefs=None, shape_x=None, shape_bs=None):
+def _get_shapes_axis_ind(
+    axis=None,
+    shape_coefs=None,
+    shape_x=None,
+    shape_bs=None,
+):
 
     # -------------------------------------------------
     # initial safety check on coefs vs shapebs vs axis
