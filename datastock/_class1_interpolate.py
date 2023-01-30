@@ -144,6 +144,7 @@ def interpolate(
                     deg=deg,
                     deriv=deriv,
                     indokx0=indokx0,
+                    dref_com=dref_com,
                 )
 
             except Exception as err:
@@ -341,6 +342,11 @@ def _check_params(
             grid=grid,
             ndim=ndim,
         )
+
+
+    sh0 = x0.shape
+    if ndim == 2:
+        sh1 = x1.shape
 
     # --------------
     # cases vs ndim
@@ -672,6 +678,7 @@ def _interp1d(
     deg=None,
     deriv=None,
     indokx0=None,
+    dref_com=None,
 ):
 
     # x must be strictly increasing
@@ -685,16 +692,30 @@ def _interp1d(
     indi = list(range(data.ndim - 1))
     indi.insert(axis, None)
 
+    if dref_com is None:
+        sli_x = indokx0
+
     for ind in itt.product(*linds):
 
         sli = [
             slice(None) if ii == axis else ind[indi[ii]]
             for ii in range(len(y.shape))
         ]
-        sli_val = tuple([
-            indokx0 if ii == axis else ind[indi[ii]]
-            for ii in range(len(y.shape))
-        ])
+
+        if dref_com is not None:
+            sli_x = tuple([
+                ind[dref_com[ii]] if ii in dref_com else indokx0
+                for ii in range(x0.ndim)
+            ])
+            sli_val = tuple([
+                indokx0 if ii == axis else ind[indi[ii]]
+                for ii in range(len(y.shape))
+            ])
+        else:
+            sli_val = tuple([
+                indokx0 if ii == axis else ind[indi[ii]]
+                for ii in range(len(y.shape))
+            ])
 
         # only keep finite y
         indoki = np.isfinite(y[tuple(sli)])
@@ -702,6 +723,10 @@ def _interp1d(
 
         xi = x[indoki]
         yi = y[tuple(sli)]
+
+        if dref_com is not None:
+            import pdb; pdb.set_trace()     # DB
+            pass
 
         # Instanciate interpolation, using finite values only
         if log_log is True:
@@ -711,7 +736,7 @@ def _interp1d(
                     np.log(yi),
                     k=deg,
                     ext='zeros',
-                )(np.log(x0[indokx0]), nu=deriv)
+                )(np.log(x0[sli_x]), nu=deriv)
             )
 
         else:
@@ -720,7 +745,7 @@ def _interp1d(
                 yi,
                 k=deg,
                 ext='zeros',
-            )(x0[indokx0], nu=deriv)
+            )(x0[sli_x], nu=deriv)
 
     return out
 
