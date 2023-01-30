@@ -16,6 +16,8 @@ from . import _generic_utils
 from . import _class1_check
 from ._class0 import *
 from . import _class1_compute
+from . import _class1_domain
+from . import _class1_binning
 from . import _class1_interpolate
 from . import _class1_uniformize
 from . import _export_dataframe
@@ -586,7 +588,7 @@ class DataStock1(DataStock0):
 
     def get_ref_vector(
         self,
-        # key 
+        # key
         key=None,
         # which ref / dimension
         ref=None,
@@ -716,6 +718,38 @@ class DataStock1(DataStock0):
         )
 
     # ---------------------
+    # domain
+    # ---------------------
+
+    def get_domain_ref(
+        self,
+        domain=None,
+    ):
+        """ Return a dict of index of valid steps based on desired domain
+        """
+
+        return _class1_domain.domain_ref(coll=self, domain=domain)
+
+    # ---------------------
+    # Binning
+    # ---------------------
+
+    def binning(
+        self,
+        keys=None,
+        ref_key=None,
+        bins=None,
+    ):
+        """ return binned data and units along dimension indicated by refkey"""
+
+        return _class1_binning.binning(
+            coll=self,
+            keys=keys,
+            ref_key=ref_key,
+            bins=bins,
+        )
+
+    # ---------------------
     # Interpolation
     # ---------------------
 
@@ -723,12 +757,12 @@ class DataStock1(DataStock0):
         self,
         # interpolation base
         keys=None,
-        ref_keys=None,
-        ref_quant=None,
+        ref_key=None,
         # interpolation pts
-        pts_axis0=None,
-        pts_axis1=None,
-        pts_axis2=None,
+        x0=None,
+        x1=None,
+        # domain limitations
+        domain=None,
         # parameters
         grid=None,
         deg=None,
@@ -740,23 +774,21 @@ class DataStock1(DataStock0):
 
         """
         return _class1_interpolate.interpolate(
+            coll=self,
             # interpolation base
             keys=keys,
-            ref_keys=ref_keys,
-            ref_quant=ref_quant,
+            ref_key=ref_key,
             # interpolation pts
-            pts_axis0=pts_axis0,
-            pts_axis1=pts_axis1,
-            pts_axis2=pts_axis2,
+            x0=x0,
+            x1=x1,
+            # domain limitations
+            domain=domain,
             # parameters
             grid=grid,
             deg=deg,
             deriv=deriv,
             log_log=log_log,
             return_params=return_params,
-            # ressources
-            ddata=self._ddata,
-            dref=self._dref,
         )
 
     # ---------------------
@@ -962,4 +994,3 @@ class DataStock1(DataStock0):
 __all__ = [
     sorted([k0 for k0 in locals() if k0.startswith('DataStock')])[-1]
 ]
-
