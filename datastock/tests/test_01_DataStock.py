@@ -365,23 +365,73 @@ class Test02_Manipulate():
                 shape = tuple(np.r_[shape[:aa[0]], x0s, shape[aa[-1]+1:]])
             else:
                 shape = tuple(np.r_[x0s, 39]) if ii == 2 else None
-            assert dout[kk]['data'].shape == tuple(shape), (dout[kk]['data'].shape, shape, kk, rr)
+            if dout[kk]['data'].shape != tuple(shape):
+                msg = str(dout[kk]['data'].shape, shape, kk, rr)
+                raise Exception(msg)
+
+    def test11_interpolate_common_refs(self):
+        lk = ['3d', '3d', '3d']
+        lref = ['t0', ['nt0', 'nx'], ['nx']]
+        lrefc = ['nc', 'nc', 'nt0']
+        lax = [[0], [0, 2], [2], [2]]
+        llog = [False, True, False]
+
+        # add data for common ref interpolation
+        nt0 = self.st.dref['nt0']['size']
+        nt1 = self.st.dref['nt1']['size']
+        nc = self.st.dref['nc']['size']
+        self.st.add_data(
+            key='data_com',
+            data=1. + np.random.random((nc, nt1, nt0))*2,
+            ref=('nc', 'nt1', 'nt0'),
+        )
+
+        lx1 = [None, 'data_com', None]
+        ls = [(5, 90, 100, 80), (5, 90, 100), (5, 100, 5, 90)]
+        lr = [
+            ('nc', 'nt1', 'nt0', 'nx'),
+            ('nc', 'nt1', 'nt0'),
+            ('nc', 'nt0', 'nc', 'nt1'),
+        ]
+
+        zipall = zip(lk, lref, lax, llog, lx1, lrefc, ls, lr)
+        for ii, (kk, rr, aa, lg, x1, refc, ss, ri) in enumerate(zipall):
+
+            dout = self.st.interpolate(
+                keys=kk,
+                ref_key=rr,
+                x0='data_com',
+                x1=x1,
+                grid=False,
+                deg=2,
+                deriv=None,
+                log_log=lg,
+                return_params=False,
+                domain=None,
+                ref_com=refc,
+            )
+
+            assert isinstance(dout, dict)
+            assert isinstance(dout[kk]['data'], np.ndarray)
+            assert dout[kk]['data'].shape == ss
+            assert dout[kk]['ref'] == ri
+
 
     # ------------------------
     #   Plotting
     # ------------------------
 
-    def test11_plot_as_array(self):
+    def test12_plot_as_array(self):
         dax = self.st.plot_as_array(key='t0')
         dax = self.st.plot_as_array(key='prof0')
         dax = self.st.plot_as_array(key='3d')
         plt.close('all')
 
-    def test12_plot_BvsA_as_distribution(self):
+    def test13_plot_BvsA_as_distribution(self):
         dax = self.st.plot_BvsA_as_distribution(keyA='prof0', keyB='prof0-bis')
         plt.close('all')
 
-    def test13_plot_as_profile1d(self):
+    def test14_plot_as_profile1d(self):
         dax = self.st.plot_as_profile1d(
             key='prof0',
             key_time='t0',
@@ -390,7 +440,7 @@ class Test02_Manipulate():
         )
         plt.close('all')
 
-    def test14_plot_as_mobile_lines(self):
+    def test15_plot_as_mobile_lines(self):
 
         # 3d
         dax = self.st.plot_as_mobile_lines(
@@ -413,7 +463,7 @@ class Test02_Manipulate():
     #   File handling
     # ------------------------
 
-    def test15_copy_equal(self):
+    def test16_copy_equal(self):
         st2 = self.st.copy()
         assert st2 is not self.st
 
@@ -421,10 +471,10 @@ class Test02_Manipulate():
         if msg is not True:
             raise Exception(msg)
 
-    def test16_get_nbytes(self):
+    def test17_get_nbytes(self):
         nb, dnb = self.st.get_nbytes()
 
-    def test17_saveload(self, verb=False):
+    def test18_saveload(self, verb=False):
         pfe = self.st.save(path=_PATH_OUTPUT, verb=verb, return_pfe=True)
         st2 = load(pfe, verb=verb)
         # Just to check the loaded version works fine
