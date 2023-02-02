@@ -763,6 +763,8 @@ class DataStock1(DataStock0):
         x1=None,
         # domain limitations
         domain=None,
+        # common ref
+        ref_com=None,
         # parameters
         grid=None,
         deg=None,
@@ -783,6 +785,8 @@ class DataStock1(DataStock0):
             x1=x1,
             # domain limitations
             domain=domain,
+            # common ref
+            ref_com=ref_com,
             # parameters
             grid=grid,
             deg=deg,

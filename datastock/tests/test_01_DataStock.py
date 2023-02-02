@@ -370,23 +370,34 @@ class Test02_Manipulate():
                 raise Exception(msg)
 
     def test11_interpolate_common_refs(self):
-        lk = ['3d', '3d', '3d', '3d']
+        lk = ['3d', '3d', '3d']
         lref = ['t0', ['nt0', 'nx'], ['nx']]
-        lrefc = ['nc', ['nc'], ['t0', 'nc']]
-        lax = [[0], [0, 1], [1], [1]]
-        llog = [False, True, False, True]
+        lrefc = ['nc', 'nc', 'nt0']
+        lax = [[0], [0, 2], [2], [2]]
+        llog = [False, True, False]
 
         # add data for common ref interpolation
         nt0 = self.st.dref['nt0']['size']
+        nt1 = self.st.dref['nt1']['size']
         nc = self.st.dref['nc']['size']
         self.st.add_data(
             key='data_com',
-            data=np.random.random((nt0, nc),
-            ref=('nt0', 'nc'),
+            data=1. + np.random.random((nc, nt1, nt0))*2,
+            ref=('nc', 'nt1', 'nt0'),
         )
 
-        zipall = zip(lk, lref, lax, llog, lx0, lx1)
-        for ii, (kk, rr, aa, lg, x0, x1) in enumerate(zipall):
+        lx1 = [None, 'data_com', None]
+        ls = [(5, 90, 100, 80), (5, 90, 100), (5, 100, 5, 90)]
+        lr = [
+            ('nc', 'nt1', 'nt0', 'nx'),
+            ('nc', 'nt1', 'nt0'),
+            ('nc', 'nt0', 'nc', 'nt1'),
+        ]
+
+        zipall = zip(lk, lref, lax, llog, lx1, lrefc, ls, lr)
+        for ii, (kk, rr, aa, lg, x1, refc, ss, ri) in enumerate(zipall):
+
+            print(ii+1)
 
             dout = self.st.interpolate(
                 keys=kk,
@@ -399,19 +410,14 @@ class Test02_Manipulate():
                 log_log=lg,
                 return_params=False,
                 domain=None,
-                ref_com=ref_com,
+                ref_com=refc,
             )
 
             assert isinstance(dout, dict)
             assert isinstance(dout[kk]['data'], np.ndarray)
-            shape = list(self.st.ddata[kk]['data'].shape)
-            x0s = np.array(x0).shape if gg is False else (len(x0), len(x1))
-            if dom is None:
-                shape = tuple(np.r_[shape[:aa[0]], x0s, shape[aa[-1]+1:]])
-            else:
-                shape = tuple(np.r_[x0s, 39]) if ii == 2 else None
-            assert dout[kk]['data'].shape == tuple(shape), (dout[kk]['data'].shape, shape, kk, rr)
-        pass
+            assert dout[kk]['data'].shape == ss
+            assert dout[kk]['ref'] == ri
+
 
     # ------------------------
     #   Plotting
