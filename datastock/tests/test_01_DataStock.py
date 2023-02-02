@@ -397,8 +397,6 @@ class Test02_Manipulate():
         zipall = zip(lk, lref, lax, llog, lx1, lrefc, ls, lr)
         for ii, (kk, rr, aa, lg, x1, refc, ss, ri) in enumerate(zipall):
 
-            print(ii+1)
-
             dout = self.st.interpolate(
                 keys=kk,
                 ref_key=rr,
