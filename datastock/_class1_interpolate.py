@@ -377,11 +377,6 @@ def _check(
         dref_com=dref_com,
     )
 
-    k0 = list(ddata.keys())[0]
-    if ddata[k0].shape == (100, 39) and dsh_other[k0] == (80,):
-        import pdb; pdb.set_trace()     # DB
-        pass
-
     return (
         deg, deriv,
         kx0, kx1, x0, x1, refx, dref_com,
