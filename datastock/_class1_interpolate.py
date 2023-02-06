@@ -143,7 +143,6 @@ def interpolate(
                     deg=deg,
                     deriv=deriv,
                     indokx0=indokx0,
-                    ref_com=ref_com,
                     dref_com=dref_com.get(k0),
                     sli_c=sli_c,
                     sli_x=sli_x,
@@ -152,7 +151,7 @@ def interpolate(
 
             except Exception as err:
                 derr[k0] = str(err)
-                raise err
+                # raise err
 
     elif ndim == 2:
 
@@ -188,7 +187,6 @@ def interpolate(
                     deg=deg,
                     deriv=deriv,
                     indokx0=indokx0,
-                    ref_com=ref_com,
                     dref_com=dref_com.get(k0),
                     sli_c=sli_c,
                     sli_x=sli_x,
@@ -197,7 +195,7 @@ def interpolate(
 
             except Exception as err:
                 derr[k0] = str(err)
-                raise err
+                # raise err
 
     else:
         raise NotImplementedError()
@@ -961,7 +959,6 @@ def _interp1d(
     deg=None,
     deriv=None,
     indokx0=None,
-    ref_com=None,
     dref_com=None,
     sli_c=None,
     sli_x=None,
@@ -994,7 +991,7 @@ def _interp1d(
         slix = sli_x(
             ind,
             indokx0=indokx0,
-            iother=None if ref_com is None else dref_com['iother'],
+            iother=None if dref_com is None else dref_com['iother'],
         )
 
         sliv = sli_v(
@@ -1002,7 +999,7 @@ def _interp1d(
             indokx0=indokx0,
             ddim=data.ndim,
             axis=axis,
-            iother=None if ref_com is None else dref_com['iother'],
+            iother=None if dref_com is None else dref_com['iother'],
         )
 
         # only keep finite y
@@ -1053,7 +1050,6 @@ def _interp2d(
     deg=None,
     deriv=None,
     indokx0=None,
-    ref_com=None,
     dref_com=None,
     sli_c=None,
     sli_x=None,
@@ -1087,7 +1083,7 @@ def _interp2d(
         slix = sli_x(
             ind,
             indokx0=indokx0,
-            iother=None if ref_com is None else dref_com['iother'],
+            iother=None if dref_com is None else dref_com['iother'],
         )
 
         sliv = sli_v(
@@ -1095,7 +1091,7 @@ def _interp2d(
             indokx0=indokx0,
             ddim=data.ndim,
             axis=axis,
-            iother=None if ref_com is None else dref_com['iother'],
+            iother=None if dref_com is None else dref_com['iother'],
         )
 
         # only keep finite y
