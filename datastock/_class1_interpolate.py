@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
+""" Module holding interpolation routines """
 
 
 # Builtin
 import warnings
+import itertools as itt
 
 
 # Common
@@ -12,32 +14,33 @@ import scipy.interpolate as scpinterp
 
 # local
 from . import _generic_check
+from . import _class1_binning
 
 
-# #############################################################################
-# #############################################################################
-#           Interpolate
-# #############################################################################
+# ##################################################################
+# ##################################################################
+#               Main routine
+# ##################################################################
 
 
 def interpolate(
+    coll=None,
     # interpolation base
     keys=None,
-    ref_keys=None,
-    ref_quant=None,
+    ref_key=None,
     # interpolation pts
-    pts_axis0=None,
-    pts_axis1=None,
-    pts_axis2=None,
+    x0=None,
+    x1=None,
     grid=None,
+    # domain limitation
+    domain=None,
+    # common ref
+    ref_com=None,
     # parameters
     deg=None,
     deriv=None,
     log_log=None,
     return_params=None,
-    # ressources
-    ddata=None,
-    dref=None,
 ):
     """ Interpolate at desired points on desired data
 
@@ -58,46 +61,68 @@ def interpolate(
 
     """
 
-    # --------------
+    # -------------
     # check inputs
 
-    (
-        ref_keys, keys,
-        deg, deriv,
-        pts_axis0, pts_axis1, pts_axis2,
-        log_log, grid, ndim, return_params,
-    ) = _check(
-        # interpolation base
+    # keys
+    keys, ref_key, daxis, dunits, _ = _class1_binning._check_keys(
+        coll=coll,
         keys=keys,
-        ref_keys=ref_keys,
-        ref_quant=ref_quant,
-        # interpolation pts
-        pts_axis0=pts_axis0,
-        pts_axis1=pts_axis1,
-        pts_axis2=pts_axis2,
-        # parameters
-        deg=deg,
-        deriv=deriv,
-        grid=grid,
-        log_log=log_log,
-        return_params=return_params,
-        # ressources
-        ddata=ddata,
-        dref=dref,
+        ref_key=ref_key,
+        only1d=False,
     )
 
-    # ----------------
-    # Interpolate
+    # params
+    (
+        deg, deriv,
+        kx0, kx1, x0, x1, refx, dref_com,
+        ddata, dout, dsh_other, sli_c, sli_x, sli_v,
+        log_log, grid, ndim, return_params,
+    ) = _check(
+        coll=coll,
+        # interpolation base
+        keys=keys,
+        ref_key=ref_key,      # ddata keys
+        # interpolation pts
+        x0=x0,
+        x1=x1,
+        # useful for shapes
+        daxis=daxis,
+        dunits=dunits,
+        domain=domain,
+        # common ref
+        ref_com=ref_com,
+        # parameters
+        grid=grid,
+        deg=deg,
+        deriv=deriv,
+        log_log=log_log,
+        return_params=return_params,
+    )
 
-    shape = pts_axis0.shape
-    dvalues = {k0: np.full(shape, np.nan) for k0 in keys}
+    # ------------
+    # Prepare
+
+    # prepare derr
     derr = {}
 
     # x must be increasing
-    x = ddata[ref_keys[0]]['data']
+    x = coll.ddata[ref_key[0]]['data']
     dx = x[1] - x[0]
     if dx < 0:
         x = x[::-1]
+
+    # indokx
+    indokx0 = (
+        np.isfinite(x0)
+        & (x0 >= x.min()) & (x0 <= x.max())
+    )
+
+    if log_log is True:
+        indokx0 &= (x0 > 0)
+
+    # ------------
+    # Interpolate
 
     # treat oer dimnesionality
     if ndim == 1:
@@ -106,130 +131,80 @@ def interpolate(
         for ii, k0 in enumerate(keys):
 
             try:
-                # x must be strictly increasing
-                if dx > 0:
-                    y = ddata[k0]['data']
-                else:
-                    y = ddata[k0]['data'][::-1]
-
-                # only keep finite y
-                indok = np.isfinite(y)
-                xi = x[indok]
-                y = y[indok]
-
-                # Interpolate on finite values within boundaries only
-                indok = (
-                    np.isfinite(pts_axis0)
-                    & (pts_axis0 >= xi[0]) & (pts_axis0 <= xi[-1])
+                dout[k0]['data'][...] = _interp1d(
+                    out=dout[k0]['data'],
+                    data=ddata[k0],
+                    shape_other=dsh_other[k0],
+                    x=x,
+                    x0=x0,
+                    axis=daxis[k0],
+                    dx=dx,
+                    log_log=log_log,
+                    deg=deg,
+                    deriv=deriv,
+                    indokx0=indokx0,
+                    dref_com=dref_com.get(k0),
+                    sli_c=sli_c,
+                    sli_x=sli_x,
+                    sli_v=sli_v,
                 )
-                if log_log is True:
-                    indok &= pts_axis0 > 0
-                indok = indok.nonzero()[0]
-
-                # sort for more efficient evaluation
-                indok = indok[np.argsort(pts_axis0[indok])]
-
-                # Instanciate interpolation, using finite values only
-                if log_log is True:
-                    dvalues[k0][indok] = np.exp(
-                        scpinterp.InterpolatedUnivariateSpline(
-                            np.log(xi),
-                            np.log(y),
-                            k=deg,
-                            ext='zeros',
-                        )(np.log(pts_axis0[indok]), nu=deriv)
-                    )
-
-                else:
-                    dvalues[k0][indok] = scpinterp.InterpolatedUnivariateSpline(
-                        xi,
-                        y,
-                        k=deg,
-                        ext='zeros',
-                    )(pts_axis0[indok], nu=deriv)
 
             except Exception as err:
                 derr[k0] = str(err)
+                # raise err
 
     elif ndim == 2:
 
         # x, y
-        y = ddata[ref_keys[1]]['data']
+        y = coll.ddata[ref_key[1]]['data']
         dy = y[1] - y[0]
         if dy < 0:
             y = y[::-1]
+
+        indokx0 &= (
+            np.isfinite(x1)
+            & (x1 >= y.min()) & (x1 <= y.max())
+        )
+        if log_log is True:
+            indokx0 &= (x1 > 0)
 
         # loop on keys
         for ii, k0 in enumerate(keys):
 
             try:
-
-                # adjust z order
-                z = ddata[k0]['data']
-                if dx < 0:
-                    z = np.flip(z, axis=0)
-                if dy < 0:
-                    z = np.flip(z, axis=1)
-
-                # only keep finite y
-                indok = np.isfinite(z)
-                indokx = np.all(indok, axis=1)
-                indoky = np.all(indok, axis=0)
-                xi = x[indokx]
-                yi = y[indoky]
-                z = z[indokx, :][:, indoky]
-
-                # Interpolate on finite values within boundaries only
-                indok = (
-                    np.isfinite(pts_axis0)
-                    & np.isfinite(pts_axis1)
-                    & (pts_axis0 >= xi[0]) & (pts_axis0 <= xi[-1])
-                    & (pts_axis1 >= yi[0]) & (pts_axis1 <= yi[-1])
+                dout[k0]['data'][...] = _interp2d(
+                    out=dout[k0]['data'],
+                    data=ddata[k0],
+                    shape_other=dsh_other[k0],
+                    x=x,
+                    y=y,
+                    x0=x0,
+                    x1=x1,
+                    axis=daxis[k0],
+                    dx=dx,
+                    dy=dy,
+                    log_log=log_log,
+                    deg=deg,
+                    deriv=deriv,
+                    indokx0=indokx0,
+                    dref_com=dref_com.get(k0),
+                    sli_c=sli_c,
+                    sli_x=sli_x,
+                    sli_v=sli_v,
                 )
-                if log_log is True:
-                    indok &= (pts_axis0 > 0) & (pts_axis1 > 0)
-
-                # Instanciate interpolation, using finite values only
-                if log_log is True:
-                    dvalues[k0][indok] = np.exp(
-                        scpinterp.RectBivariateSpline(
-                            np.log(xi),
-                            np.log(yi),
-                            np.log(z),
-                            kx=deg,
-                            ky=deg,
-                            s=0,
-                        )(
-                            np.log(pts_axis0[indok]),
-                            np.log(pts_axis1[indok]),
-                            grid=False,
-                        )
-                    )
-                else:
-                    dvalues[k0][indok] = scpinterp.RectBivariateSpline(
-                        xi,
-                        yi,
-                        z,
-                        kx=deg,
-                        ky=deg,
-                        s=0,
-                    )(
-                        pts_axis0[indok],
-                        pts_axis1[indok],
-                        grid=False,
-                    )
 
             except Exception as err:
                 derr[k0] = str(err)
+                # raise err
 
     else:
-        pass
+        raise NotImplementedError()
 
     # ----------------------------
     # raise warning if any failure
 
     if len(derr) > 0:
-        lstr = [f"\t- {k0}: {v0}" for k0, v0 in derr.items()]
+        lstr = [f"\t- '{k0}': {v0}" for k0, v0 in derr.items()]
         msg = (
             "The following keys could not be interpolated:\n"
             + "\n".join(lstr)
@@ -242,134 +217,190 @@ def interpolate(
     if return_params is True:
         dparam = {
             'keys': keys,
-            'ref_keys': ref_keys,
+            'ref_key': ref_key,
             'deg': deg,
             'deriv': deriv,
             'log_log': log_log,
-            'pts_axis0': pts_axis0,
-            'pts_axis1': pts_axis0,
-            'pts_axis2': pts_axis0,
+            'x0': x0,
+            'x1': x1,
             'grid': grid,
         }
-        return dvalues, dparam
-    else:
-        return dvalues
+        return dout, dparam
+
+    return dout
 
 
 # #############################################################################
 # #############################################################################
-#           Utilities
+#               Main checking routine
 # #############################################################################
-
-
-def _check_pts(pts=None, pts_name=None):
-    if pts is None:
-        msg = f"Please provide the interpolation points {pts_name}!"
-        raise Exception(msg)
-
-    if not isinstance(pts, np.ndarray):
-        try:
-            pts = np.atleast_1d(pts)
-        except Exception:
-            msg = f"{pts_name} should be convertible to a np.ndarray!"
-            raise Exception(msg)
-    return pts
 
 
 def _check(
+    coll=None,
     # interpolation base
     keys=None,
-    ref_keys=None,      # ddata keys
-    ref_quant=None,     # ddata[ref_key]['quant'], not used yet
+    ref_key=None,      # ddata keys
     # interpolation pts
-    pts_axis0=None,
-    pts_axis1=None,
-    pts_axis2=None,
+    x0=None,
+    x1=None,
+    # useful for shapes
+    daxis=None,
+    dunits=None,
+    domain=None,
+    # common ref
+    ref_com=None,
     # parameters
     grid=None,
     deg=None,
     deriv=None,
     log_log=None,
     return_params=None,
-    # ressources
-    ddata=None,
-    dref=None,
 ):
 
-    # ---
-    # keys
+    # ----------------
+    # check parameters
 
-    lkok = list(ddata.keys())
-    if isinstance(keys, str):
-        keys = [keys]
-    keys = _generic_check._check_var_iter(
-        keys, 'keys',
-        types=list,
-        types_iter=str,
-        allowed=lkok,
+    deg, ndim, deriv, log_log, return_params = _check_params(
+        coll=coll,
+        # interpolation base
+        keys=keys,
+        ref_key=ref_key,      # ddata keys
+        # parameters
+        grid=grid,
+        deg=deg,
+        deriv=deriv,
+        log_log=log_log,
+        return_params=return_params,
     )
 
-    lrefs = set([ddata[kk]['ref'] for kk in keys])
-    if len(lrefs) != 1:
+    # --------------
+    # x0, x1
+
+    lc = [
+        isinstance(x0, str) and (ndim == 1 or isinstance(x1, str)),
+        not isinstance(x0, str) and (ndim == 1 or not isinstance(x1, str)),
+    ]
+    if np.sum(lc) != 1:
         msg = (
-            "All interpolation keys must share the same refs!\n"
-            f"\t- keys: {keys}\n"
-            f"\t- refs: {lrefs}\n"
+            "Please x0 (and x1) either as 2 np.ndarrays or as 2 data keys!\n"
+            "Provided:\n"
+            f"\t- x0: {x0}\n"
+            f"\t- x1: {x1}\n"
         )
         raise Exception(msg)
 
-    ref = ddata[keys[0]]['ref']
-    ndim = ddata[keys[0]]['data'].ndim
-    assert ndim == len(ref)
-    if ndim > 2:
-        msg = "Interpolation not implemented for more than 3 dimensions!"
-        raise NotImplementedError(msg)
+
+    if lc[0]:
+        kx0, kx1, x0, x1, refx, ix = _check_x01_str(
+            coll=coll,
+            x0=x0,
+            x1=x1,
+            ndim=ndim,
+            ref_com=ref_com,
+        )
+
+    else:
+        kx0, kx1, x0, x1, refx, ix = _check_x01_nostr(
+            x0=x0,
+            x1=x1,
+            grid=grid,
+            ndim=ndim,
+            ref_com=ref_com,
+        )
+
+    # -----------------------
+    # x0, x1 vs ndim and grid
+
+    if ndim == 2:
+        x0, x1 = _x01_grid(x0=x0, x1=x1, grid=grid)
+
+    # ---------------------
+    # get dvect from domain
+
+    domain, dvect = _get_dvect(coll=coll, domain=domain, ref_key=ref_key)
+
+    # ----------------------------------
+    # apply domain to coefs (input data)
+
+    ddata = _get_ddata(
+        coll=coll,
+        keys=keys,
+        ref_key=ref_key,
+        dvect=dvect,
+    )
 
     # --------
-    # ref_keys
+    # dref_com
 
-    if ref_keys is None:
-        ref_keys = [None for rr in ref]
-
-    if isinstance(ref_keys, str):
-        ref_keys = [ref_keys for rr in ref]
-
-    c0 = (
-        isinstance(ref_keys, list)
-        and len(ref_keys) == ndim
-        and all([kk is None or kk in ddata.keys() for kk in ref_keys])
-    )
-    if not c0:
-        msg = (
-            "Arg ref_keys must be a list of keys to monotonous data\n"
-            f"One for each component in data['ref']: {ref}\n"
-            f"Provided: {ref_keys}"
-        )
-        raise Exception(msg)
-
-    # ref_quant
-    lqok = [v0.get('quant') for v0 in ddata.values()] + [None]
-    if ref_quant is None:
-        ref_quant = [None for ii in range(ndim)]
-    ref_quant = _generic_check._check_var_iter(
-        ref_quant, 'ref_quant',
-        types=list,
-        allowed=lqok,
+    ref_com, dref_com = _get_dref_com(
+        coll=coll,
+        keys=keys,
+        ref_key=ref_key,
+        ref_com=ref_com,
+        ix=ix,
     )
 
-    # check for each dimension
-    for ii, rr in enumerate(ref):
-        lok = [
-            k1 for k1, v1 in ddata.items()
-            if v1['ref'] == (rr,)
-            and v1['monot'] == (True,)
-            and (ref_quant[ii] is None or v1.get('quant') == ref_quant[ii])
-        ]
-        ref_keys[ii] = _generic_check._check_var(
-            ref_keys[ii], f'ref_keys[{ii}]',
-            types=str,
-            allowed=lok,
-        )
+    if ref_com is not None and domain is not None:
+        if ref_com in [coll.ddata[k0]['ref'][0] for k0 in dvect.keys()]:
+            msg = (
+                "Arg ref_com and domain cannot be applied to the same ref!\n"
+                f"\t- ref_com: {ref_com}\n"
+                f"\t- domain: {domain}\n"
+            )
+            raise Exception(msg)
+
+    # --------------------------------
+    # prepare output shape, units, ref
+
+    dout, dsh_other = _get_dout(
+        coll=coll,
+        keys=keys,
+        kx0=kx0,
+        x0=x0,
+        daxis=daxis,
+        dunits=dunits,
+        ref_com=ref_com,
+        dref_com=dref_com,
+        dvect=dvect,
+    )
+
+    # --------------
+    # get drefshape
+
+    sli_c, sli_x, sli_v = _get_slices(
+        ndim=ndim,
+        x0=x0,
+        ref_com=ref_com,
+        dref_com=dref_com,
+    )
+
+    return (
+        deg, deriv,
+        kx0, kx1, x0, x1, refx, dref_com,
+        ddata, dout, dsh_other, sli_c, sli_x, sli_v,
+        log_log, grid, ndim, return_params,
+    )
+
+
+# #################################################################
+# #################################################################
+#               Secondary checking routines
+# #################################################################
+
+
+def _check_params(
+    coll=None,
+    # interpolation base
+    keys=None,
+    ref_key=None,      # ddata keys
+    # parameters
+    grid=None,
+    deg=None,
+    deriv=None,
+    log_log=None,
+    return_params=None,
+):
 
     # ---
     # deg
@@ -381,9 +412,10 @@ def _check(
         allowed=[0, 1, 2, 3],
     )
 
-    # ---
-    # deriv
+    # ----
+    # ndim
 
+    ndim = len(ref_key)
     if deriv not in [None, 0] and ndim > 1:
         msg = (
             "Arg deriv can only be used for 1d interpolations!\n"
@@ -391,6 +423,16 @@ def _check(
             f"\t- deriv: {deriv}\n"
         )
         raise Exception(msg)
+
+    if ndim > 2:
+        msg = (
+            "Interpolations of more than 2 dimensions not implemented!\n"
+            f"\t- ref_key: {ref_key}\n"
+        )
+        raise Exception(msg)
+
+    # -----
+    # deriv
 
     deriv = _generic_check._check_var(
         deriv, 'deriv',
@@ -409,7 +451,7 @@ def _check(
     )
 
     if log_log is True:
-        lkout = [k0 for k0 in ref_keys if np.any(ddata[k0]['data'] <= 0)]
+        lkout = [k0 for k0 in ref_key if np.any(coll.ddata[k0]['data'] <= 0)]
         if len(lkout) > 0:
             msg = (
                 "The following keys cannot be used as ref / coordinates "
@@ -417,7 +459,7 @@ def _check(
                 f"\t- {lkout}"
             )
             raise Exception(msg)
-        lkout = [k0 for k0 in keys if np.any(ddata[k0]['data'] <= 0)]
+        lkout = [k0 for k0 in keys if np.any(coll.ddata[k0]['data'] <= 0)]
         if len(lkout) > 0:
             msg = (
                 "The following keys cannot be used as data "
@@ -435,14 +477,94 @@ def _check(
         types=bool,
     )
 
-    # --------------------------
-    # pts_axis0, pts_axis1, grid
+    return deg, ndim, deriv, log_log, return_params
 
-    pts_axis0 = _check_pts(pts=pts_axis0, pts_name='pts_axis0')
-    sh0 = pts_axis0.shape
+
+def _check_x01_str(
+    coll=None,
+    x0=None,
+    x1=None,
+    ndim=None,
+    ref_com=None,
+):
+
+    # ----
+    # x0
+
+    lok = list(coll.ddata.keys())
+    x0 = _generic_check._check_var(
+        x0, 'x0',
+        types=str,
+        allowed=lok,
+    )
+
+    refx = coll.ddata[x0]['ref']
+
+    # ----
+    # x1
+
+    if ndim == 2:
+        lok = [
+            k0 for k0, v0 in coll.ddata.items()
+            if v0['ref'] == refx
+        ]
+        x1 = _generic_check._check_var(
+            x1, 'x1',
+            types=str,
+            allowed=lok,
+        )
+
+    # ---------
+    # extract
+
+    kx0, x0 = x0, coll.ddata[x0]['data']
+    if ndim == 2:
+        kx1, x1 = x1, coll.ddata[x1]['data']
+    else:
+        kx1 = None
+
+    # -----------------------------
+    # get potential co-varying refs
+
+    ix = None
+    if ref_com is not None:
+
+        ref_com = _generic_check._check_var(
+            ref_com, 'ref_com',
+            types=str,
+            allowed=refx,
+        )
+
+        # check ref_com is first or last
+        ix = refx.index(ref_com)
+        if ix not in [0, len(refx) - 1]:
+            msg = (
+                "cannot handle common ref not as first or last for x\n"
+                f"\t- refx: {refx}\n"
+                f"\t- ref_com: {ref_com}\n"
+                f"\t- ix: {ix}\n"
+            )
+            raise Exception(msg)
+
+    return kx0, kx1, x0, x1, refx, ix
+
+
+def _check_x01_nostr(
+    x0=None,
+    x1=None,
+    grid=None,
+    ndim=None,
+    ref_com=None,
+):
+
+    kx0, kx1 = None, None
+    refx = None
+
+    x0 = _check_pts(pts=x0, pts_name='x0')
+    sh0 = x0.shape
     if ndim >= 2:
-        pts_axis1 = _check_pts(pts=pts_axis1, pts_name='pts_axis1')
-        sh1 = pts_axis1.shape
+        x1 = _check_pts(pts=x1, pts_name='x1')
+        sh1 = x1.shape
 
         # grid
         grid = _generic_check._check_var(
@@ -451,62 +573,565 @@ def _check(
             types=bool,
         )
 
-    if ndim == 1:
+    # ref_com
+    if ref_com is not None:
+        msg = "Arg ref_com can only be provided for x0 as key1"
+        raise Exception(msg)
 
-        pass
+    return kx0, kx1, x0, x1, refx, None
 
-    elif ndim == 2:
 
-        if grid is True:
-            sh = list(sh0) + list(sh1)
-            resh = list(sh0) + [1 for ss in sh1]
-            pts0 = np.full(sh, np.nan)
-            pts0[...] = pts_axis0.reshape(resh)
-            resh = [1 for ss in sh0] + list(sh1)
-            pts1 = np.full(sh, np.nan)
-            pts1[...] = pts_axis1.reshape(resh)
-            pts_axis0, pts_axis1 = pts0, pts1
+def _get_dref_com(
+    coll=None,
+    keys=None,
+    ref_key=None,
+    ref_com=None,
+    ix=None,
+):
 
-        elif sh0 != sh1:
+    # create dref_com
+    lref = [coll.ddata[kk]['ref'][0] for kk in ref_key]
+    dref_com = {}
+    for k0 in keys:
 
-            if sh0 == (1,):
-                pts_axis0 = np.full(sh1, pts_axis0[0])
+        # ik0
+        refk0 = coll.ddata[k0]['ref']
+        if ref_com in refk0:
+            ik0 = refk0.index(ref_com)
+        else:
+            ik0 = None
 
-            elif sh1 == (1,):
-                pts_axis1 = np.full(sh0, pts_axis1[0])
+        # others (taking into account domain)
+        ref_other = [rr for rr in refk0 if rr not in lref]
+        if ref_com in ref_other:
+            iother = ref_other.index(ref_com)
+        else:
+            iother = None
+
+        # derive shape_other
+        # shape_other = [
+            # dvect[drv[rr]].size if rr is None else coll.dref[rr]['size']
+            # for rr in ref_other
+        # ]
+
+        # populate
+        dref_com[k0] = {
+            'ix': ix,
+            # 'ref_other': ref_other,
+            # 'shape_other': shape_other,
+            'ik0': ik0,
+            'iother': iother,
+        }
+
+    return ref_com, dref_com
+
+
+def _x01_grid(x0=None, x1=None, grid=None):
+
+    # -----------
+    # get shapes
+
+    sh0 = x0.shape
+    sh1 = x1.shape
+
+    # -------------
+    # check vs grid
+
+    if grid is True:
+        sh = list(sh0) + list(sh1)
+        resh = list(sh0) + [1 for ss in sh1]
+        pts0 = np.full(sh, np.nan)
+        pts0[...] = x0.reshape(resh)
+        resh = [1 for ss in sh0] + list(sh1)
+        pts1 = np.full(sh, np.nan)
+        pts1[...] = x1.reshape(resh)
+        x0, x1 = pts0, pts1
+
+    # reshape if necessary
+    elif sh0 != sh1:
+
+        if sh0 == (1,):
+            x0 = np.full(sh1, x0[0])
+
+        elif sh1 == (1,):
+            x1 = np.full(sh0, x1[0])
+
+        else:
+            lc = [
+                sh0 == tuple([ss for ss in sh1 if ss in sh0]),
+                sh1 == tuple([ss for ss in sh0 if ss in sh1]),
+            ]
+
+            if lc[0]:
+                resh = [ss if ss in sh0 else 1 for ss in sh1]
+                pts0 = np.full(sh1, np.nan)
+                pts0[...] = x0.reshape(resh)
+                x0 = pts0
+
+            elif lc[1]:
+                resh = [ss if ss in sh1 else 1 for ss in sh0]
+                pts1 = np.full(sh0, np.nan)
+                pts1[...] = x1.reshape(resh)
+                x1 = pts1
 
             else:
-                lc = [
-                    sh0 == tuple([ss for ss in sh1 if ss in sh0]),
-                    sh1 == tuple([ss for ss in sh0 if ss in sh1]),
-                ]
+                msg = (
+                    "No broadcasting solution identified!\n"
+                    f"\t- x0.shape: {sh0}\n"
+                    f"\t- x1.shape: {sh1}\n"
+                )
+                raise Exception(msg)
 
-                if lc[0]:
-                    resh = [ss if ss in sh0 else 1 for ss in sh1]
-                    pts0 = np.full(sh1, np.nan)
-                    pts0[...] = pts_axis0.reshape(resh)
-                    pts_axis0 = pts0
+    return x0, x1
 
-                elif lc[1]:
-                    resh = [ss if ss in sh1 else 1 for ss in sh0]
-                    pts1 = np.full(sh0, np.nan)
-                    pts1[...] = pts_axis1.reshape(resh)
-                    pts_axis1 = pts1
 
-                else:
-                    msg = (
-                        "No broadcasting solution identified!\n"
-                        f"\t- pts_axis0.shape: {sh0}\n"
-                        f"\t- pts_axis1.shape: {sh1}\n"
-                    )
-                    raise Exception(msg)
+def _get_dvect(
+    coll=None,
+    domain=None,
+    ref_key=None,
+):
+    # ----------------
+    # domain => dvect
+
+    if domain is not None:
+
+        # get domain
+        domain = coll.get_domain_ref(domain)
+
+        # derive dvect
+        lvectu = sorted({
+            v0['vect'] for v0 in domain.values() if v0['vect'] not in ref_key
+        })
+
+        dvect = {
+            k0: [k1 for k1, v1 in domain.items() if v1['vect'] == k0]
+            for k0 in lvectu
+        }
+
+        # check unicity of vect
+        dfail = {k0: v0 for k0, v0 in dvect.items() if len(v0) > 1}
+        if len(dfail) > 0:
+            lstr = [f"\t- '{k0}': {v0}" for k0, v0 in dfail.items()]
+            msg = (
+                "Some ref vector have been specified with multiple domains!\n"
+                + "\n".join(lstr)
+            )
+            raise Exception(msg)
+
+        # build final dvect
+        dvect = {k0: domain[v0[0]]['ind'] for k0, v0 in dvect.items()}
 
     else:
-        raise NotImplementedError()
+        dvect = None
 
-    return (
-        ref_keys, keys,
-        deg, deriv,
-        pts_axis0, pts_axis1, pts_axis2,
-        log_log, grid, ndim, return_params,
-    )
+    return domain, dvect
+
+
+def _get_ddata(
+    coll=None,
+    keys=None,
+    ref_key=None,
+    dvect=None,
+):
+
+    # --------
+    # ddata
+
+    ddata = {}
+    for k0 in keys:
+
+        data = coll.ddata[k0]['data']
+
+        # apply domain
+        if dvect is not None:
+            for k1, v1 in dvect.items():
+                ax = coll.ddata[k0]['ref'].index(coll.ddata[k1]['ref'][0])
+                sli = tuple([
+                    v1 if ii == ax else slice(None) for ii in range(data.ndim)
+                ])
+                data = data[sli]
+
+        ddata[k0] = data
+
+    return ddata
+
+
+def _get_dout(
+    coll=None,
+    keys=None,
+    kx0=None,
+    x0=None,
+    daxis=None,
+    dunits=None,
+    # common refs
+    ref_com=None,
+    dref_com=None,
+    # domain
+    dvect=None,
+):
+
+    # -------------
+    # shape and ref
+
+    dsh = {}
+    dref = {}
+    dsho = {}
+
+    for k0 in keys:
+
+        # ------------------
+        # data shape and ref
+
+        sh = list(coll.ddata[k0]['data'].shape)
+        rd = list(coll.ddata[k0]['ref'])
+
+        # apply domain
+        if dvect is not None:
+            for k1, v1 in dvect.items():
+                if coll.ddata[k1]['ref'][0] in rd:
+                    ax = rd.index(coll.ddata[k1]['ref'][0])
+                    sh[ax] = v1.sum()
+                    rd[ax] = None
+
+        # ------------------------
+        # fill dshape_other (dsho)
+
+        dsho[k0] = tuple([
+            ss for ii, ss in enumerate(sh) if ii not in daxis[k0]
+        ])
+
+        # ------------------
+        # x shape and ref
+
+        # shx, rx
+        shx = x0.shape
+        if kx0 is not None:
+            rx = coll.ddata[kx0]['ref']
+
+        # ref_com for shx and rx
+        if dref_com[k0]['ix'] is not None:
+            shx = [ss for ii, ss in enumerate(shx) if ii != dref_com[k0]['ix']]
+            if kx0 is not None:
+                rx = [k1 for ii, k1 in enumerate(rx) if ii != dref_com[k0]['ix']]
+        # rx
+        if kx0 is None:
+            rx = [None]*len(shx)
+
+        # --------------------
+        # concatenate data + x
+
+        # dshape
+        dsh[k0] = tuple(
+            np.r_[sh[:daxis[k0][0]], shx, sh[daxis[k0][-1] + 1:]].astype(int)
+        )
+
+        # dref
+        dref[k0] = tuple(itt.chain.from_iterable(
+            (rd[:daxis[k0][0]], rx, rd[daxis[k0][-1] + 1:])
+        ))
+
+    # --------------------
+    # prepare output dict
+
+    dout = {
+        k0: {
+            'data': np.full(dsh[k0], np.nan),
+            'units': dunits[k0],
+            'ref': dref[k0],
+        }
+        for k0 in keys
+    }
+
+    return dout, dsho
+
+
+def _get_slices(
+    ndim=None,
+    x0=None,
+    ref_com=None,
+    dref_com=None,
+):
+
+    # ------------------------
+    # coefs (i.e.: input data)
+
+    def sli_c(ind, k0=None, axis=None, ddim=None, ndim=ndim):
+        return tuple([
+            slice(None) if ii in axis
+            else ind[ii - ndim*(ii>axis[0])]
+            for ii in range(ddim)
+        ])
+
+    # ------------------------
+    # x0 (i.e.: interpolation coordinates)
+
+    if ref_com is None:
+
+        def sli_x(ind, indokx0=None, **kwdargs):
+            return indokx0
+
+    else:
+
+        ix = list(dref_com.values())[0]['ix']
+
+        def sli_x(
+            ind,
+            indokx0=None,
+            iother=None,
+            x0dim=x0.ndim,
+            ix=ix,
+        ):
+            ioki = np.take(indokx0, ind[iother], axis=ix)
+            if ix == 0:
+                return (ind[iother], ioki)
+            else:
+                return (ioki, ind[iother])
+
+    # ------------------------
+    # val (i.e.: interpolated data)
+
+    if ref_com is None:
+
+        def sli_v(
+            ind,
+            indokx0=None,
+            ddim=None,
+            axis=None,
+            ndim=ndim,
+            **kwdargs,
+        ):
+            return tuple([
+                indokx0 if ii == axis[0]
+                else ind[ii - ndim*(ii>axis[0])]
+                for ii in range(ddim)
+                if ii not in axis[1:]
+            ])
+
+    else:
+
+        def sli_v(
+            ind,
+            indokx0=None,
+            ddim=None,
+            axis=None,
+            iother=None,
+            ndim=ndim,
+        ):
+            return tuple([
+                np.take(indokx0, ind[iother], axis=ix) if ii == axis[0]
+                else ind[ii - ndim*(ii>axis[0])]
+                for ii in range(ddim)
+                if ii not in axis[1:]
+            ])
+
+    return sli_c, sli_x, sli_v
+
+
+def _check_pts(pts=None, pts_name=None):
+    if pts is None:
+        msg = f"Please provide the interpolation points {pts_name}!"
+        raise Exception(msg)
+
+    if not isinstance(pts, np.ndarray):
+        try:
+            pts = np.atleast_1d(pts)
+        except Exception:
+            msg = f"{pts_name} should be convertible to a np.ndarray!"
+            raise Exception(msg)
+    return pts
+
+
+# ##################################################################
+# ##################################################################
+#                   interpolate
+# ##################################################################
+
+
+def _interp1d(
+    data=None,
+    out=None,
+    shape_other=None,
+    x=None,
+    x0=None,
+    axis=None,
+    dx=None,
+    log_log=None,
+    deg=None,
+    deriv=None,
+    indokx0=None,
+    dref_com=None,
+    sli_c=None,
+    sli_x=None,
+    sli_v=None,
+):
+
+    # ------------
+    # trivial case
+
+    if not np.any(indokx0):
+        return out
+
+    # x must be strictly increasing
+    if dx > 0:
+        y = data
+    else:
+        y = np.flip(data, axis)
+
+    # slicing
+    linds = [range(nn) for nn in shape_other]
+
+    for ind in itt.product(*linds):
+
+        slic = sli_c(
+            ind,
+            axis=axis,
+            ddim=data.ndim,
+        )
+
+        slix = sli_x(
+            ind,
+            indokx0=indokx0,
+            iother=None if dref_com is None else dref_com['iother'],
+        )
+
+        sliv = sli_v(
+            ind,
+            indokx0=indokx0,
+            ddim=data.ndim,
+            axis=axis,
+            iother=None if dref_com is None else dref_com['iother'],
+        )
+
+        # only keep finite y
+        indoki = np.isfinite(y[slic])
+        slic = tuple([
+            indoki if ii == axis[0] else ss
+            for ii, ss in enumerate(slic)
+        ])
+
+
+        xi = x[indoki]
+        yi = y[slic]
+
+        # Instanciate interpolation, using finite values only
+        if log_log is True:
+            out[sliv] = np.exp(
+                scpinterp.InterpolatedUnivariateSpline(
+                    np.log(xi),
+                    np.log(yi),
+                    k=deg,
+                    ext='zeros',
+                )(np.log(x0[slix]), nu=deriv)
+            )
+
+        else:
+            out[sliv] = scpinterp.InterpolatedUnivariateSpline(
+                xi,
+                yi,
+                k=deg,
+                ext='zeros',
+            )(x0[slix], nu=deriv)
+
+    return out
+
+
+def _interp2d(
+    data=None,
+    out=None,
+    shape_other=None,
+    x=None,
+    y=None,
+    x0=None,
+    x1=None,
+    axis=None,
+    dx=None,
+    dy=None,
+    log_log=None,
+    deg=None,
+    deriv=None,
+    indokx0=None,
+    dref_com=None,
+    sli_c=None,
+    sli_x=None,
+    sli_v=None,
+):
+
+    # adjust z order
+    z = data
+    if dx < 0:
+        z = np.flip(z, axis=axis[0])
+    if dy < 0:
+        z = np.flip(z, axis=axis[1])
+
+    # slicing
+    linds = [range(nn) for nn in shape_other]
+    indi = list(range(data.ndim - 2))
+    for ii, aa in enumerate(axis):
+        indi.insert(aa + ii, None)
+
+    # -----------
+    # interpolate
+
+    for ind in itt.product(*linds):
+
+        slic = sli_c(
+            ind,
+            axis=axis,
+            ddim=data.ndim,
+        )
+
+        slix = sli_x(
+            ind,
+            indokx0=indokx0,
+            iother=None if dref_com is None else dref_com['iother'],
+        )
+
+        sliv = sli_v(
+            ind,
+            indokx0=indokx0,
+            ddim=data.ndim,
+            axis=axis,
+            iother=None if dref_com is None else dref_com['iother'],
+        )
+
+        # only keep finite y
+        indoki = np.isfinite(z[slic])
+        indokix = np.all(indoki, axis=1)
+        indokiy = np.all(indoki, axis=0)
+
+        xi = x[indokix]
+        yi = y[indokiy]
+        zi = z[slic][indokix, :][:, indokiy]
+
+        # Instanciate interpolation, using finite values only
+        if log_log is True:
+            out[sliv] = np.exp(
+                scpinterp.RectBivariateSpline(
+                    np.log(xi),
+                    np.log(yi),
+                    np.log(zi),
+                    kx=deg,
+                    ky=deg,
+                    s=0,
+                )(
+                    np.log(x0[slix]),
+                    np.log(x1[slix]),
+                    grid=False,
+                )
+            )
+
+        else:
+            out[sliv] = scpinterp.RectBivariateSpline(
+                xi,
+                yi,
+                zi,
+                kx=deg,
+                ky=deg,
+                s=0,
+            )(
+                x0[slix],
+                x1[slix],
+                grid=False,
+            )
+
+    return out

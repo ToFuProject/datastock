@@ -2,6 +2,7 @@
 
 
 # common
+import copy
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -24,6 +25,12 @@ _LALLOWED_AXESTYPES = [
 # #############################################################################
 
 
+def _complete_extra_msg(msg, extra_msg):
+    if extra_msg not in [None, False, '']:
+        msg += f"\n{extra_msg}"
+    return msg
+
+
 def _check_var(
     var,
     varname,
@@ -32,6 +39,7 @@ def _check_var(
     allowed=None,
     excluded=None,
     sign=None,
+    extra_msg=None,
 ):
     """ Check a variable, with options
 
@@ -50,10 +58,19 @@ def _check_var(
     # set to default
     if var is None:
         var = default
-    if var is None and allowed is not None and len(allowed) == 1:
-        if not isinstance(allowed, list):
-            allowed = list(allowed)
-        var = allowed[0]
+        
+    if allowed is not None and not isinstance(allowed, list):
+        allowed = list(allowed)
+        
+    if allowed is not None:
+        if var is None and len(allowed) == 1:
+            var = allowed[0]
+        elif var not in allowed:
+            msg = (
+                f"Arg {varname} must be in {allowed}!\n"
+                f"Provided: {var}"
+            )
+            raise Exception(_complete_extra_msg(msg, extra_msg))
 
     # check type
     if types is not None:
@@ -62,16 +79,7 @@ def _check_var(
                 f"Arg {varname} must be of type {types}!\n"
                 f"Provided: {type(var)}"
             )
-            raise Exception(msg)
-
-    # check if allowed
-    if allowed is not None:
-        if var not in allowed:
-            msg = (
-                f"Arg {varname} must be in {allowed}!\n"
-                f"Provided: {var}"
-            )
-            raise Exception(msg)
+            raise Exception(_complete_extra_msg(msg, extra_msg))
 
     # check if excluded
     if excluded is not None:
@@ -80,7 +88,7 @@ def _check_var(
                 f"Arg {varname} must not be in {excluded}!\n"
                 f"Provided: {var}"
             )
-            raise Exception(msg)
+            raise Exception(_complete_extra_msg(msg, extra_msg))
 
     # sign
     if sign is not None:
@@ -106,7 +114,7 @@ def _check_var(
                 f"Arg {varname} must be {sign}\n"
                 f"Provided: {var}"
             )
-            raise Exception(msg)
+            raise Exception(_complete_extra_msg(msg, extra_msg))
 
     return var
 
@@ -119,6 +127,7 @@ def _check_var_iter(
     default=None,
     allowed=None,
     excluded=None,
+    extra_msg=None,
 ):
     """ Check a variable supposed to be an iterable, with options
 
@@ -153,7 +162,7 @@ def _check_var_iter(
                 f"Arg {varname} must be of type {types}!\n"
                 f"Provided: {type(var)}"
             )
-            raise Exception(msg)
+            raise Exception(_complete_extra_msg(msg, extra_msg))
 
     # check types_iter
     if types_iter is not None and var is not None:
@@ -162,7 +171,7 @@ def _check_var_iter(
                 f"Arg {varname} must be an iterable of types {types_iter}\n"
                 f"Provided: {[type(vv) for vv in var]}"
             )
-            raise Exception(msg)
+            raise Exception(_complete_extra_msg(msg, extra_msg))
 
     # check if allowed
     if allowed is not None:
@@ -171,7 +180,7 @@ def _check_var_iter(
                 f"Arg {varname} must contain elements in {allowed}!\n"
                 f"Provided: {var}"
             )
-            raise Exception(msg)
+            raise Exception(_complete_extra_msg(msg, extra_msg))
 
     # check if excluded
     if excluded is not None:
@@ -180,7 +189,7 @@ def _check_var_iter(
                 f"Arg {varname} must contain elements not in {excluded}!\n"
                 f"Provided: {var}"
             )
-            raise Exception(msg)
+            raise Exception(_complete_extra_msg(msg, extra_msg))
 
     return var
 
@@ -192,7 +201,9 @@ def _check_flat1darray(
     size=None,
     sign=None,
     norm=None,
+    unique=None,
     can_be_None=None,
+    extra_msg=None,
 ):
 
     # Default inputs
@@ -209,9 +220,18 @@ def _check_flat1darray(
             return
         else:
             msg = f"Arg {varname} is None!"
-            raise Exception(msg)
+            raise Exception(_complete_extra_msg(msg, extra_msg))
 
     var = np.atleast_1d(var).ravel()
+            
+    # unique
+    if unique is True:
+        if not np.allclose(var, np.unique(var)):
+            msg = (
+                "Arg {varname} must be a sorted array of unique values!\n"
+                f"Provided: {var}"
+            )
+            raise Exception(_complete_extra_msg(msg, extra_msg))
 
     # size
     if size is not None:
@@ -224,7 +244,7 @@ def _check_flat1darray(
                 f"\t- dtype = {dtype}\n"
                 f"Provided:\n{var}"
             )
-            raise Exception(msg)
+            raise Exception(_complete_extra_msg(msg, extra_msg))
 
     # dtype
     if dtype is not None:
@@ -242,7 +262,7 @@ def _check_flat1darray(
                     f"Arg {varname} must be {ss}\n"
                     f"Provided: {var}"
                 )
-                raise Exception(msg)
+                raise Exception(_complete_extra_msg(msg, extra_msg))
 
     # Normalize
     if norm is True:
@@ -264,6 +284,7 @@ def _check_dict_valid_keys(
     has_all_keys=None,
     has_only_keys=None,
     keys_can_be_None=None,
+    return_copy=None,
 ):
     """ Check dict has expected keys """
 
@@ -271,6 +292,10 @@ def _check_dict_valid_keys(
     if not isinstance(var, dict):
         msg = f"Arg {varname} must be a dict!\nProvided: {type(var)}"
         raise Exception(msg)
+
+    # copy
+    if return_copy is True:
+        var = copy.deepcopy(var)
 
     # derive lkeys
     if isinstance(dkeys, dict):
@@ -297,6 +322,7 @@ def _check_dict_valid_keys(
             raise Exception(msg)
 
     # keys types constraints
+    lkarray = ['dtype', 'size']
     if isinstance(dkeys, dict):
 
         if keys_can_be_None is not None:
@@ -311,30 +337,33 @@ def _check_dict_valid_keys(
                     var[k0] = None
                     continue
 
-            if 'can_be_None' in v0:
-                del v0['can_be_None']
-
             vv = var.get(k0)
 
             # routine to call
-            if any(['iter' in ss for ss in v0.keys()]):
-                var[k0] = _check_var_iter(
-                    var[k0],
-                    f"{varname}['{k0}']",
-                    **v0,
-                )
-            elif 'dtype' in v0.keys() or 'size' in v0.keys():
+            if any([ss in v0.keys() for ss in lkarray]):
                 var[k0] = _check_flat1darray(
-                    var[k0],
+                    var.get(k0),
                     f"{varname}['{k0}']",
                     **v0,
                 )
+                
             else:
-                var[k0] = _check_var(
-                    var[k0],
-                    f"{varname}['{k0}']",
-                    **v0,
-                )
+                if 'can_be_None' in v0:
+                    del v0['can_be_None']
+                
+                if any(['iter' in ss for ss in v0.keys()]):
+                    var[k0] = _check_var_iter(
+                        var.get(k0),
+                        f"{varname}['{k0}']",
+                        **v0,
+                    )
+                    
+                else:
+                    var[k0] = _check_var(
+                        var.get(k0),
+                        f"{varname}['{k0}']",
+                        **v0,
+                    )
 
     return var
 
@@ -463,7 +492,17 @@ def _check_vectbasis(
 # #############################################################################
 
 
-def _obj_key(d0=None, short=None, key=None):
+def _obj_key(d0=None, short=None, key=None, ndigits=None):
+    
+    # check input
+    ndigits = _check_var(
+        ndigits, 'ndigits',
+        types=int,
+        default=2,
+        sign='>0',
+    )
+    
+    # get key
     lout = list(d0.keys())
     if key is None:
         if len(lout) == 0:
@@ -474,7 +513,7 @@ def _obj_key(d0=None, short=None, key=None):
                 and k0[len(short):].isnumeric()
             ]
             nb = min([ii for ii in range(max(lnb)+2) if ii not in lnb])
-        key = f'{short}{nb}'
+        key = f'{short}{nb:0{ndigits}.0f}'
 
     return _check_var(
         key, 'key',

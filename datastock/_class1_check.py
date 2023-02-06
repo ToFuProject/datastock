@@ -26,11 +26,11 @@ _LRESERVED_KEYS = list(set(itt.chain.from_iterable([
 
 _DDEF_PARAMS = {
     'ddata': {
-        'source': (str, ''),
-        'dim':    (str, ''),
-        'quant':  (str, ''),
-        'name':   (str, ''),
-        'units':  ((str, asunits.core.UnitBase), ''),
+        'source': {'cls': str, 'def': ''},
+        'dim':    {'cls': str, 'def': ''},
+        'quant':  {'cls': str, 'def': ''},
+        'name':   {'cls': str, 'def': ''},
+        'units':  {'cls': (str, asunits.core.UnitBase), 'def': ''},
     },
     'dobj': {
     },
@@ -786,13 +786,19 @@ def _check_data_ref(
     # length match but unknown ref or size mismatch
     else:
         for ii, ss in enumerate(ddata[k0]['shape']):
+            
+            ri = ddata[k0]['ref'][ii]
             if ddata[k0]['ref'][ii] not in dref0.keys():
                 if ddata[k0]['ref'][ii] not in dref_add.keys():
                     dref_add[ddata[k0]['ref'][ii]] = {'size': ss}
 
-            elif ss != dref0[ddata[k0]['ref'][ii]]['size']:
+            elif ss != dref0[ri]['size']:
                 msg = (
-                    f"Mismatching ref size and shape for ddata['{k0}']"
+                    f"Mismatching ref size and shape for ddata['{k0}']\n"
+                    f"\t- ddata['{k0}']['ref'] = {ddata[k0]['ref']}\n"
+                    f"\t- dref['{ri}']['size'] = {dref0[ri]['size']}\n"
+                    f"\t- ddata['{k0}']['data'].shape = {ddata[k0]['shape']}\n"
+                    f"\t- ind: {ii}"
                 )
                 raise Exception(msg)
 
@@ -1091,21 +1097,44 @@ def _harmonize_params(
         )
         lparams = set(lparams).intersection(lkeys)
 
+    # ----------------
+    # check ddefparams
+    
+    if not isinstance(ddefparams, dict):
+        msg = f"Arg ddefparams must be a dict!\nProvided: {type(ddefparams)}"
+        raise Exception(msg)
+        
+    lv0 = ['def', 'cls']
+    for k0, v0 in ddefparams.items():
+        c0 = (
+            isinstance(v0, dict)
+            and all([ss in v0.keys() for ss in lv0])
+        )
+        if not c0:
+            msg = (
+                f"ddefparams['{k0}'] must be dict with keys:\n"
+                "\t- 'def': default value\n"
+                "\t- 'cls': expected class\n"
+                f"Provided: {v0}"
+            )
+            raise Exception(msg)
+
     # ----------------------------------------
     # check param types and set default values
 
     dfail = {}
     for k0, v0 in ddefparams.items():
+        
         for k1, v1 in dd.items():
 
             # Set to default if None
             if v1.get(k0) is None:
-                dd[k1][k0] = v0[1]
+                dd[k1][k0] = v0['def']
 
             # Check type if already included
-            elif not isinstance(dd[k1][k0], v0[0]):
+            elif not isinstance(dd[k1][k0], v0['cls']):
                 dfail[k0] = (
-                    f" expected {v0[0]} vs "
+                    f" expected {v0['def']} vs "
                     f"type({dd_name2}['{k1}']['{k0}']) = {type(dd[k1][k0])}"
                 )
 

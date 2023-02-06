@@ -45,6 +45,7 @@ def get_ref_vector(
     values=None,
     indices=None,
     ind_strict=None,
+    warn=None,
 ):
 
     # ----------------
@@ -74,6 +75,13 @@ def get_ref_vector(
     if key is None and ref is None:
         msg = "Please provide key or ref at least!"
         raise Exception(msg)
+
+    # warn
+    warn = _generic_check._check_var(
+        warn, 'warn',
+        types=bool,
+        default=True,
+    )
 
     # ------------------------
     # hasref, hasvect
@@ -107,8 +115,9 @@ def get_ref_vector(
 
         # cases
         if len(lk_vect) == 0:
-            msg = "No matching vector found!"
-            warnings.warn(msg)
+            if warn is True:
+                msg = "No matching vector found!"
+                warnings.warn(msg)
             hasvect = False
 
         elif len(lk_vect) == 1:
@@ -121,10 +130,11 @@ def get_ref_vector(
                 hasref = True
 
         else:
-            msg = (
-                f"Multiple possible vectors found:\n{lk_vect}"
-            )
-            warnings.warn(msg)
+            if warn is True:
+                msg = (
+                    f"Multiple possible vectors found:\n{lk_vect}"
+                )
+                warnings.warn(msg)
             hasvect = False
     else:
         hasvect = False
@@ -192,6 +202,7 @@ def _get_ref_vector_values(
     values=None,
     indices=None,
     ind_strict=None,
+    warn=None,
 ):
 
     # -------------
@@ -199,8 +210,9 @@ def _get_ref_vector_values(
 
     # values vs indices
     if values is not None and indices is not None:
-        msg = "Please provide values xor indices, not both!"
-        warnings.warn(msg)
+        if warn is True:
+            msg = "Please provide values xor indices, not both!"
+            warnings.warn(msg)
         indices = None
 
     # values vs hasvect
