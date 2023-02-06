@@ -575,7 +575,7 @@ def _check_x01_nostr(
 
     # ref_com
     if ref_com is not None:
-        msg = "Arg ref_com cqn only be provided for x0 as key1"
+        msg = "Arg ref_com can only be provided for x0 as key1"
         raise Exception(msg)
 
     return kx0, kx1, x0, x1, refx, None
