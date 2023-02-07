@@ -40,7 +40,12 @@ def interpolate(
     deg=None,
     deriv=None,
     log_log=None,
+    # store vs return
     return_params=None,
+    store=None,
+    inplace=None,
+    # debug or unit tests
+    debug=None,
 ):
     """ Interpolate at desired points on desired data
 
@@ -77,7 +82,8 @@ def interpolate(
         deg, deriv,
         kx0, kx1, x0, x1, refx, dref_com,
         ddata, dout, dsh_other, sli_c, sli_x, sli_v,
-        log_log, grid, ndim, return_params,
+        log_log, grid, ndim,
+        return_params, store, inplace,
     ) = _check(
         coll=coll,
         # interpolation base
@@ -97,119 +103,44 @@ def interpolate(
         deg=deg,
         deriv=deriv,
         log_log=log_log,
+        # return vs store
         return_params=return_params,
+        store=store,
+        inplace=inplace,
     )
 
-    # ------------
-    # Prepare
+    # -----------
+    # interpolate
 
-    # prepare derr
-    derr = {}
-
-    # x must be increasing
-    x = coll.ddata[ref_key[0]]['data']
-    dx = x[1] - x[0]
-    if dx < 0:
-        x = x[::-1]
-
-    # indokx
-    indokx0 = (
-        np.isfinite(x0)
-        & (x0 >= x.min()) & (x0 <= x.max())
+    _interp(
+        coll=coll,
+        keys=keys,
+        ref_key=ref_key,
+        x0=x0,
+        x1=x1,
+        ndim=ndmim,
+        log_log=log_log,
+        dout=dout,
+        ddata=ddata,
+        dsh_other=dsh_other,
+        daxis=daxis,
+        deg=deg,
+        deriv=deriv,
+        dref_com=dref_com,
+        sli_x=sli_x,
+        sli_c=sli_c,
+        sli_v=sli_v,
     )
 
-    if log_log is True:
-        indokx0 &= (x0 > 0)
+    # --------
+    # store
 
-    # ------------
-    # Interpolate
-
-    # treat oer dimnesionality
-    if ndim == 1:
-
-        # loop on keys
-        for ii, k0 in enumerate(keys):
-
-            try:
-                dout[k0]['data'][...] = _interp1d(
-                    out=dout[k0]['data'],
-                    data=ddata[k0],
-                    shape_other=dsh_other[k0],
-                    x=x,
-                    x0=x0,
-                    axis=daxis[k0],
-                    dx=dx,
-                    log_log=log_log,
-                    deg=deg,
-                    deriv=deriv,
-                    indokx0=indokx0,
-                    dref_com=dref_com.get(k0),
-                    sli_c=sli_c,
-                    sli_x=sli_x,
-                    sli_v=sli_v,
-                )
-
-            except Exception as err:
-                derr[k0] = str(err)
-                # raise err
-
-    elif ndim == 2:
-
-        # x, y
-        y = coll.ddata[ref_key[1]]['data']
-        dy = y[1] - y[0]
-        if dy < 0:
-            y = y[::-1]
-
-        indokx0 &= (
-            np.isfinite(x1)
-            & (x1 >= y.min()) & (x1 <= y.max())
+    if store is True:
+        _store(
+            coll=coll,
+            dout=dout,
+            inplace=inplace,
         )
-        if log_log is True:
-            indokx0 &= (x1 > 0)
-
-        # loop on keys
-        for ii, k0 in enumerate(keys):
-
-            try:
-                dout[k0]['data'][...] = _interp2d(
-                    out=dout[k0]['data'],
-                    data=ddata[k0],
-                    shape_other=dsh_other[k0],
-                    x=x,
-                    y=y,
-                    x0=x0,
-                    x1=x1,
-                    axis=daxis[k0],
-                    dx=dx,
-                    dy=dy,
-                    log_log=log_log,
-                    deg=deg,
-                    deriv=deriv,
-                    indokx0=indokx0,
-                    dref_com=dref_com.get(k0),
-                    sli_c=sli_c,
-                    sli_x=sli_x,
-                    sli_v=sli_v,
-                )
-
-            except Exception as err:
-                derr[k0] = str(err)
-                # raise err
-
-    else:
-        raise NotImplementedError()
-
-    # ----------------------------
-    # raise warning if any failure
-
-    if len(derr) > 0:
-        lstr = [f"\t- '{k0}': {v0}" for k0, v0 in derr.items()]
-        msg = (
-            "The following keys could not be interpolated:\n"
-            + "\n".join(lstr)
-        )
-        warnings.warn(msg)
 
     # -------
     # return
@@ -255,13 +186,19 @@ def _check(
     deg=None,
     deriv=None,
     log_log=None,
+    # return vs store
     return_params=None,
+    store=None,
+    inplace=None,
 ):
 
     # ----------------
     # check parameters
 
-    deg, ndim, deriv, log_log, return_params = _check_params(
+    (
+        deg, ndim, deriv, log_log,
+        return_params, store, inplace,
+    ) = _check_params(
         coll=coll,
         # interpolation base
         keys=keys,
@@ -271,7 +208,10 @@ def _check(
         deg=deg,
         deriv=deriv,
         log_log=log_log,
+        # return vs store
         return_params=return_params,
+        store=store,
+        inplace=inplace,
     )
 
     # --------------
@@ -314,6 +254,21 @@ def _check(
 
     if ndim == 2:
         x0, x1 = _x01_grid(x0=x0, x1=x1, grid=grid)
+
+    # ---------------------
+    # check x0, x1 vs store
+
+    if store is True:
+        if ndim == 1 and x0.ndim != 1:
+            msg = (
+                "Arg store=True for 1d interpolation only works with 1d x0!"
+            )
+            raise Exception(msg)
+        elif ndim == 2 and not (x0.ndim == 2 and grid is True):
+            msg = (
+                "Arg store=True for 2d interpolation only works with grid!"
+            )
+            raise Exception(msg)
 
     # ---------------------
     # get dvect from domain
@@ -379,7 +334,8 @@ def _check(
         deg, deriv,
         kx0, kx1, x0, x1, refx, dref_com,
         ddata, dout, dsh_other, sli_c, sli_x, sli_v,
-        log_log, grid, ndim, return_params,
+        log_log, grid, ndim,
+        return_params, store, inplace,
     )
 
 
@@ -399,7 +355,10 @@ def _check_params(
     deg=None,
     deriv=None,
     log_log=None,
+    # return vs store
     return_params=None,
+    store=None,
+    inplace=None,
 ):
 
     # ---
@@ -477,7 +436,28 @@ def _check_params(
         types=bool,
     )
 
-    return deg, ndim, deriv, log_log, return_params
+    # -------------
+    # store
+
+    store = _generic_check._check_var(
+        store, 'store',
+        default=False,
+        types=bool,
+    )
+
+    # ------------
+    # inplace
+
+    inplace = _generic_check._check_var(
+        inplace, 'inplace',
+        default=False,
+        types=bool,
+    )
+
+    return (
+        deg, ndim, deriv, log_log,
+        return_params, store, inplace,
+    )
 
 
 def _check_x01_str(
@@ -941,10 +921,142 @@ def _check_pts(pts=None, pts_name=None):
     return pts
 
 
-# ##################################################################
-# ##################################################################
+# ###############################################################
+# ###############################################################
 #                   interpolate
-# ##################################################################
+# ###############################################################
+
+
+def _interp(
+    coll=None,
+    keys=None,
+    ref_key=None,
+    x0=None,
+    x1=None,
+    ndim=None,
+    log_log=None,
+    dout=None,
+    ddata=None,
+    dsh_other=None,
+    daxis=None,
+    deg=None,
+    deriv=None,
+    dref_com=None,
+    sli_x=None,
+    sli_c=None,
+    sli_v=None,
+):
+
+    # ------------
+    # Prepare
+
+    # prepare derr
+    derr = {}
+
+    # x must be increasing
+    x = coll.ddata[ref_key[0]]['data']
+    dx = x[1] - x[0]
+    if dx < 0:
+        x = x[::-1]
+
+    # indokx
+    indokx0 = (
+        np.isfinite(x0)
+        & (x0 >= x.min()) & (x0 <= x.max())
+    )
+
+    if log_log is True:
+        indokx0 &= (x0 > 0)
+
+    # ------------
+    # Interpolate
+
+    # treat oer dimnesionality
+    if ndim == 1:
+
+        # loop on keys
+        for ii, k0 in enumerate(keys):
+
+            try:
+                dout[k0]['data'][...] = _interp1d(
+                    out=dout[k0]['data'],
+                    data=ddata[k0],
+                    shape_other=dsh_other[k0],
+                    x=x,
+                    x0=x0,
+                    axis=daxis[k0],
+                    dx=dx,
+                    log_log=log_log,
+                    deg=deg,
+                    deriv=deriv,
+                    indokx0=indokx0,
+                    dref_com=dref_com.get(k0),
+                    sli_c=sli_c,
+                    sli_x=sli_x,
+                    sli_v=sli_v,
+                )
+
+            except Exception as err:
+                derr[k0] = str(err)
+                # raise err
+
+    elif ndim == 2:
+
+        # x, y
+        y = coll.ddata[ref_key[1]]['data']
+        dy = y[1] - y[0]
+        if dy < 0:
+            y = y[::-1]
+
+        indokx0 &= (
+            np.isfinite(x1)
+            & (x1 >= y.min()) & (x1 <= y.max())
+        )
+        if log_log is True:
+            indokx0 &= (x1 > 0)
+
+        # loop on keys
+        for ii, k0 in enumerate(keys):
+
+            try:
+                dout[k0]['data'][...] = _interp2d(
+                    out=dout[k0]['data'],
+                    data=ddata[k0],
+                    shape_other=dsh_other[k0],
+                    x=x,
+                    y=y,
+                    x0=x0,
+                    x1=x1,
+                    axis=daxis[k0],
+                    dx=dx,
+                    dy=dy,
+                    log_log=log_log,
+                    deg=deg,
+                    deriv=deriv,
+                    indokx0=indokx0,
+                    dref_com=dref_com.get(k0),
+                    sli_c=sli_c,
+                    sli_x=sli_x,
+                    sli_v=sli_v,
+                )
+
+            except Exception as err:
+                derr[k0] = str(err)
+                # raise err
+
+    else:
+        raise NotImplementedError()
+
+    # ----------------------------
+    # raise warning if any failure
+
+    if len(derr) > 0:
+        lstr = [f"\t- '{k0}': {v0}" for k0, v0 in derr.items()]
+        msg = (
+            "The following keys could not be interpolated:\n"
+            + "\n".join(lstr)
+        )
+        warnings.warn(msg)
 
 
 def _interp1d(
@@ -1135,3 +1247,88 @@ def _interp2d(
             )
 
     return out
+
+
+# ###############################################################
+# ###############################################################
+#                   store
+# ###############################################################
+
+
+def _store(
+    coll=None,
+    dout=None,
+    x0=None,
+    x1=None,
+    ndim=None,
+    inplace=None,
+):
+
+
+    # -----------
+    # inplace
+
+    if inplace is True:
+        coll2 = coll
+    else:
+        lref = [v0]
+        coll2 = coll.extract(keys=list(dout.keys()), vectors=True)
+
+
+    for k0, v0 in dout.items():
+
+        # ---------
+        # keys
+
+        k0r = f'{k0}_n0'
+        k1r = f'{k0}_n1'
+
+        k0d = f'{k0}_x0'
+        k1d = f'{k0}_x1'
+
+        key = f'{k0}_interp'
+
+        # ----------------
+        # get refs vectors
+
+        x0u = np.unique(x0)
+        if ndim == 2:
+            x1u = np.unique(x1)
+        else:
+            x1u = None
+
+        # extract other refs
+        dref = {
+
+        }
+
+        # ---------
+        # populate
+
+        # ref
+        coll2.add_ref(key=k0r, size=x0u.size)
+
+        if inplace is False:
+            for k1, v1 in dref.items():
+                coll2.add_ref(key=k1, size=v1)
+
+        # data
+        coll.add_data(
+            key=k0d,
+            data=x0,
+            ref=k0r,
+        )
+
+        if ndim == 2:
+            coll2.add_ref(key=k1r, size=x1u.size)
+            coll.add_data(
+                key=k1d,
+                data=x1,
+                ref=k1r,
+            )
+
+
+
+
+
+
