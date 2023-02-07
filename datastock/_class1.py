@@ -740,7 +740,17 @@ class DataStock1(DataStock0):
         ref_key=None,
         bins=None,
     ):
-        """ return binned data and units along dimension indicated by refkey"""
+        """ Bin data along ref_key
+
+        Binning is treated here as an integral
+        Hence, if:
+            - the data has units [ph/eV]
+            - the ref_key has units [eV]
+            - the binned data has units [ph]
+
+        return a dict with data and units per key
+
+        """
 
         return _class1_binning.binning(
             coll=self,
