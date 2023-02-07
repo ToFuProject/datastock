@@ -308,7 +308,7 @@ def _units(
 
         else:
             msg = (
-                "Units do not agree between ref vector and bins for '{k0}'!\n"
+                f"Units do not agree between ref vector and bins for '{k0}'!\n"
                 f"\t- units     : {v0}\n"
                 f"\t- units_ref : {units_ref}\n"
                 f"\t- units_bins: {units_bins}\n"
