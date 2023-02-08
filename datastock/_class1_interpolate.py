@@ -586,15 +586,16 @@ def _check_x01_str(
             raise Exception(msg)
 
         # check ref_com is first or last
-        ix1 = refx1.index(ref_com)
-        if ix1 not in [0, len(refx1) - 1]:
-            msg = (
-                "cannot handle common ref not as first or last for x\n"
-                f"\t- refx1: {refx1}\n"
-                f"\t- ref_com: {ref_com}\n"
-                f"\t- ix1: {ix1}\n"
-            )
-            raise Exception(msg)
+        if ndim == 2:
+            ix1 = refx1.index(ref_com)
+            if ix1 not in [0, len(refx1) - 1]:
+                msg = (
+                    "cannot handle common ref not as first or last for x\n"
+                    f"\t- refx1: {refx1}\n"
+                    f"\t- ref_com: {ref_com}\n"
+                    f"\t- ix1: {ix1}\n"
+                )
+                raise Exception(msg)
 
     return kx0, kx1, x0, x1, refx0, refx1, ix0, ix1
 
@@ -701,8 +702,7 @@ def _x01_grid(
     sh0 = list(x0.shape)
     sh1 = list(x1.shape)
 
-    if refx0 is None:
-        refx, ix = None, None
+    refx, ix = None, None
 
     # -------------
     # check vs grid
@@ -721,7 +721,6 @@ def _x01_grid(
 
             if refx0 is not None:
                 refx = tuple(list(refx0) + list(refx1))
-                ix = None
 
         else:
             if ix0 != ix1:
@@ -743,13 +742,13 @@ def _x01_grid(
             rsh0 = s0 + [1 for ss in s1]
             rsh1 = [1 for ss in s0] + s1
             if ix == 0:
-                refx = [refx0[ix]] + refx
+                refx = tuple([refx0[ix]] + refx)
                 sh = [sh0[ix]] + sh
                 rsh0 = [sh0[ix]] + rsh0
                 rsh1 = [sh1[ix]] + rsh1
                 ix = 0
             else:
-                refx = refx + [refx0[ix]]
+                refx = tuple(refx + [refx0[ix]])
                 sh = sh + [sh0[ix]]
                 rsh0 = rsh0 + [sh0[ix]]
                 rsh1 = rsh1 + [sh1[ix]]
@@ -762,8 +761,14 @@ def _x01_grid(
 
         x0, x1 = pts0, pts1
 
+    elif sh0 == sh1:
+
+        refx = refx0
+        if ix0 is not None:
+            ix = ix0
+
     # reshape if necessary
-    elif sh0 != sh1:
+    else:
 
         if refx0 is not None:
             msg = (
