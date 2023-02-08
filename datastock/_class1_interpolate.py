@@ -486,7 +486,7 @@ def _check_params(
         ddef = dict
         lok = [dict]
     returnas = _generic_check._check_var(
-        return_params, 'return_params',
+        returnas, 'returnas',
         default=ddef,
         allowed=lok,
     )
