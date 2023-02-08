@@ -733,10 +733,10 @@ def _x01_grid(
                 raise Exception(msg)
 
             ix = ix0
-            r0 = [rr for ii in enumerate(refx0) if ii != ix]
-            r1 = [rr for ii in enumerate(refx1) if ii != ix]
-            s0 = [ss for ii in enumerate(sh0) if ii != ix]
-            s1 = [ss for ii in enumerate(sh1) if ii != ix]
+            r0 = [rr for ii, rr in enumerate(refx0) if ii != ix]
+            r1 = [rr for ii, rr in enumerate(refx1) if ii != ix]
+            s0 = [ss for ii, ss in enumerate(sh0) if ii != ix]
+            s1 = [ss for ii, ss in enumerate(sh1) if ii != ix]
 
             refx = r0 + r1
             sh = s0 + s1
