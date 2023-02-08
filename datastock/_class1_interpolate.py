@@ -83,7 +83,7 @@ def interpolate(
         deg, deriv,
         kx0, kx1, x0, x1, refx, dref_com,
         ddata, dout, dsh_other, sli_c, sli_x, sli_v,
-        log_log, grid, ndim,
+        log_log, grid, ndim, xunique,
         returnas, return_params, store, inplace,
     ) = _check(
         coll=coll,
@@ -133,6 +133,12 @@ def interpolate(
         sli_c=sli_c,
         sli_v=sli_v,
     )
+
+    # ------------------------------
+    # adjust data and ref if xunique
+
+    if xunique:
+        _xunique(dout)
 
     # --------
     # store
@@ -202,30 +208,7 @@ def _check(
     inplace=None,
 ):
 
-    # ----------------
-    # check parameters
-
-    (
-        deg, ndim, deriv, log_log,
-        return_params, returnas, store, inplace,
-    ) = _check_params(
-        coll=coll,
-        # interpolation base
-        keys=keys,
-        ref_key=ref_key,      # ddata keys
-        # parameters
-        grid=grid,
-        deg=deg,
-        deriv=deriv,
-        log_log=log_log,
-        # return vs store
-        return_params=return_params,
-        returnas=returnas,
-        store=store,
-        inplace=inplace,
-        # for store
-        x0_str=isinstance(x0, str),
-    )
+    ndim = len(ref_key)
 
     # --------------
     # x0, x1
@@ -265,7 +248,7 @@ def _check(
     # -----------------------
     # x0, x1 vs ndim and grid
 
-    x0, x1, refx, ix = _x01_grid(
+    x0, x1, refx, ix, xunique = _x01_grid(
         x0=x0,
         x1=x1,
         ndim=ndim,
@@ -336,11 +319,37 @@ def _check(
         dref_com=dref_com,
     )
 
+    # ----------------
+    # check parameters
+
+    (
+        deg, ndim, deriv, log_log,
+        return_params, returnas, store, inplace,
+    ) = _check_params(
+        coll=coll,
+        # interpolation base
+        keys=keys,
+        ref_key=ref_key,      # ddata keys
+        # parameters
+        grid=grid,
+        deg=deg,
+        deriv=deriv,
+        log_log=log_log,
+        # return vs store
+        return_params=return_params,
+        returnas=returnas,
+        store=store,
+        inplace=inplace,
+        # for store
+        x0_str=kx0 is not None,
+        xunique=xunique,
+    )
+
     return (
         deg, deriv,
         kx0, kx1, x0, x1, refx, dref_com,
         ddata, dout, dsh_other, sli_c, sli_x, sli_v,
-        log_log, grid, ndim,
+        log_log, grid, ndim, xunique,
         returnas, return_params, store, inplace,
     )
 
@@ -368,7 +377,10 @@ def _check_params(
     inplace=None,
     # for store
     x0_str=None,
+    xunique=None,
 ):
+
+    ndim = len(ref_key)
 
     # ---
     # deg
@@ -383,7 +395,6 @@ def _check_params(
     # ----
     # ndim
 
-    ndim = len(ref_key)
     if deriv not in [None, 0] and ndim > 1:
         msg = (
             "Arg deriv can only be used for 1d interpolations!\n"
@@ -440,7 +451,7 @@ def _check_params(
     # store
 
     lok = [False]
-    if x0_str:
+    if x0_str or xunique:
         lok.append(True)
     store = _generic_check._check_var(
         store, 'store',
@@ -676,11 +687,13 @@ def _x01_grid(
     ix1=None,
 ):
 
+
     # ------------
     # trivial case
 
     if ndim == 1:
-        return x0, x1, refx0, ix0
+        xunique = x0.size == 1
+        return x0, x1, refx0, ix0, xunique
 
     # -----------
     # get shapes
@@ -791,7 +804,8 @@ def _x01_grid(
                 )
                 raise Exception(msg)
 
-    return x0, x1, refx, ix
+    xunique = x0.size == 1
+    return x0, x1, refx, ix, xunique
 
 
 def _get_dvect(
@@ -1376,6 +1390,29 @@ def _interp2d(
             )
 
     return out
+
+
+# ###############################################################
+# ###############################################################
+#                   xunique
+# ###############################################################
+
+
+def _xunique(dout=None):
+
+    for k0, v0 in dout.items():
+
+        lind = [jj for jj, rr in enumerate(v0['ref']) if rr is None]
+        assert len(lind) == 1
+        i0 = lind[0]
+
+        sli = [slice(None) for jj in range(v0['data'].ndim)]
+        sli[i0] = 0
+        dout[k0]['data'] = v0['data'][tuple(sli)]
+        dout[k0]['ref'] = tuple([
+            rr for jj, rr in enumerate(v0['ref'])
+            if jj != i0
+        ])
 
 
 # ###############################################################
