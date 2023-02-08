@@ -42,6 +42,7 @@ def interpolate(
     log_log=None,
     # store vs return
     return_params=None,
+    returnas=None,
     store=None,
     inplace=None,
     # debug or unit tests
@@ -83,7 +84,7 @@ def interpolate(
         kx0, kx1, x0, x1, refx, dref_com,
         ddata, dout, dsh_other, sli_c, sli_x, sli_v,
         log_log, grid, ndim,
-        return_params, store, inplace,
+        returnas, return_params, store, inplace,
     ) = _check(
         coll=coll,
         # interpolation base
@@ -105,6 +106,7 @@ def interpolate(
         log_log=log_log,
         # return vs store
         return_params=return_params,
+        returnas=returnas,
         store=store,
         inplace=inplace,
     )
@@ -118,7 +120,7 @@ def interpolate(
         ref_key=ref_key,
         x0=x0,
         x1=x1,
-        ndim=ndmim,
+        ndim=ndim,
         log_log=log_log,
         dout=dout,
         ddata=ddata,
@@ -136,29 +138,35 @@ def interpolate(
     # store
 
     if store is True:
-        _store(
+        coll2 = _store(
             coll=coll,
             dout=dout,
             inplace=inplace,
+            kx0=kx0,
+            kx1=kx1,
+            ndim=ndim,
         )
 
     # -------
     # return
 
-    if return_params is True:
-        dparam = {
-            'keys': keys,
-            'ref_key': ref_key,
-            'deg': deg,
-            'deriv': deriv,
-            'log_log': log_log,
-            'x0': x0,
-            'x1': x1,
-            'grid': grid,
-        }
-        return dout, dparam
+    if returnas is object:
+        return coll2
+    elif returnas is dict:
+        if return_params is True:
+            dparam = {
+                'keys': keys,
+                'ref_key': ref_key,
+                'deg': deg,
+                'deriv': deriv,
+                'log_log': log_log,
+                'x0': x0,
+                'x1': x1,
+                'grid': grid,
+            }
+            return dout, dparam
 
-    return dout
+        return dout
 
 
 # #############################################################################
@@ -188,6 +196,7 @@ def _check(
     log_log=None,
     # return vs store
     return_params=None,
+    returnas=None,
     store=None,
     inplace=None,
 ):
@@ -197,7 +206,7 @@ def _check(
 
     (
         deg, ndim, deriv, log_log,
-        return_params, store, inplace,
+        return_params, returnas, store, inplace,
     ) = _check_params(
         coll=coll,
         # interpolation base
@@ -210,8 +219,11 @@ def _check(
         log_log=log_log,
         # return vs store
         return_params=return_params,
+        returnas=returnas,
         store=store,
         inplace=inplace,
+        # for store
+        x0_str=isinstance(x0, str),
     )
 
     # --------------
@@ -232,7 +244,7 @@ def _check(
 
 
     if lc[0]:
-        kx0, kx1, x0, x1, refx, ix = _check_x01_str(
+        kx0, kx1, x0, x1, refx0, refx1, ix0, ix1 = _check_x01_str(
             coll=coll,
             x0=x0,
             x1=x1,
@@ -241,7 +253,7 @@ def _check(
         )
 
     else:
-        kx0, kx1, x0, x1, refx, ix = _check_x01_nostr(
+        kx0, kx1, x0, x1, refx0, refx1, ix0, ix1 = _check_x01_nostr(
             x0=x0,
             x1=x1,
             grid=grid,
@@ -252,23 +264,16 @@ def _check(
     # -----------------------
     # x0, x1 vs ndim and grid
 
-    if ndim == 2:
-        x0, x1 = _x01_grid(x0=x0, x1=x1, grid=grid)
-
-    # ---------------------
-    # check x0, x1 vs store
-
-    if store is True:
-        if ndim == 1 and x0.ndim != 1:
-            msg = (
-                "Arg store=True for 1d interpolation only works with 1d x0!"
-            )
-            raise Exception(msg)
-        elif ndim == 2 and not (x0.ndim == 2 and grid is True):
-            msg = (
-                "Arg store=True for 2d interpolation only works with grid!"
-            )
-            raise Exception(msg)
+    x0, x1, refx, ix = _x01_grid(
+        x0=x0,
+        x1=x1,
+        ndim=ndim,
+        grid=grid,
+        refx0=refx0,
+        refx1=refx1,
+        ix0=ix0,
+        ix1=ix1,
+    )
 
     # ---------------------
     # get dvect from domain
@@ -335,7 +340,7 @@ def _check(
         kx0, kx1, x0, x1, refx, dref_com,
         ddata, dout, dsh_other, sli_c, sli_x, sli_v,
         log_log, grid, ndim,
-        return_params, store, inplace,
+        returnas, return_params, store, inplace,
     )
 
 
@@ -357,8 +362,11 @@ def _check_params(
     log_log=None,
     # return vs store
     return_params=None,
+    returnas=None,
     store=None,
     inplace=None,
+    # for store
+    x0_str=None,
 ):
 
     # ---
@@ -428,35 +436,65 @@ def _check_params(
             raise Exception(msg)
 
     # -------------
-    # return_params
-
-    return_params = _generic_check._check_var(
-        return_params, 'return_params',
-        default=False,
-        types=bool,
-    )
-
-    # -------------
     # store
 
+    lok = [False]
+    if x0_str:
+        lok.append(True)
     store = _generic_check._check_var(
         store, 'store',
         default=False,
         types=bool,
+        allowed=lok,
     )
 
     # ------------
     # inplace
 
+    lok = [False]
+    if store is True:
+        lok.append(True)
     inplace = _generic_check._check_var(
         inplace, 'inplace',
         default=False,
         types=bool,
+        allowed=lok,
+    )
+
+    # -------------
+    # returnas
+    if store is True:
+        if inplace is True:
+            ddef = False
+            lok = [False, dict, object]
+        else:
+            ddef = object
+            lok = [dict, object]
+    else:
+        ddef = dict
+        lok = [dict]
+    returnas = _generic_check._check_var(
+        return_params, 'return_params',
+        default=ddef,
+        allowed=lok,
+    )
+
+    # -------------
+    # return_params
+
+    lok = [False]
+    if returnas is dict:
+        lok.append(True)
+    return_params = _generic_check._check_var(
+        return_params, 'return_params',
+        default=False,
+        types=bool,
+        allowed=lok,
     )
 
     return (
         deg, ndim, deriv, log_log,
-        return_params, store, inplace,
+        return_params, returnas, store, inplace,
     )
 
 
@@ -478,7 +516,7 @@ def _check_x01_str(
         allowed=lok,
     )
 
-    refx = coll.ddata[x0]['ref']
+    refx0 = coll.ddata[x0]['ref']
 
     # ----
     # x1
@@ -493,6 +531,9 @@ def _check_x01_str(
             types=str,
             allowed=lok,
         )
+        refx1 = coll.ddata[x1]['ref']
+    else:
+        refx1 = None
 
     # ---------
     # extract
@@ -506,27 +547,44 @@ def _check_x01_str(
     # -----------------------------
     # get potential co-varying refs
 
-    ix = None
+    ix0, ix1 = None, None
     if ref_com is not None:
+
+        lok = refx0
+        if ndim == 1:
+            lok = refx0
+        else:
+            lok = [k0 for k0 in refx0 if k0 in refx1]
 
         ref_com = _generic_check._check_var(
             ref_com, 'ref_com',
             types=str,
-            allowed=refx,
+            allowed=lok,
         )
 
         # check ref_com is first or last
-        ix = refx.index(ref_com)
-        if ix not in [0, len(refx) - 1]:
+        ix0 = refx0.index(ref_com)
+        if ix0 not in [0, len(refx0) - 1]:
             msg = (
                 "cannot handle common ref not as first or last for x\n"
-                f"\t- refx: {refx}\n"
+                f"\t- refx0: {refx0}\n"
                 f"\t- ref_com: {ref_com}\n"
-                f"\t- ix: {ix}\n"
+                f"\t- ix0: {ix0}\n"
             )
             raise Exception(msg)
 
-    return kx0, kx1, x0, x1, refx, ix
+        # check ref_com is first or last
+        ix1 = refx1.index(ref_com)
+        if ix1 not in [0, len(refx1) - 1]:
+            msg = (
+                "cannot handle common ref not as first or last for x\n"
+                f"\t- refx1: {refx1}\n"
+                f"\t- ref_com: {ref_com}\n"
+                f"\t- ix1: {ix1}\n"
+            )
+            raise Exception(msg)
+
+    return kx0, kx1, x0, x1, refx0, refx1, ix0, ix1
 
 
 def _check_x01_nostr(
@@ -538,7 +596,7 @@ def _check_x01_nostr(
 ):
 
     kx0, kx1 = None, None
-    refx = None
+    refx0, refx1 = None, None
 
     x0 = _check_pts(pts=x0, pts_name='x0')
     sh0 = x0.shape
@@ -558,7 +616,7 @@ def _check_x01_nostr(
         msg = "Arg ref_com can only be provided for x0 as key1"
         raise Exception(msg)
 
-    return kx0, kx1, x0, x1, refx, None
+    return kx0, kx1, x0, x1, refx0, refx1, None, None
 
 
 def _get_dref_com(
@@ -606,29 +664,99 @@ def _get_dref_com(
     return ref_com, dref_com
 
 
-def _x01_grid(x0=None, x1=None, grid=None):
+def _x01_grid(
+    x0=None,
+    x1=None,
+    ndim=None,
+    grid=None,
+    refx0=None,
+    refx1=None,
+    ix0=None,
+    ix1=None,
+):
+
+    # ------------
+    # trivial case
+
+    if ndim == 1:
+        return x0, x1, refx0, ix0
 
     # -----------
     # get shapes
 
-    sh0 = x0.shape
-    sh1 = x1.shape
+    sh0 = list(x0.shape)
+    sh1 = list(x1.shape)
+
+    if refx0 is None:
+        refx, ix = None, None
 
     # -------------
     # check vs grid
 
     if grid is True:
-        sh = list(sh0) + list(sh1)
-        resh = list(sh0) + [1 for ss in sh1]
-        pts0 = np.full(sh, np.nan)
-        pts0[...] = x0.reshape(resh)
-        resh = [1 for ss in sh0] + list(sh1)
-        pts1 = np.full(sh, np.nan)
-        pts1[...] = x1.reshape(resh)
+
+        if ix0 is None:
+
+            sh = sh0 + sh1
+            resh = sh0 + [1 for ss in sh1]
+            pts0 = np.full(sh, np.nan)
+            pts0[...] = x0.reshape(resh)
+            resh = [1 for ss in sh0] + sh1
+            pts1 = np.full(sh, np.nan)
+            pts1[...] = x1.reshape(resh)
+
+            if refx0 is not None:
+                refx = tuple(list(refx0) + list(refx1))
+                ix = None
+
+        else:
+            if ix0 != ix1:
+                msg = (
+                    "ref_com is not at same index for ref of x0 and x1!\n"
+                    f"\t- refx0: {refx0}\n"
+                    f"\t- refx1: {refx1}\n"
+                )
+                raise Exception(msg)
+
+            ix = ix0
+            r0 = [rr for ii in enumerate(refx0) if ii != ix]
+            r1 = [rr for ii in enumerate(refx1) if ii != ix]
+            s0 = [ss for ii in enumerate(sh0) if ii != ix]
+            s1 = [ss for ii in enumerate(sh1) if ii != ix]
+
+            refx = r0 + r1
+            sh = s0 + s1
+            rsh0 = s0 + [1 for ss in s1]
+            rsh1 = [1 for ss in s0] + s1
+            if ix == 0:
+                refx = [refx0[ix]] + refx
+                sh = [sh0[ix]] + sh
+                rsh0 = [sh0[ix]] + rsh0
+                rsh1 = [sh1[ix]] + rsh1
+                ix = 0
+            else:
+                refx = refx + [refx0[ix]]
+                sh = sh + [sh0[ix]]
+                rsh0 = rsh0 + [sh0[ix]]
+                rsh1 = rsh1 + [sh1[ix]]
+                ix = len(refx) - 1
+
+            pts0 = np.full(sh, np.nan)
+            pts1 = np.full(sh, np.nan)
+            pts0[...] = x0.reshape(rsh0)
+            pts1[...] = x1.reshape(rsh1)
+
         x0, x1 = pts0, pts1
 
     # reshape if necessary
     elif sh0 != sh1:
+
+        if refx0 is not None:
+            msg = (
+                "Please use grid=True to use data keys for x0 and x1 "
+                "of different shapes!\n"
+            )
+            raise Exception(msg)
 
         if sh0 == (1,):
             x0 = np.full(sh1, x0[0])
@@ -662,7 +790,7 @@ def _x01_grid(x0=None, x1=None, grid=None):
                 )
                 raise Exception(msg)
 
-    return x0, x1
+    return x0, x1, refx, ix
 
 
 def _get_dvect(
@@ -1258,12 +1386,11 @@ def _interp2d(
 def _store(
     coll=None,
     dout=None,
-    x0=None,
-    x1=None,
+    kx0=None,
+    kx1=None,
     ndim=None,
     inplace=None,
 ):
-
 
     # -----------
     # inplace
@@ -1271,64 +1398,23 @@ def _store(
     if inplace is True:
         coll2 = coll
     else:
-        lref = [v0]
-        coll2 = coll.extract(keys=list(dout.keys()), vectors=True)
+        ldata = [kx0]
+        if kx1 is not None:
+            ldata.append(kx1)
+        coll2 = coll.extract(keys=ldata, vectors=True)
 
 
     for k0, v0 in dout.items():
 
         # ---------
-        # keys
-
-        k0r = f'{k0}_n0'
-        k1r = f'{k0}_n1'
-
-        k0d = f'{k0}_x0'
-        k1d = f'{k0}_x1'
-
-        key = f'{k0}_interp'
-
-        # ----------------
-        # get refs vectors
-
-        x0u = np.unique(x0)
-        if ndim == 2:
-            x1u = np.unique(x1)
-        else:
-            x1u = None
-
-        # extract other refs
-        dref = {
-
-        }
-
-        # ---------
         # populate
 
-        # ref
-        coll2.add_ref(key=k0r, size=x0u.size)
-
-        if inplace is False:
-            for k1, v1 in dref.items():
-                coll2.add_ref(key=k1, size=v1)
-
         # data
-        coll.add_data(
-            key=k0d,
-            data=x0,
-            ref=k0r,
+        coll2.add_data(
+            key=f'{k0}_interp',
+            data=v0['data'],
+            ref=v0['ref'],
+            units=v0['units'],
         )
 
-        if ndim == 2:
-            coll2.add_ref(key=k1r, size=x1u.size)
-            coll.add_data(
-                key=k1d,
-                data=x1,
-                ref=k1r,
-            )
-
-
-
-
-
-
+    return coll2
