@@ -411,11 +411,25 @@ class DataStock1(DataStock0):
     def extract(self, keys=None, vectors=None):
         """ Extract some selected data and return as new instance
 
-        Includes all relevant ref
-        Optionally also include monotonous vectors (if True)
+        Includes:
+              - all desired data keys
+              - all relevant ref
+              - all associated monotonous vectors (optional)
 
         """
-        return _class1_compute._extract(self, keys=keys, vectors=vectors)
+
+        # get ref and data
+        lref, ldata = _class1_compute._extract_dataref(
+            coll=self,
+            keys=keys,
+            vectors=vectors,
+        )
+
+        return _class1_compute._extract_instance(
+            self,
+            lref=lref,
+            ldata=ldata,
+        )
 
     ###########
     # General use methods

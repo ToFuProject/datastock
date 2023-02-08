@@ -691,17 +691,58 @@ def correlations(
     if returnas is dict:
         return dcross
 
+
 #############################################
 #############################################
 #       utilities
 #############################################
 
 
-def _extract(
+def _extract_instance(
     coll=None,
-    keys=None,
-    vectors=None,
+    lref=None,
+    ldata=None,
+    coll2=None,
 ):
+
+    # -------------------
+    # Instanciate
+
+    if coll2 is None:
+        coll2 = coll.__class__()
+
+    # -------------------
+    # Populate with ref
+
+    lpar = [
+        pp for pp in coll.get_lparam(which='ref')
+        if pp not in ['ldata', 'ldata_monot', 'ind', 'data']
+    ]
+    for k0 in lref:
+        if k0 not in coll2.dref.keys():
+            coll2.add_ref(
+                key=k0,
+                **copy.deepcopy({pp: coll._dref[k0][pp] for pp in lpar}),
+            )
+
+    # -------------------
+    # Populate with data
+
+    lpar = [
+        pp for pp in coll.get_lparam(which='data')
+        if pp not in ['shape', 'monot']
+    ]
+    for k0 in ldata:
+        if k0 not in coll2.ddata.keys():
+            coll2.add_data(
+                key=k0,
+                **copy.deepcopy({pp: coll._ddata[k0][pp] for pp in lpar}),
+            )
+
+    return coll2
+
+
+def _extract_dataref(coll=None, keys=None, vectors=None):
 
     # ----------------
     # check inputs
@@ -741,42 +782,14 @@ def _extract(
     # add vectors
     if vectors is True:
         keys = set(
-            keys
+            [k0 for k0 in keys if k0 in lokd]
             + list(itt.chain.from_iterable([
                 coll.dref[k0]['ldata_monot']
                 for k0 in lref
             ]))
         )
 
-    # -------------------
-    # Populate with ref
-
-    coll2 = coll.__class__()
-
-    lpar = [
-        pp for pp in coll.get_lparam(which='ref')
-        if pp not in ['ldata', 'ldata_monot', 'ind', 'data']
-    ]
-    for k0 in lref:
-        coll2.add_ref(
-            key=k0,
-            **copy.deepcopy({pp: coll._dref[k0][pp] for pp in lpar}),
-        )
-
-    # -------------------
-    # Populate with data
-
-    lpar = [
-        pp for pp in coll.get_lparam(which='data')
-        if pp not in ['shape', 'monot']
-    ]
-    for k0 in keys:
-        coll2.add_data(
-            key=k0,
-            **copy.deepcopy({pp: coll._ddata[k0][pp] for pp in lpar}),
-        )
-
-    return coll2
+    return lref, keys
 
 
 #############################################
