@@ -144,6 +144,7 @@ def interpolate(
             inplace=inplace,
             kx0=kx0,
             kx1=kx1,
+            refx=refx,
             ndim=ndim,
         )
 
@@ -316,7 +317,7 @@ def _check(
     dout, dsh_other = _get_dout(
         coll=coll,
         keys=keys,
-        kx0=kx0,
+        refx=refx,
         x0=x0,
         daxis=daxis,
         dunits=dunits,
@@ -522,14 +523,14 @@ def _check_x01_str(
     # x1
 
     if ndim == 2:
-        lok = [
+        lsame = [
             k0 for k0, v0 in coll.ddata.items()
-            if v0['ref'] == refx
+            if v0['ref'] == refx0
         ]
         x1 = _generic_check._check_var(
             x1, 'x1',
             types=str,
-            allowed=lok,
+            allowed=list(coll.ddata.keys()),
         )
         refx1 = coll.ddata[x1]['ref']
     else:
@@ -867,7 +868,7 @@ def _get_ddata(
 def _get_dout(
     coll=None,
     keys=None,
-    kx0=None,
+    refx=None,
     x0=None,
     daxis=None,
     dunits=None,
@@ -913,16 +914,16 @@ def _get_dout(
 
         # shx, rx
         shx = x0.shape
-        if kx0 is not None:
-            rx = coll.ddata[kx0]['ref']
+        if refx is not None:
+            rx = refx
 
         # ref_com for shx and rx
         if dref_com[k0]['ix'] is not None:
             shx = [ss for ii, ss in enumerate(shx) if ii != dref_com[k0]['ix']]
-            if kx0 is not None:
-                rx = [k1 for ii, k1 in enumerate(rx) if ii != dref_com[k0]['ix']]
+            if refx is not None:
+                rx = [k1 for ii, k1 in enumerate(refx) if ii != dref_com[k0]['ix']]
         # rx
-        if kx0 is None:
+        if refx is None:
             rx = [None]*len(shx)
 
         # --------------------
@@ -1388,6 +1389,7 @@ def _store(
     dout=None,
     kx0=None,
     kx1=None,
+    refx=None,
     ndim=None,
     inplace=None,
 ):
@@ -1397,12 +1399,15 @@ def _store(
 
     if inplace is True:
         coll2 = coll
+
     else:
-        ldata = [kx0]
-        if kx1 is not None:
-            ldata.append(kx1)
+        ldata = list(set(itt.chain.from_iterable([
+            v0['ref'] for v0 in dout.values()
+        ])))
         coll2 = coll.extract(keys=ldata, vectors=True)
 
+    # ---------
+    # add data
 
     for k0, v0 in dout.items():
 
