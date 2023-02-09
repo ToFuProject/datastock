@@ -167,9 +167,16 @@ def interpolate(
                 'deg': deg,
                 'deriv': deriv,
                 'log_log': log_log,
+                'kx0': kx0,
+                'kx1': kx1,
                 'x0': x0,
                 'x1': x1,
                 'grid': grid,
+                'refx': refx,
+                'dref_com': dref_com,
+                'daxis': daxis,
+                'dsh_other': dsh_other,
+                'domain': domain,
             }
             return dout, dparam
 
@@ -206,6 +213,7 @@ def _check(
     returnas=None,
     store=None,
     inplace=None,
+    x0_str=None,
 ):
 
     ndim = len(ref_key)
@@ -322,6 +330,8 @@ def _check(
     # ----------------
     # check parameters
 
+    if x0_str is None:
+        x0_str = kx0 is not None
     (
         deg, ndim, deriv, log_log,
         return_params, returnas, store, inplace,
@@ -341,7 +351,7 @@ def _check(
         store=store,
         inplace=inplace,
         # for store
-        x0_str=kx0 is not None,
+        x0_str=x0_str,
         xunique=xunique,
     )
 
@@ -354,10 +364,10 @@ def _check(
     )
 
 
-# #################################################################
-# #################################################################
+# ###############################################################
+# ###############################################################
 #               Secondary checking routines
-# #################################################################
+# ###############################################################
 
 
 def _check_params(
@@ -494,14 +504,10 @@ def _check_params(
     # -------------
     # return_params
 
-    lok = [False]
-    if returnas is dict:
-        lok.append(True)
     return_params = _generic_check._check_var(
         return_params, 'return_params',
         default=False,
         types=bool,
-        allowed=lok,
     )
 
     return (
