@@ -1894,7 +1894,7 @@ def _get_lparam(which=None, dd=None, for_show=None):
     return lparam
 
 
-def _show_get_fields(which=None, dobj=None, lparam=None, dshow=None):
+def _show_get_fields(which=None, lparam=None, dshow=None):
 
     # show dict
     if which not in dshow.keys():

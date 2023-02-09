@@ -64,10 +64,19 @@ class DataStock1(DataStock0):
     _data_none = None
     _reserved_keys = None
 
-    _show_in_summary_core = ['shape', 'ref']
-    _show_in_summary = 'all'
     _max_ndim = None
-    _dshow = {}
+    _dshow = {
+        'data': [
+            'shape',
+            'ref',
+            'dim',
+            'quant',
+            'name',
+            'units',
+            'source',
+            'monot',
+        ],
+    }
 
     def __init__(
         self,
@@ -878,34 +887,16 @@ class DataStock1(DataStock0):
 
         if 'data' in show_which and len(self._ddata) > 0:
 
-            if show_core is None:
-                show_core = self._show_in_summary_core
-            if isinstance(show_core, str):
-                show_core = [show_core]
-
-            lp = self.get_lparam(which='data')
-            lkcore = ['shape', 'ref']
-            assert all([ss in lp + lkcore for ss in show_core])
-            col2 = ['data key'] + show_core
-
-            if show is None:
-                show = self._show_in_summary
-            if show == 'all':
-                col2 += [pp for pp in lp if pp not in col2]
-            else:
-                if isinstance(show, str):
-                    show = [show]
-                assert all([ss in lp for ss in show])
-                col2 += [pp for pp in show if pp not in col2]
-            col2 = [cc for cc in col2 if cc != 'data']
-
-            ar2 = []
-            for k0 in self._ddata.keys():
-                lu = [k0] + [str(self._ddata[k0].get(cc)) for cc in col2[1:]]
-                ar2.append(lu)
-
-            lcol.append(col2)
-            lar.append(ar2)
+            lk = _class1_check._show_get_fields(
+                which='data',
+                lparam=self.get_lparam(which='data', for_show=True),
+                dshow=self._dshow,
+            )
+            lcol.append(['data'] + [pp.split('.')[-1] for pp in lk])
+            lar.append([
+                [k1] + _class1_check._show_extract(dobj=v1, lk=lk)
+                for k1, v1 in self._ddata.items()
+            ])
 
         # -----------------------
         # Build for dobj
@@ -922,7 +913,6 @@ class DataStock1(DataStock0):
                 if 'obj' in show_which or k0 in show_which:
                     lk = _class1_check._show_get_fields(
                         which=k0,
-                        dobj=self._dobj,
                         lparam=self.get_lparam(which=k0, for_show=True),
                         dshow=self._dshow,
                     )
