@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 
 # Builtin
+import itertools as itt
+import copy
 import warnings
+
 
 # Common
 import numpy as np
@@ -10,6 +13,8 @@ import numpy as np
 # import scipy.linalg as scplin
 import scipy.stats as scpstats
 import scipy.spatial as scpspace
+import datastock as ds
+
 
 from . import _generic_check
 
@@ -689,13 +694,113 @@ def correlations(
 
 #############################################
 #############################################
+#       utilities
+#############################################
+
+
+def _extract_instance(
+    coll=None,
+    lref=None,
+    ldata=None,
+    coll2=None,
+):
+
+    # -------------------
+    # Instanciate
+
+    if coll2 is None:
+        coll2 = coll.__class__()
+
+    # -------------------
+    # Populate with ref
+
+    lpar = [
+        pp for pp in coll.get_lparam(which='ref')
+        if pp not in ['ldata', 'ldata_monot', 'ind', 'data']
+    ]
+    for k0 in lref:
+        if k0 not in coll2.dref.keys():
+            coll2.add_ref(
+                key=k0,
+                **copy.deepcopy({pp: coll._dref[k0][pp] for pp in lpar}),
+            )
+
+    # -------------------
+    # Populate with data
+
+    lpar = [
+        pp for pp in coll.get_lparam(which='data')
+        if pp not in ['shape', 'monot']
+    ]
+    for k0 in ldata:
+        if k0 not in coll2.ddata.keys():
+            coll2.add_data(
+                key=k0,
+                **copy.deepcopy({pp: coll._ddata[k0][pp] for pp in lpar}),
+            )
+
+    return coll2
+
+
+def _extract_dataref(coll=None, keys=None, vectors=None):
+
+    # ----------------
+    # check inputs
+
+    # vectors
+    vectors = ds._generic_check._check_var(
+        vectors, 'vectors',
+        types=bool,
+        default=True,
+    )
+
+    # keys
+    if keys is None:
+        return
+    if isinstance(keys, str):
+        keys = [keys]
+
+    lokd = list(coll._ddata.keys())
+    lokr = list(coll._dref.keys())
+    keys = _generic_check._check_var_iter(
+        keys, 'keys',
+        types=list,
+        allowed=lokr + lokd,
+    )
+
+    # -----------------------------
+    # Get corresponding list of ref
+
+    lref = set(
+        [k0 for k0 in keys if k0 in lokr]
+        + [
+            k0 for k0, v0 in coll._dref.items()
+            if any([ss in keys for ss in v0['ldata']])
+        ]
+    )
+
+    # add vectors
+    if vectors is True:
+        keys = set(
+            [k0 for k0 in keys if k0 in lokd]
+            + list(itt.chain.from_iterable([
+                coll.dref[k0]['ldata_monot']
+                for k0 in lref
+            ]))
+        )
+
+    return lref, keys
+
+
+#############################################
+#############################################
 #############################################
 #       utilities
 #############################################
 #############################################
 
 
-# DEPRECATED 
+# DEPRECATED
 # def _get_grid1d(val, scale=None, npts=None, nptsmin=None):
 
     # npts = max(nptsmin, npts)
@@ -725,7 +830,7 @@ def correlations(
 #############################################
 
 
-# DEPRECATED 
+# DEPRECATED
 # def _get_unique_ref_dind(
     # dd=None, dd_name='data', group='time',
     # lkey=None,
@@ -798,7 +903,7 @@ def correlations(
         # return tall, dind
 
 
-# DEPRECATED 
+# DEPRECATED
 # def _get_indtmult(
     # dd=None, dd_name='data', group='time',
     # idquant=None, idref1d=None, idref2d=None,
@@ -864,7 +969,7 @@ def correlations(
     # return tall, tbinall, ntall, indtq, indtr1, indtr2
 
 
-# DEPRECATED 
+# DEPRECATED
 # def _get_indtu(
     # t=None,
     # tall=None,
@@ -917,7 +1022,7 @@ def correlations(
     # return tall, ntall, indt, indtu, indtq, indtr1, indtr2
 
 
-# DEPRECATED 
+# DEPRECATED
 # def get_tcommon(self, lq, prefer='finer'):
     # """ Check if common t, else choose according to prefer
 
@@ -945,7 +1050,7 @@ def correlations(
     # return t[ind], t
 
 
-# DEPRECATED 
+# DEPRECATED
 # def _get_tcom(
     # idquant=None, idref1d=None,
     # idref2d=None, idq2dR=None,

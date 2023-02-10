@@ -397,7 +397,7 @@ class Test02_Manipulate():
         zipall = zip(lk, lref, lax, llog, lx1, lrefc, ls, lr)
         for ii, (kk, rr, aa, lg, x1, refc, ss, ri) in enumerate(zipall):
 
-            dout = self.st.interpolate(
+            dout, dparams = self.st.interpolate(
                 keys=kk,
                 ref_key=rr,
                 x0='data_com',
@@ -406,16 +406,40 @@ class Test02_Manipulate():
                 deg=2,
                 deriv=None,
                 log_log=lg,
-                return_params=False,
+                store=False,
+                return_params=True,
                 domain=None,
                 ref_com=refc,
             )
 
             assert isinstance(dout, dict)
             assert isinstance(dout[kk]['data'], np.ndarray)
-            assert dout[kk]['data'].shape == ss
-            assert dout[kk]['ref'] == ri
 
+            if not (dout[kk]['data'].shape == ss and dout[kk]['ref'] == ri):
+                lstr = [f'\t- {k0}: {v0}' for k0, v0 in dparams.items()]
+                msg = (
+                    "Wrong interpolation shape / ref:\n"
+                    f"\t- ii: {ii}\n"
+                    f"\t- keys: {kk}\n"
+                    f"\t- ref_key: {rr}\n"
+                    f"\t- x1: {x1}\n"
+                    f"\t- ref_com: {refc}\n"
+                    f"\t- log_log: {lg}\n"
+                    f"\t- key['ref']: {self.st.ddata[kk]['ref']}\n"
+                    f"\t- x0['ref']: {self.st.ddata['data_com']['ref']}\n"
+                    "\n"
+                    # + "\n".join(lstr)
+                    "\n"
+                    f"\t- Expected shape: {ss}\n"
+                    f"\t- Observed shape: {dout[kk]['data'].shape}\n"
+                    f"\t- Expected ref: {ri}\n"
+                    f"\t- Observed ref: {dout[kk]['ref']}\n"
+
+                )
+                raise Exception(msg)
+
+
+                # Not tested: float, store=True, inplace
 
     # ------------------------
     #   Plotting

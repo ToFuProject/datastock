@@ -28,6 +28,7 @@ def binning(
     keys=None,
     ref_key=None,
     bins=None,
+    safety_ratio=None,
 ):
     """ Return the binned data
 
@@ -51,13 +52,14 @@ def binning(
     units_ref = units_ref[0]
 
     # bins
-    bins, units_bins, db, _ = _check_bins(
+    bins, units_bins, dv, _ = _check_bins(
         coll=coll,
         keys=keys,
         ref_key=ref_key,
         bins=bins,
         vect=coll.ddata[ref_key]['data'],
         strict=True,
+        safety_ratio=safety_ratio,
     )
 
     # units
@@ -73,7 +75,7 @@ def binning(
     for k0, v0 in dout.items():
         dout[k0]['data'] = _bin(
             bins=bins,
-            db=db,
+            dv=dv,
             vect=coll.ddata[ref_key]['data'],
             data=coll.ddata[k0]['data'],
             axis=daxis[k0],
@@ -213,6 +215,7 @@ def _check_bins(
     ref_key=None,
     bins=None,
     vect=None,
+    safety_ratio=None,
     # if bsplines
     strict=None,
     deg=None,
@@ -223,6 +226,14 @@ def _check_bins(
         strict, 'strict',
         types=bool,
         default=True,
+    )
+
+    # check
+    safety_ratio = _generic_check._check_var(
+        safety_ratio, 'safety_ratio',
+        types=(int, float),
+        default=1.5,
+        sign='>0.'
     )
 
     # ---------
@@ -264,13 +275,16 @@ def _check_bins(
     # ----------
     # bin method
 
-    dv = np.abs(np.mean(np.diff(vect)))
+    dv = np.abs(np.diff(vect))
+    dv = np.append(dv, dv[-1])
+    dvmean = np.mean(dv) + np.std(dv)
 
     if strict is True:
-        if db < 2*dv:
+        lim = safety_ratio*dvmean
+        if not db > lim:
             msg = (
                 f"Uncertain binning for '{sorted(keys)}', ref vect '{ref_key}':\n"
-                f"Binning steps ({db}) are smaller than 2*ref ({2*dv}) vector step"
+                f"Binning steps ({db}) are < {safety_ratio}*ref ({lim}) vector step"
             )
             raise Exception(msg)
 
@@ -278,9 +292,9 @@ def _check_bins(
             npts = None
 
     else:
-        npts = (deg + 3) * max(1, dv / db)
+        npts = (deg + 3) * max(1, dvmean / db)
 
-    return bins, bins_units, db, npts
+    return bins, bins_units, dv, npts
 
 
 def _units(
@@ -308,7 +322,7 @@ def _units(
 
         else:
             msg = (
-                "Units do not agree between ref vector and bins for '{k0}'!\n"
+                f"Units do not agree between ref vector and bins for '{k0}'!\n"
                 f"\t- units     : {v0}\n"
                 f"\t- units_ref : {units_ref}\n"
                 f"\t- units_bins: {units_bins}\n"
@@ -326,7 +340,7 @@ def _units(
 
 def _bin(
     bins=None,
-    db=None,
+    dv=None,
     vect=None,
     data=None,
     axis=None,
@@ -334,14 +348,13 @@ def _bin(
 
     indin = (vect >= bins[0]) & (vect <= bins[-1])
     vect = vect[indin]
+    dv = dv[indin]
 
     if data.ndim == 1:
 
-        data = data[indin]
-
         val = scpst.binned_statistic(
             vect,
-            data,
+            data[indin] * dv,
             bins=bins,
             statistic=np.nansum,
         )[0]
@@ -379,9 +392,9 @@ def _bin(
             # bin
             val[sli] = scpst.binned_statistic(
                 vect,
-                data[sli],
+                data[sli] * dv,
                 bins=bins,
                 statistic=np.nansum,
             )[0]
 
-    return val * db
+    return val
