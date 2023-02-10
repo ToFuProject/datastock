@@ -246,6 +246,47 @@ def plot_as_array(
             label=label,
         )
 
+    elif ndim == 4:
+        coll2, dax, dgroup = plot_as_array_4d(
+            # parameters
+            coll=coll2,
+            key=key,
+            keyX=keyX,
+            keyY=keyY,
+            keyZ=keyZ,
+            keyU=keyU,
+            refX=refX,
+            refY=refY,
+            refZ=refZ,
+            refU=refU,
+            islogX=islogX,
+            islogY=islogY,
+            islogZ=islogZ,
+            islogU=islogU,
+            ind=ind,
+            vmin=vmin,
+            vmax=vmax,
+            cmap=cmap,
+            ymin=ymin,
+            ymax=ymax,
+            aspect=aspect,
+            nmax=nmax,
+            color_dict=color_dict,
+            lkeys=lkeys,
+            bstr_dict=bstr_dict,
+            rotation=rotation,
+            inverty=inverty,
+            bck=bck,
+            interp=interp,
+            # figure-specific
+            dax=dax,
+            dmargin=dmargin,
+            fs=fs,
+            dcolorbar=dcolorbar,
+            dleg=dleg,
+            label=label,
+        )
+
     # --------------------------
     # add axes and interactivity
 
@@ -428,7 +469,7 @@ def _plot_as_array_check(
                 "Specify keyX, keyY, keyZ, keyU in this priority order\n"
                 + "\n".join(lstr)
             )
-        raise Exception(msg)
+            raise Exception(msg)
 
     refs = coll._ddata[key]['ref']
     keyX, refX, islogX = _check_keyXYZ(
@@ -1419,12 +1460,8 @@ def plot_as_array_3d(
             )
         else:
             bckenv = [
-                np.nanmin(
-                    np.nanmin(data, axis=max(axX, axY)), axis=min(axX, axY)
-                ),
-                np.nanmax(
-                    np.nanmax(data, axis=max(axX, axY)), axis=min(axX, axY),
-                )
+                np.nanmin(data, axis=(axX, axY)),
+                np.nanmax(data, axis=(axX, axY)),
             ]
             zdat = dataZ
             ax.fill_between(
@@ -1727,6 +1764,7 @@ def plot_as_array_3d(
     return coll, dax, dgroup
 
 
+
 def _plot_as_array_3d_create_axes(
     fs=None,
     dmargin=None,
@@ -1931,6 +1969,813 @@ def _plot_as_array_3d_label_axes(
         ax.set_yticks([])
 
     kax = 'textZ'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+        ax.set_xticks([])
+        ax.set_yticks([])
+
+    return dax
+
+
+# #############################################################################
+# #############################################################################
+#                       plot_as_array: 4d
+# #############################################################################
+
+
+def plot_as_array_4d(
+    # parameters
+    coll=None,
+    key=None,
+    keyX=None,
+    keyY=None,
+    keyZ=None,
+    keyU=None,
+    refX=None,
+    refY=None,
+    refZ=None,
+    refU=None,
+    islogX=None,
+    islogY=None,
+    islogZ=None,
+    islogU=None,
+    ind=None,
+    vmin=None,
+    vmax=None,
+    cmap=None,
+    ymin=None,
+    ymax=None,
+    aspect=None,
+    nmax=None,
+    color_dict=None,
+    lkeys=None,
+    bstr_dict=None,
+    rotation=None,
+    inverty=None,
+    bck=None,
+    interp=None,
+    # figure-specific
+    dax=None,
+    dmargin=None,
+    fs=None,
+    dcolorbar=None,
+    dleg=None,
+    label=None,
+):
+
+    # --------------
+    #  Prepare data
+
+    data = coll.ddata[key]['data']
+    refs = coll.ddata[key]['ref']
+    if hasattr(data, 'nnz'):
+        data = data.toarray()
+    assert data.ndim == len(coll.ddata[key]['ref']) == 4
+    n0, n1, n2, n3 = data.shape
+
+    # check if transpose is necessary
+    [axX, axY, axZ, axU] = [refs.index(rr) for rr in [refX, refY, refZ, refU]]
+    [nx, ny, nz, nu] = [data.shape[aa] for aa in [axX, axY, axZ, axU]]
+
+    # -----------------
+    #  prepare slicing
+
+    # here slice X => slice in dim Y and vice-versa
+    sliX = _class1_compute._get_slice(laxis=[axY, axZ, axU], ndim=4)
+    sliY = _class1_compute._get_slice(laxis=[axX, axZ, axU], ndim=4)
+    sliZ = _class1_compute._get_slice(laxis=[axX, axY, axU], ndim=4)
+    sliU = _class1_compute._get_slice(laxis=[axX, axY, axZ], ndim=4)
+    sliZ2 = _class1_compute._get_slice(laxis=[axZ, axU], ndim=4)
+
+    if axX < axY:
+        datatype = 'data.T'
+        dataplot = data[sliZ2(ind[2], ind[3])].T
+    else:
+        datatype = 'data'
+        dataplot = data[sliZ2(ind[2], ind[3])]
+
+    # ----------------------
+    #  labels and data
+
+    keyX, xstr, dataX, dX2, labX = _get_str_datadlab(
+        keyX=keyX, nx=nx, islogX=islogX, coll=coll,
+    )
+    keyY, ystr, dataY, dY2, labY = _get_str_datadlab(
+        keyX=keyY, nx=ny, islogX=islogY, coll=coll,
+    )
+    keyZ, zstr, dataZ, dZ2, labZ = _get_str_datadlab(
+        keyX=keyZ, nx=nz, islogX=islogZ, coll=coll,
+    )
+    keyU, ustr, dataU, dU2, labU = _get_str_datadlab(
+        keyX=keyU, nx=nu, islogX=islogU, coll=coll,
+    )
+
+    extent = (
+        dataX[0] - dX2, dataX[-1] + dX2,
+        dataY[0] - dY2, dataY[-1] + dY2,
+    )
+
+    # --------------
+    # plot - prepare
+
+    if dax is None:
+        dax = _plot_as_array_4d_create_axes(
+            fs=fs,
+            dmargin=dmargin,
+        )
+
+    dax = _generic_check._check_dax(dax=dax, main='matrix')
+
+    if label:
+        _plot_as_array_4d_label_axes(
+            coll=coll,
+            dax=dax,
+            key=key,
+            labX=labX,
+            labY=labY,
+            labZ=labZ,
+            labU=labU,
+            ymin=ymin,
+            ymax=ymax,
+            xstr=xstr,
+            ystr=ystr,
+            zstr=zstr,
+            ustr=ustr,
+            keyX=keyX,
+            keyY=keyY,
+            keyZ=keyZ,
+            keyU=keyU,
+            dataX=dataX,
+            dataY=dataY,
+            dataZ=dataZ,
+            dataU=dataU,
+            inverty=inverty,
+            rotation=rotation,
+        )
+
+    # ---------------
+    # plot fixed part
+
+    kax = 'tracesZ'
+    if dax.get(kax) and bck is not False:
+        ax = dax[kax]['handle']
+
+        if bck == 'lines':
+            shap = list(data.shape)
+            shap[axZ] = 1
+            bckl = np.concatenate((data, np.full(shap, np.nan)), axis=axZ)
+            bckl = np.swapaxes(bckl, axZ, -1).ravel()
+            zdat = np.tile(np.r_[dataZ, np.nan], nx*ny*nu)
+            ax.plot(
+                zdat,
+                bckl,
+                c=(0.8, 0.8, 0.8),
+                ls='-',
+                lw=1.,
+                marker='None',
+            )
+        else:
+            bckenv = [
+                np.nanmin(data, axis=(axX, axY, axU)),
+                np.nanmax(data, axis=(axX, axY, axU)),
+            ]
+            zdat = dataZ
+            ax.fill_between(
+                zdat,
+                bckenv[0],
+                bckenv[1],
+                facecolor=(0.8, 0.8, 0.8, 0.8),
+                edgecolor='None',
+            )
+
+    kax = 'tracesU'
+    if dax.get(kax) and bck is not False:
+        ax = dax[kax]['handle']
+
+        if bck == 'lines':
+            shap = list(data.shape)
+            shap[axU] = 1
+            bckl = np.concatenate((data, np.full(shap, np.nan)), axis=axU)
+            bckl = np.swapaxes(bckl, axU, -1).ravel()
+            zdat = np.tile(np.r_[dataU, np.nan], nx*ny*nz)
+            ax.plot(
+                udat,
+                bckl,
+                c=(0.8, 0.8, 0.8),
+                ls='-',
+                lw=1.,
+                marker='None',
+            )
+        else:
+            bckenv = [
+                np.nanmin(data, axis=(axX, axY, axZ)),
+                np.nanmax(data, axis=(axX, axY, axZ)),
+            ]
+            udat = dataU
+            ax.fill_between(
+                udat,
+                bckenv[0],
+                bckenv[1],
+                facecolor=(0.8, 0.8, 0.8, 0.8),
+                edgecolor='None',
+            )
+
+    # ----------------
+    # define and set dgroup
+
+    dgroup = {
+        'X': {
+            'ref': [refX],
+            'data': ['index'],
+            'nmax': nmax,
+        },
+        'Y': {
+            'ref': [refY],
+            'data': ['index'],
+            'nmax': nmax,
+        },
+        'Z': {
+            'ref': [refZ],
+            'data': ['index'],
+            'nmax': 1,
+        },
+        'U': {
+            'ref': [refU],
+            'data': ['index'],
+            'nmax': 1,
+        },
+    }
+
+    # -----------------
+    # plot mobile parts
+
+    kax = 'matrix'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        # image
+        im = ax.imshow(
+            dataplot,
+            extent=extent,
+            interpolation=interp,
+            origin='lower',
+            aspect=aspect,
+            cmap=cmap,
+            vmin=vmin,
+            vmax=vmax,
+        )
+
+        km = f'im'
+        coll.add_mobile(
+            key=km,
+            handle=im,
+            refs=((refZ, refU),),
+            data=key,
+            dtype=datatype,
+            axes=kax,
+            ind=0,
+        )
+
+        if inverty is True:
+            ax.invert_yaxis()
+
+        # ind0, ind1
+        for ii in range(nmax):
+            lh = ax.axhline(
+                dataY[ind[1]], c=color_dict['X'][ii], lw=1., ls='-',
+            )
+            lv = ax.axvline(
+                dataX[ind[0]], c=color_dict['Y'][ii], lw=1., ls='-',
+            )
+            mi, = ax.plot(
+                dataX[ind[0]],
+                dataY[ind[1]],
+                marker='s',
+                ms=6,
+                markeredgecolor=color_dict['X'][ii],
+                markerfacecolor='None',
+            )
+
+            # update coll
+            kh = f'h{ii:02.0f}'
+            kv = f'v{ii:02.0f}'
+            coll.add_mobile(
+                key=kh,
+                handle=lh,
+                refs=refY,
+                data=keyY,
+                dtype='ydata',
+                axes=kax,
+                ind=ii,
+            )
+            coll.add_mobile(
+                key=kv,
+                handle=lv,
+                refs=refX,
+                data=keyX,
+                dtype='xdata',
+                axes=kax,
+                ind=ii,
+            )
+            km = f'm{ii:02.0f}'
+            coll.add_mobile(
+                key=km,
+                handle=mi,
+                refs=[refX, refY],
+                data=[keyX, keyY],
+                dtype=['xdata', 'ydata'],
+                axes=kax,
+                ind=ii,
+            )
+
+        dax[kax].update(refx=[refX], refy=[refY], datax=keyX, datay=keyY)
+
+    kax = 'vertical'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        for ii in range(nmax):
+            l0, = ax.plot(
+                data[sliY(ind[0], ind[2], ind[3])],
+                dataY,
+                ls='-',
+                marker='.',
+                lw=1.,
+                color=color_dict['Y'][ii],
+                label=f'ind0 = {ind[0]}',
+            )
+
+            km = f'vprof{ii:02.0f}'
+            coll.add_mobile(
+                key=km,
+                handle=l0,
+                refs=((refX, refZ, refU),),
+                data=[key],
+                dtype=['xdata'],
+                group_vis='X',
+                axes=kax,
+                ind=ii,
+            )
+
+            l0 = ax.axhline(
+                dataY[ind[1]],
+                c=color_dict['X'][ii],
+            )
+            km = f'lh-v{ii:02.0f}'
+            coll.add_mobile(
+                key=km,
+                handle=l0,
+                refs=(refY,),
+                data=keyY,
+                dtype='ydata',
+                group_vis='Y',
+                axes=kax,
+                ind=ii,
+            )
+
+        dax[kax].update(refy=[refY], datay=keyY)
+
+    kax = 'horizontal'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        for ii in range(nmax):
+            l1, = ax.plot(
+                dataX,
+                data[sliX(ind[1], ind[2], ind[3])],
+                ls='-',
+                marker='.',
+                lw=1.,
+                color=color_dict['X'][ii],
+            )
+
+            km = f'hprof{ii:02.0f}'
+            coll.add_mobile(
+                key=km,
+                handle=l1,
+                refs=((refY, refZ, refU),),
+                data=[key],
+                dtype=['ydata'],
+                group_vis='Y',
+                axes=kax,
+                ind=ii,
+            )
+
+            l0 = ax.axvline(
+                dataX[ind[0]],
+                c=color_dict['Y'][ii],
+            )
+            km = f'lv-h{ii:02.0f}'
+            coll.add_mobile(
+                key=km,
+                handle=l0,
+                refs=(refX,),
+                data=keyX,
+                dtype='xdata',
+                group_vis='X',
+                axes=kax,
+                ind=ii,
+            )
+
+        dax[kax].update(refx=[refX], datax=keyX)
+
+    kax = 'tracesZ'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        for ii in range(nmax):
+            l1, = ax.plot(
+                dataZ,
+                data[sliZ(ind[0], ind[1], ind[3])],
+                ls='-',
+                marker='None',
+                color=color_dict['X'][ii],
+            )
+
+            km = f'trace{ii:02.0f}'
+            coll.add_mobile(
+                key=km,
+                handle=l1,
+                refs=((refX, refY, refU),),
+                data=[key],
+                dtype=['ydata'],
+                axes=kax,
+                ind=ii,
+            )
+
+        l0 = ax.axvline(
+            dataZ[ind[2]],
+            c='k',
+        )
+        km = f'lv-z'
+        coll.add_mobile(
+            key=km,
+            handle=l0,
+            refs=(refZ,),
+            data=keyZ,
+            dtype='xdata',
+            axes=kax,
+            ind=0,
+        )
+
+        dax[kax].update(refx=[refZ], datax=keyZ)
+
+    kax = 'tracesU'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        for ii in range(nmax):
+            l1, = ax.plot(
+                dataU,
+                data[sliU(ind[0], ind[1], ind[2])],
+                ls='-',
+                marker='None',
+                color=color_dict['U'][ii],
+            )
+
+            km = f'traceZ{ii:02.0f}'
+            coll.add_mobile(
+                key=km,
+                handle=l1,
+                refs=((refX, refY, refZ),),
+                data=[key],
+                dtype=['ydata'],
+                axes=kax,
+                ind=ii,
+            )
+
+        l0 = ax.axvline(
+            dataU[ind[2]],
+            c='k',
+        )
+        km = f'lv-u'
+        coll.add_mobile(
+            key=km,
+            handle=l0,
+            refs=(refU,),
+            data=keyU,
+            dtype='xdata',
+            axes=kax,
+            ind=0,
+        )
+
+        dax[kax].update(refx=[refU], datax=keyU)
+
+    # ---------
+    # add text
+
+    kax = 'textX'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        _plot_text.plot_text(
+            coll=coll,
+            kax=kax,
+            ax=ax,
+            ref=refX,
+            group='X',
+            ind=ind[0],
+            lkeys=lkeys,
+            nmax=nmax,
+            color_dict=color_dict,
+            bstr_dict=bstr_dict,
+        )
+
+    kax = 'textY'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        _plot_text.plot_text(
+            coll=coll,
+            kax=kax,
+            ax=ax,
+            ref=refY,
+            group='Y',
+            ind=ind[1],
+            lkeys=lkeys,
+            nmax=nmax,
+            color_dict=color_dict,
+            bstr_dict=bstr_dict,
+        )
+
+    kax = 'textZ'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        _plot_text.plot_text(
+            coll=coll,
+            kax=kax,
+            ax=ax,
+            ref=refZ,
+            group='Z',
+            ind=ind[2],
+            lkeys=lkeys,
+            nmax=nmax,
+            color_dict=color_dict,
+            bstr_dict=bstr_dict,
+        )
+
+    kax = 'textU'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+
+        _plot_text.plot_text(
+            coll=coll,
+            kax=kax,
+            ax=ax,
+            ref=refU,
+            group='U',
+            ind=ind[3],
+            lkeys=lkeys,
+            nmax=nmax,
+            color_dict=color_dict,
+            bstr_dict=bstr_dict,
+        )
+
+    return coll, dax, dgroup
+
+
+def _plot_as_array_4d_create_axes(
+    fs=None,
+    dmargin=None,
+):
+
+    if fs is None:
+        fs = (17, 9)
+
+    if dmargin is None:
+        dmargin = {
+            'left': 0.05, 'right': 0.95,
+            'bottom': 0.06, 'top': 0.90,
+            'hspace': 0.5, 'wspace': 0.4,
+        }
+
+    fig = plt.figure(figsize=fs)
+    gs = gridspec.GridSpec(ncols=7, nrows=6, **dmargin)
+
+    # axes for image
+    ax0 = fig.add_subplot(gs[:4, 2:4], aspect='auto')
+
+    # axes for vertical profile
+    ax1 = fig.add_subplot(gs[:4, 4], sharey=ax0)
+
+    # axes for horizontal profile
+    ax2 = fig.add_subplot(gs[4:, 2:4], sharex=ax0)
+
+    # axes for tracesZ
+    ax3 = fig.add_subplot(gs[:3, :2])
+
+    # axes for tracesU
+    ax4 = fig.add_subplot(gs[3:, :2])
+
+    # axes for text
+    ax5 = fig.add_subplot(gs[:3, 5], frameon=False)
+    ax6 = fig.add_subplot(gs[3:, 5], frameon=False)
+    ax7 = fig.add_subplot(gs[:3, 6], frameon=False)
+    ax8 = fig.add_subplot(gs[3:, 6], frameon=False)
+
+    # dax
+    dax = {
+        # data
+        'matrix': {'handle': ax0, 'type': 'matrix'},
+        'vertical': {'handle': ax1, 'type': 'misc'},
+        'horizontal': {'handle': ax2, 'type': 'misc'},
+        'tracesZ': {'handle': ax3, 'type': 'misc'},
+        'tracesU': {'handle': ax4, 'type': 'misc'},
+        # text
+        'textX': {'handle': ax5, 'type': 'text'},
+        'textY': {'handle': ax6, 'type': 'text'},
+        'textZ': {'handle': ax7, 'type': 'text'},
+        'textU': {'handle': ax8, 'type': 'text'},
+    }
+    return dax
+
+
+def _plot_as_array_4d_label_axes(
+    coll=None,
+    dax=None,
+    key=None,
+    labX=None,
+    labY=None,
+    labZ=None,
+    labU=None,
+    ymin=None,
+    ymax=None,
+    xstr=None,
+    ystr=None,
+    zstr=None,
+    ustr=None,
+    keyX=None,
+    keyY=None,
+    keyZ=None,
+    keyU=None,
+    dataX=None,
+    dataY=None,
+    dataZ=None,
+    dataU=None,
+    inverty=None,
+    rotation=None,
+):
+
+    # fig
+    fig = list(dax.values())[0]['handle'].figure
+    fig.suptitle(key, size=14, fontweight='bold')
+
+    # axes for image
+    kax = 'matrix'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+        ax.tick_params(
+            axis="x",
+            bottom=False, top=True,
+            labelbottom=False, labeltop=True,
+        )
+        ax.xaxis.set_label_position('top')
+
+        # x text ticks
+        if xstr:
+            ax.set_xticks(dataX)
+            ax.set_xticklabels(
+                coll.ddata[keyX]['data'],
+                rotation=rotation,
+                horizontalalignment='left',
+                verticalalignment='bottom',
+            )
+        else:
+            ax.set_xlabel(labX)
+
+        # y text ticks
+        if ystr:
+            ax.set_yticks(dataY)
+            ax.set_yticklabels(
+                coll.ddata[keyY]['data'],
+                rotation=rotation,
+                horizontalalignment='right',
+                verticalalignment='top',
+            )
+        else:
+            ax.set_ylabel(labY)
+
+        dax[kax]['inverty'] = inverty
+
+    # axes for vertical profile
+    kax = 'vertical'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+        ax.set_xlabel('data')
+        ax.set_ylabel(labY)
+        ax.tick_params(
+            axis="y",
+            left=False, right=True,
+            labelleft=False, labelright=True,
+        )
+        ax.tick_params(
+            axis="x",
+            bottom=False, top=True,
+            labelbottom=False, labeltop=True,
+        )
+        ax.yaxis.set_label_position('right')
+        ax.xaxis.set_label_position('top')
+
+        ax.set_xlim(ymin, ymax)
+
+        # y text ticks
+        if ystr:
+            ax.set_yticks(dataY)
+            ax.set_yticklabels(
+                coll.ddata[keyY]['data'],
+                rotation=rotation,
+                horizontalalignment='left',
+                verticalalignment='bottom',
+            )
+        else:
+            ax.set_ylabel(labY)
+
+        dax[kax]['inverty'] = inverty
+
+    # axes for horizontal profile
+    kax = 'horizontal'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+        ax.set_ylabel('data')
+        ax.set_xlabel(labX)
+
+        ax.set_ylim(ymin, ymax)
+
+        # x text ticks
+        if xstr:
+            ax.set_xticks(dataX)
+            ax.set_xticklabels(
+                coll.ddata[keyX]['data'],
+                rotation=rotation,
+                horizontalalignment='right',
+                verticalalignment='top',
+            )
+        else:
+            ax.set_xlabel(labX)
+
+    # axes for tracesZ
+    kax = 'tracesZ'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+        ax.set_ylabel('data')
+        ax.set_xlabel(labZ)
+
+        ax.set_ylim(ymin, ymax)
+
+        # z text ticks
+        if zstr:
+            ax.set_yticks(dataZ)
+            ax.set_yticklabels(
+                coll.ddata[keyZ]['data'],
+                rotation=rotation,
+                horizontalalignment='right',
+                verticalalignment='top',
+            )
+        else:
+            ax.set_ylabel(labZ)
+
+    # axes for tracesU
+    kax = 'tracesU'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+        ax.set_ylabel('data')
+        ax.set_xlabel(labU)
+
+        ax.set_ylim(ymin, ymax)
+
+        # z text ticks
+        if zstr:
+            ax.set_yticks(dataU)
+            ax.set_yticklabels(
+                coll.ddata[keyU]['data'],
+                rotation=rotation,
+                horizontalalignment='right',
+                verticalalignment='top',
+            )
+        else:
+            ax.set_ylabel(labU)
+
+    # axes for text
+    kax = 'textX'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+        ax.set_xticks([])
+        ax.set_yticks([])
+
+    kax = 'textY'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+        ax.set_xticks([])
+        ax.set_yticks([])
+
+    kax = 'textZ'
+    if dax.get(kax) is not None:
+        ax = dax[kax]['handle']
+        ax.set_xticks([])
+        ax.set_yticks([])
+
+    kax = 'textU'
     if dax.get(kax) is not None:
         ax = dax[kax]['handle']
         ax.set_xticks([])
