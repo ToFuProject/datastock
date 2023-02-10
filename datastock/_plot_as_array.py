@@ -2157,7 +2157,7 @@ def plot_as_array_4d(
             shap[axU] = 1
             bckl = np.concatenate((data, np.full(shap, np.nan)), axis=axU)
             bckl = np.swapaxes(bckl, axU, -1).ravel()
-            zdat = np.tile(np.r_[dataU, np.nan], nx*ny*nz)
+            udat = np.tile(np.r_[dataU, np.nan], nx*ny*nz)
             ax.plot(
                 udat,
                 bckl,
