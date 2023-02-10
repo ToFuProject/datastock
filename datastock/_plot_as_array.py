@@ -47,6 +47,7 @@ def plot_as_array(
     keyX=None,
     keyY=None,
     keyZ=None,
+    keyU=None,
     ind=None,
     vmin=None,
     vmax=None,
@@ -95,6 +96,7 @@ def plot_as_array(
         keyX, refX, islogX,
         keyY, refY, islogY,
         keyZ, refZ, islogZ,
+        keyU, refU, islogU,
         sameref, ind,
         cmap, vmin, vmax,
         ymin, ymax,
@@ -112,6 +114,7 @@ def plot_as_array(
         keyX=keyX,
         keyY=keyY,
         keyZ=keyZ,
+        keyU=keyU,
         ind=ind,
         cmap=cmap,
         vmin=vmin,
@@ -306,6 +309,7 @@ def _check_keyXYZ(
     coll=None,
     refs=None,
     keyX=None,
+    keyXstr=None,
     ndim=None,
     dimlim=None,
     uniform=None,
@@ -355,7 +359,10 @@ def _check_keyXYZ(
                 keyX, refX = 'index', keyX
 
             else:
-                msg = f"Arg keyX refers to unknow data:\n\t- Provided: {keyX}"
+                msg = (
+                    f"Arg '{keyXstr}' refers to unknow data:\n"
+                    f"\t- Provided: {keyX}"
+                )
                 raise Exception(msg)
         else:
             keyX = 'index'
@@ -374,6 +381,7 @@ def _plot_as_array_check(
     keyX=None,
     keyY=None,
     keyZ=None,
+    keyU=None,
     ind=None,
     cmap=None,
     vmin=None,
@@ -403,56 +411,52 @@ def _plot_as_array_check(
         groups = ['X', 'Y']
     elif ndim == 3:
         groups = ['X', 'Y', 'Z']
+    elif ndim == 4:
+        groups = ['X', 'Y', 'Z', 'U']
     else:
         msg = "ndim must be in [1, 2, 3]"
         raise Exception(msg)
 
     # keyX, keyY, keyZ
 
-    if keyX is None and (keyY is not None or keyZ is not None):
-        lstr = [
-            f"\t- {k0}: {v0}"
-            for k0, v0 in [('keyX', keyX), ('keyY', keyY), ('keyZ', keyZ)]
-        ]
-        msg = (
-            "Please specify keyX, then keyY, then keyZ, in priority\n"
-            + "\n".join(lstr)
-        )
+    lk = [(keyX, 'keyX'), (keyY, 'keyY'), (keyZ, 'keyZ'), (keyU, 'keyU')]
+
+    for ii, (ss, vv) in enumerate(lk):
+        if vv is None and ii < len(lk) - 1 and lk[ii+1][1] is not None:
+            lstr = [f"\t- {ss}: {vv}" for (ss, vv) in lk]
+            msg = (
+                "Specify keyX, keyY, keyZ, keyU in this priority order\n"
+                + "\n".join(lstr)
+            )
         raise Exception(msg)
 
     refs = coll._ddata[key]['ref']
     keyX, refX, islogX = _check_keyXYZ(
-        coll=coll, refs=refs, keyX=keyX, ndim=ndim, dimlim=1,
+        coll=coll, refs=refs, keyX=keyX, keyXstr='keyX', ndim=ndim, dimlim=1,
     )
     keyY, refY, islogY = _check_keyXYZ(
-        coll=coll, refs=refs, keyX=keyY, ndim=ndim, dimlim=2,
+        coll=coll, refs=refs, keyX=keyY, keyXstr='keyY', ndim=ndim, dimlim=2,
         already=[refX],
     )
     keyZ, refZ, islogZ = _check_keyXYZ(
-        coll=coll, refs=refs, keyX=keyZ, ndim=ndim, dimlim=3,
+        coll=coll, refs=refs, keyX=keyZ, keyXstr='keyZ', ndim=ndim, dimlim=3,
         already=[refX, refY]
+    )
+    keyU, refU, islogU = _check_keyXYZ(
+        coll=coll, refs=refs, keyX=keyU, keyXstr='keyU', ndim=ndim, dimlim=4,
+        already=[refX, refY, refZ]
     )
 
     # unicity of refX vs refY
     sameref = False
     if ndim == 2 and refX == refY:
         sameref = True
-        # msg = (
-            # "Arg keyX and keyY have the same references!\n"
-            # f"\t- keyX, refX: {keyX}, {refX}\n"
-            # f"\t- keyY, refY: {keyY}, {refY}\n"
-        # )
-        # raise Exception(msg)
 
     if ndim == 3 and len(set([refX, refY, refZ])) < 3:
         sameref = True
-        # msg = (
-            # "Arg keyX, keyY, keyZ have the same references!\n"
-            # f"\t- keyX, refX: {keyX}, {refX}\n"
-            # f"\t- keyY, refY: {keyY}, {refY}\n"
-            # f"\t- keyZ, refZ: {keyZ}, {refZ}\n"
-        # )
-        # raise Exception(msg)
+
+    if ndim == 4 and len(set([refX, refY, refZ, refU])) < 4:
+        sameref = True
 
     # ind
     ind = _generic_check._check_var(
@@ -550,6 +554,7 @@ def _plot_as_array_check(
         msg = (
             "The following entries of color_dict are invalid"
         )
+        raise Exception(msg)
 
     # rotation
     rotation = _generic_check._check_var(
@@ -627,6 +632,7 @@ def _plot_as_array_check(
         keyX, refX, islogX,
         keyY, refY, islogY,
         keyZ, refZ, islogZ,
+        keyU, refU, islogU,
         sameref, ind,
         cmap, vmin, vmax,
         ymin, ymax,
