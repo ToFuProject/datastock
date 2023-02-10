@@ -148,10 +148,6 @@ def interpolate(
             coll=coll,
             dout=dout,
             inplace=inplace,
-            kx0=kx0,
-            kx1=kx1,
-            refx=refx,
-            ndim=ndim,
         )
 
     # -------
@@ -1435,10 +1431,6 @@ def _xunique(dout=None):
 def _store(
     coll=None,
     dout=None,
-    kx0=None,
-    kx1=None,
-    refx=None,
-    ndim=None,
     inplace=None,
 ):
 
