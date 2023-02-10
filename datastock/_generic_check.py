@@ -58,10 +58,10 @@ def _check_var(
     # set to default
     if var is None:
         var = default
-        
+
     if allowed is not None and not isinstance(allowed, list):
         allowed = list(allowed)
-        
+
     if allowed is not None:
         if var is None and len(allowed) == 1:
             var = allowed[0]
@@ -223,7 +223,7 @@ def _check_flat1darray(
             raise Exception(_complete_extra_msg(msg, extra_msg))
 
     var = np.atleast_1d(var).ravel()
-            
+
     # unique
     if unique is True:
         if not np.allclose(var, np.unique(var)):
@@ -346,18 +346,18 @@ def _check_dict_valid_keys(
                     f"{varname}['{k0}']",
                     **v0,
                 )
-                
+
             else:
                 if 'can_be_None' in v0:
                     del v0['can_be_None']
-                
+
                 if any(['iter' in ss for ss in v0.keys()]):
                     var[k0] = _check_var_iter(
                         var.get(k0),
                         f"{varname}['{k0}']",
                         **v0,
                     )
-                    
+
                 else:
                     var[k0] = _check_var(
                         var.get(k0),
@@ -493,7 +493,7 @@ def _check_vectbasis(
 
 
 def _obj_key(d0=None, short=None, key=None, ndigits=None):
-    
+
     # check input
     ndigits = _check_var(
         ndigits, 'ndigits',
@@ -501,7 +501,7 @@ def _obj_key(d0=None, short=None, key=None, ndigits=None):
         default=2,
         sign='>0',
     )
-    
+
     # get key
     lout = list(d0.keys())
     if key is None:
@@ -512,7 +512,10 @@ def _obj_key(d0=None, short=None, key=None, ndigits=None):
                 int(k0[len(short):]) for k0 in lout if k0.startswith(short)
                 and k0[len(short):].isnumeric()
             ]
-            nb = min([ii for ii in range(max(lnb)+2) if ii not in lnb])
+            if len(lnb) == 0:
+                nb = 0
+            else:
+                nb = min([ii for ii in range(max(lnb)+2) if ii not in lnb])
         key = f'{short}{nb:0{ndigits}.0f}'
 
     return _check_var(

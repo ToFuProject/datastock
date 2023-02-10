@@ -64,10 +64,19 @@ class DataStock1(DataStock0):
     _data_none = None
     _reserved_keys = None
 
-    _show_in_summary_core = ['shape', 'ref']
-    _show_in_summary = 'all'
     _max_ndim = None
-    _dshow = {}
+    _dshow = {
+        'data': [
+            'shape',
+            'ref',
+            'dim',
+            'quant',
+            'name',
+            'units',
+            'source',
+            'monot',
+        ],
+    }
 
     def __init__(
         self,
@@ -408,60 +417,28 @@ class DataStock1(DataStock0):
     # extract
     ###########
 
-    def extract(self, keys=None):
-        """ Extract some selected data and return as new instance """
+    def extract(self, keys=None, vectors=None):
+        """ Extract some selected data and return as new instance
 
-        # ----------------
-        # check inputs
+        Includes:
+              - all desired data keys
+              - all relevant ref
+              - all associated monotonous vectors (optional)
 
-        if keys is None:
-            return
-        if isinstance(keys, str):
-            keys = [keys]
+        """
 
-        keys = _generic_check._check_var_iter(
-            keys, 'keys',
-            types=list,
-            allowed=self._ddata.keys(),
+        # get ref and data
+        lref, ldata = _class1_compute._extract_dataref(
+            coll=self,
+            keys=keys,
+            vectors=vectors,
         )
 
-        # -----------------------------
-        # Get corresponding list of ref
-
-        lref = set([
-            k0 for k0, v0 in self._dref.items()
-            if any([ss in keys for ss in v0['ldata']])
-        ])
-
-        # -------------------
-        # Populate with ref
-
-        coll = self.__class__()
-
-        lpar = [
-            pp for pp in self.get_lparam(which='ref')
-            if pp not in ['ldata', 'ldata_monot', 'ind', 'data']
-        ]
-        for k0 in lref:
-            coll.add_ref(
-                key=k0,
-                **copy.deepcopy({pp: self._dref[k0][pp] for pp in lpar}),
-            )
-
-        # -------------------
-        # Populate with data
-
-        lpar = [
-            pp for pp in self.get_lparam(which='data')
-            if pp not in ['shape', 'monot']
-        ]
-        for k0 in keys:
-            coll.add_data(
-                key=k0,
-                **copy.deepcopy({pp: self._ddata[k0][pp] for pp in lpar}),
-            )
-
-        return coll
+        return _class1_compute._extract_instance(
+            self,
+            lref=lref,
+            ldata=ldata,
+        )
 
     ###########
     # General use methods
@@ -740,7 +717,17 @@ class DataStock1(DataStock0):
         ref_key=None,
         bins=None,
     ):
-        """ return binned data and units along dimension indicated by refkey"""
+        """ Bin data along ref_key
+
+        Binning is treated here as an integral
+        Hence, if:
+            - the data has units [ph/eV]
+            - the ref_key has units [eV]
+            - the binned data has units [ph]
+
+        return a dict with data and units per key
+
+        """
 
         return _class1_binning.binning(
             coll=self,
@@ -770,7 +757,11 @@ class DataStock1(DataStock0):
         deg=None,
         deriv=None,
         log_log=None,
+        # store vs return
+        returnas=None,
         return_params=None,
+        store=None,
+        inplace=None,
     ):
         """ Interpolate keys in desired dimension
 
@@ -792,7 +783,11 @@ class DataStock1(DataStock0):
             deg=deg,
             deriv=deriv,
             log_log=log_log,
+            # store vs return
+            returnas=returnas,
             return_params=return_params,
+            store=store,
+            inplace=inplace,
         )
 
     # ---------------------
@@ -892,34 +887,16 @@ class DataStock1(DataStock0):
 
         if 'data' in show_which and len(self._ddata) > 0:
 
-            if show_core is None:
-                show_core = self._show_in_summary_core
-            if isinstance(show_core, str):
-                show_core = [show_core]
-
-            lp = self.get_lparam(which='data')
-            lkcore = ['shape', 'ref']
-            assert all([ss in lp + lkcore for ss in show_core])
-            col2 = ['data key'] + show_core
-
-            if show is None:
-                show = self._show_in_summary
-            if show == 'all':
-                col2 += [pp for pp in lp if pp not in col2]
-            else:
-                if isinstance(show, str):
-                    show = [show]
-                assert all([ss in lp for ss in show])
-                col2 += [pp for pp in show if pp not in col2]
-            col2 = [cc for cc in col2 if cc != 'data']
-
-            ar2 = []
-            for k0 in self._ddata.keys():
-                lu = [k0] + [str(self._ddata[k0].get(cc)) for cc in col2[1:]]
-                ar2.append(lu)
-
-            lcol.append(col2)
-            lar.append(ar2)
+            lk = _class1_check._show_get_fields(
+                which='data',
+                lparam=self.get_lparam(which='data', for_show=True),
+                dshow=self._dshow,
+            )
+            lcol.append(['data'] + [pp.split('.')[-1] for pp in lk])
+            lar.append([
+                [k1] + _class1_check._show_extract(dobj=v1, lk=lk)
+                for k1, v1 in self._ddata.items()
+            ])
 
         # -----------------------
         # Build for dobj
@@ -936,7 +913,6 @@ class DataStock1(DataStock0):
                 if 'obj' in show_which or k0 in show_which:
                     lk = _class1_check._show_get_fields(
                         which=k0,
-                        dobj=self._dobj,
                         lparam=self.get_lparam(which=k0, for_show=True),
                         dshow=self._dshow,
                     )

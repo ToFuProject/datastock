@@ -427,7 +427,7 @@ def _remove_obj(
 
     if key is None:
 
-        # remove 
+        # remove
         del dobj0[which]
 
     # ------------
@@ -738,7 +738,7 @@ def _get_suitable_ref(
 
     # no match => create new ref
     else:
-        key = _generic_check._obj_key(d0=dref0, short=dshort['ref'])
+        lref = _generic_check._obj_key(d0=dref0, short=dshort['ref'])
 
     return lref, size
 
@@ -786,7 +786,7 @@ def _check_data_ref(
     # length match but unknown ref or size mismatch
     else:
         for ii, ss in enumerate(ddata[k0]['shape']):
-            
+
             ri = ddata[k0]['ref'][ii]
             if ddata[k0]['ref'][ii] not in dref0.keys():
                 if ddata[k0]['ref'][ii] not in dref_add.keys():
@@ -1099,11 +1099,11 @@ def _harmonize_params(
 
     # ----------------
     # check ddefparams
-    
+
     if not isinstance(ddefparams, dict):
         msg = f"Arg ddefparams must be a dict!\nProvided: {type(ddefparams)}"
         raise Exception(msg)
-        
+
     lv0 = ['def', 'cls']
     for k0, v0 in ddefparams.items():
         c0 = (
@@ -1124,7 +1124,7 @@ def _harmonize_params(
 
     dfail = {}
     for k0, v0 in ddefparams.items():
-        
+
         for k1, v1 in dd.items():
 
             # Set to default if None
@@ -1147,7 +1147,7 @@ def _harmonize_params(
         )
         raise Exception(msg)
 
-    # set 
+    # set
     for k0 in lparams:
         for k1, v1 in dd.items():
             dd[k1][k0] = dd[k1].get(k0)
@@ -1894,7 +1894,7 @@ def _get_lparam(which=None, dd=None, for_show=None):
     return lparam
 
 
-def _show_get_fields(which=None, dobj=None, lparam=None, dshow=None):
+def _show_get_fields(which=None, lparam=None, dshow=None):
 
     # show dict
     if which not in dshow.keys():
