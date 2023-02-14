@@ -133,12 +133,12 @@ class DataStock1(DataStock0):
     # Adding ref / quantity one by one
     # ---------------------
 
-    def add_ref(self, size=None, key=None, data=None, harmonize=None, **kwds):
+    def add_ref(self, key=None, size=None, data=None, harmonize=None, **kwds):
         dref = {key: {'data': data, 'size': size, **kwds}}
         # Check consistency
         self.update(ddata=None, dref=dref, harmonize=harmonize)
 
-    def add_data(self, data=None, key=None, ref=None, harmonize=None, **kwds):
+    def add_data(self, key=None, data=None, ref=None, harmonize=None, **kwds):
         ddata = {key: {'data': data, 'ref': ref, **kwds}}
         # Check consistency
         self.update(ddata=ddata, dref=None, harmonize=harmonize)
