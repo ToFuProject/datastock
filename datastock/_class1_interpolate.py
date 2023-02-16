@@ -312,7 +312,6 @@ def _check(
         x0=x0,
         daxis=daxis,
         dunits=dunits,
-        ref_com=ref_com,
         dref_com=dref_com,
         dvect=dvect,
     )
@@ -323,7 +322,6 @@ def _check(
     sli_c, sli_x, sli_v = _get_slices(
         ndim=ndim,
         x0=x0,
-        ref_com=ref_com,
         dref_com=dref_com,
     )
 
@@ -338,6 +336,7 @@ def _check(
     ) = _check_params(
         coll=coll,
         # interpolation base
+        keys=keys,
         ref_key=ref_key,      # ddata keys
         # parameters
         grid=grid,
@@ -373,6 +372,7 @@ def _check(
 def _check_params(
     coll=None,
     # interpolation base
+    keys=None,
     ref_key=None,      # ddata keys
     # parameters
     grid=None,
@@ -907,7 +907,6 @@ def _get_dout(
     daxis=None,
     dunits=None,
     # common refs
-    ref_com=None,
     dref_com=None,
     # domain
     dvect=None,
@@ -952,7 +951,7 @@ def _get_dout(
             rx = refx
 
         # ref_com for shx and rx
-        if dref_com[k0]['ix'] is not None:
+        if dref_com[k0]['iother'] is not None:
             shx = [ss for ii, ss in enumerate(shx) if ii != dref_com[k0]['ix']]
             if refx is not None:
                 rx = [k1 for ii, k1 in enumerate(refx) if ii != dref_com[k0]['ix']]
@@ -991,7 +990,6 @@ def _get_dout(
 def _get_slices(
     ndim=None,
     x0=None,
-    ref_com=None,
     dref_com=None,
 ):
 
@@ -1008,22 +1006,16 @@ def _get_slices(
     # ------------------------
     # x0 (i.e.: interpolation coordinates)
 
-    if ref_com is None:
-
-        def sli_x(ind, indokx0=None, **kwdargs):
+    def sli_x(
+        ind,
+        ix=None,
+        indokx0=None,
+        iother=None,
+        x0dim=x0.ndim,
+    ):
+        if iother is None:
             return indokx0
-
-    else:
-
-        ix = list(dref_com.values())[0]['ix']
-
-        def sli_x(
-            ind,
-            indokx0=None,
-            iother=None,
-            x0dim=x0.ndim,
-            ix=ix,
-        ):
+        else:
             ioki = np.take(indokx0, ind[iother], axis=ix)
             if ix == 0:
                 return (ind[iother], ioki)
@@ -1033,16 +1025,17 @@ def _get_slices(
     # ------------------------
     # val (i.e.: interpolated data)
 
-    if ref_com is None:
+    def sli_v(
+        ind,
+        indokx0=None,
+        ddim=None,
+        axis=None,
+        ix=None,
+        iother=None,
+        ndim=ndim,
+    ):
 
-        def sli_v(
-            ind,
-            indokx0=None,
-            ddim=None,
-            axis=None,
-            ndim=ndim,
-            **kwdargs,
-        ):
+        if iother is None:
             return tuple([
                 indokx0 if ii == axis[0]
                 else ind[ii - ndim*(ii>axis[0])]
@@ -1050,16 +1043,7 @@ def _get_slices(
                 if ii not in axis[1:]
             ])
 
-    else:
-
-        def sli_v(
-            ind,
-            indokx0=None,
-            ddim=None,
-            axis=None,
-            iother=None,
-            ndim=ndim,
-        ):
+        else:
             return tuple([
                 np.take(indokx0, ind[iother], axis=ix) if ii == axis[0]
                 else ind[ii - ndim*(ii>axis[0])]
@@ -1154,7 +1138,7 @@ def _interp(
                     deg=deg,
                     deriv=deriv,
                     indokx0=indokx0,
-                    dref_com=dref_com.get(k0),
+                    dref_com=dref_com[k0],
                     sli_c=sli_c,
                     sli_x=sli_x,
                     sli_v=sli_v,
@@ -1202,7 +1186,7 @@ def _interp(
                     deg=deg,
                     deriv=deriv,
                     indokx0=indokx0,
-                    dref_com=dref_com.get(k0),
+                    dref_com=dref_com[k0],
                     sli_c=sli_c,
                     sli_x=sli_x,
                     sli_v=sli_v,
@@ -1271,7 +1255,8 @@ def _interp1d(
         slix = sli_x(
             ind,
             indokx0=indokx0,
-            iother=None if dref_com is None else dref_com['iother'],
+            ix=dref_com['ix'],
+            iother=dref_com['iother'],
         )
 
         sliv = sli_v(
@@ -1279,7 +1264,8 @@ def _interp1d(
             indokx0=indokx0,
             ddim=data.ndim,
             axis=axis,
-            iother=None if dref_com is None else dref_com['iother'],
+            ix=dref_com['ix'],
+            iother=dref_com['iother'],
         )
 
         # only keep finite y
@@ -1363,7 +1349,8 @@ def _interp2d(
         slix = sli_x(
             ind,
             indokx0=indokx0,
-            iother=None if dref_com is None else dref_com['iother'],
+            ix=dref_com['ix'],
+            iother=dref_com['iother'],
         )
 
         sliv = sli_v(
@@ -1371,7 +1358,8 @@ def _interp2d(
             indokx0=indokx0,
             ddim=data.ndim,
             axis=axis,
-            iother=None if dref_com is None else dref_com['iother'],
+            ix=dref_com['ix'],
+            iother=dref_com['iother'],
         )
 
         # only keep finite y
