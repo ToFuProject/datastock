@@ -40,6 +40,7 @@ def interpolate(
     deg=None,
     deriv=None,
     log_log=None,
+    nan0=None,
     # store vs return
     return_params=None,
     returnas=None,
@@ -83,7 +84,7 @@ def interpolate(
         deg, deriv,
         kx0, kx1, x0, x1, refx, dref_com,
         ddata, dout, dsh_other, sli_c, sli_x, sli_v,
-        log_log, grid, ndim, xunique,
+        log_log, nan0, grid, ndim, xunique,
         returnas, return_params, store, inplace,
     ) = _check(
         coll=coll,
@@ -104,6 +105,7 @@ def interpolate(
         deg=deg,
         deriv=deriv,
         log_log=log_log,
+        nan0=nan0,
         # return vs store
         return_params=return_params,
         returnas=returnas,
@@ -132,6 +134,7 @@ def interpolate(
         sli_x=sli_x,
         sli_c=sli_c,
         sli_v=sli_v,
+        nan0=nan0,
     )
 
     # ------------------------------
@@ -204,6 +207,7 @@ def _check(
     deg=None,
     deriv=None,
     log_log=None,
+    nan0=None,
     # return vs store
     return_params=None,
     returnas=None,
@@ -329,18 +333,18 @@ def _check(
     if x0_str is None:
         x0_str = kx0 is not None
     (
-        deg, ndim, deriv, log_log,
+        deg, ndim, deriv, log_log, nan0,
         return_params, returnas, store, inplace,
     ) = _check_params(
         coll=coll,
         # interpolation base
-        keys=keys,
         ref_key=ref_key,      # ddata keys
         # parameters
         grid=grid,
         deg=deg,
         deriv=deriv,
         log_log=log_log,
+        nan0=nan0,
         # return vs store
         return_params=return_params,
         returnas=returnas,
@@ -355,7 +359,7 @@ def _check(
         deg, deriv,
         kx0, kx1, x0, x1, refx, dref_com,
         ddata, dout, dsh_other, sli_c, sli_x, sli_v,
-        log_log, grid, ndim, xunique,
+        log_log, nan0, grid, ndim, xunique,
         returnas, return_params, store, inplace,
     )
 
@@ -369,13 +373,13 @@ def _check(
 def _check_params(
     coll=None,
     # interpolation base
-    keys=None,
     ref_key=None,      # ddata keys
     # parameters
     grid=None,
     deg=None,
     deriv=None,
     log_log=None,
+    nan0=None,
     # return vs store
     return_params=None,
     returnas=None,
@@ -426,7 +430,7 @@ def _check_params(
         allowed=[ii for ii in range(deg + 1)],
     )
 
-    # ---
+    # -------
     # log_log
 
     log_log = _generic_check._check_var(
@@ -452,6 +456,15 @@ def _check_params(
                 f"\t- {lkout}"
             )
             raise Exception(msg)
+
+    # -------
+    # nan0
+
+    nan0 = _generic_check._check_var(
+        nan0, 'nan0',
+        default=False,
+        types=bool,
+    )
 
     # -------------
     # store
@@ -507,7 +520,7 @@ def _check_params(
     )
 
     return (
-        deg, ndim, deriv, log_log,
+        deg, ndim, deriv, log_log, nan0,
         return_params, returnas, store, inplace,
     )
 
@@ -1095,6 +1108,7 @@ def _interp(
     sli_x=None,
     sli_c=None,
     sli_v=None,
+    nan0=None,
 ):
 
     # ------------
@@ -1145,6 +1159,10 @@ def _interp(
                     sli_x=sli_x,
                     sli_v=sli_v,
                 )
+
+                # nan0
+                if nan0 is True:
+                    dout[k0]['data'][dout[k0]['data'] == 0.] = np.nan
 
             except Exception as err:
                 derr[k0] = str(err)

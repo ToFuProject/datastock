@@ -757,6 +757,7 @@ class DataStock1(DataStock0):
         deg=None,
         deriv=None,
         log_log=None,
+        nan0=None,
         # store vs return
         returnas=None,
         return_params=None,
@@ -783,6 +784,7 @@ class DataStock1(DataStock0):
             deg=deg,
             deriv=deriv,
             log_log=log_log,
+            nan0=nan0,
             # store vs return
             returnas=returnas,
             return_params=return_params,
