@@ -1412,6 +1412,8 @@ def _interp2d(
 
 
 def _xunique(dout=None):
+    """ interpolation on a single point => eliminates a ref  """
+
 
     for k0, v0 in dout.items():
 
