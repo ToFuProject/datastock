@@ -532,7 +532,13 @@ def _plot_as_array_check(
         else:
             nanmax = coll.ddata[key]['data'].max()
             nanmin = coll.ddata[key]['data'].min()
-        diverging = nanmin * nanmax <= 0
+
+        # diverging
+        delta = nanmax - nanmin
+        diverging = (
+            nanmin * nanmax < 0
+            and min(abs(nanmin), abs(nanmax)) > 0.1*delta
+        )
 
     if cmap is None:
         if diverging:
@@ -549,11 +555,12 @@ def _plot_as_array_check(
                 vmin = -max(abs(nanmin), nanmax)
         else:
             vmin = nanmin
-        if vmax is None:
-            if diverging:
-                vmax = max(abs(nanmin), nanmax)
-            else:
-                vmax = nanmax
+
+    if vmax is None:
+        if diverging:
+            vmax = max(abs(nanmin), nanmax)
+        else:
+            vmax = nanmax
 
     # vmin, vmax
     if ymin is None:
