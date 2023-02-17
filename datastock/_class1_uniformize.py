@@ -132,7 +132,11 @@ def get_ref_vector(
         else:
             if warn is True:
                 msg = (
-                    f"Multiple possible vectors found:\n{lk_vect}"
+                    f"Multiple possible vectors found:\n{lk_vect}\n"
+                    f"\t- key: {key}\n"
+                    f"\t- ref: {ref}\n"
+                    f"\t- hasref: {hasref}\n"
+                    f"\t- refok: {refok}\n"
                 )
                 warnings.warn(msg)
             hasvect = False
@@ -594,7 +598,7 @@ def get_ref_vector_common(
         quant=quant,
         name=name,
         units=units,
-        # 
+        #
         dkeys=dkeys,
         key_vector=key_vector,
         val=val,
@@ -622,7 +626,7 @@ def _get_ref_vector_common_values(
     quant=None,
     name=None,
     units=None,
-    # 
+    #
     dkeys=None,
     key_vector=None,
     val=None,
