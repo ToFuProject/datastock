@@ -228,7 +228,7 @@ def _check_flat1darray(
     if unique is True:
         if not np.allclose(var, np.unique(var)):
             msg = (
-                "Arg {varname} must be a sorted array of unique values!\n"
+                f"Arg {varname} must be a sorted array of unique values!\n"
                 f"Provided: {var}"
             )
             raise Exception(_complete_extra_msg(msg, extra_msg))

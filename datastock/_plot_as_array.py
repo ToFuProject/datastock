@@ -141,7 +141,12 @@ def plot_as_array(
     if sameref:
         from ._class import DataStock
         cc = DataStock()
-        cc.add_data(key=key, data=coll2.ddata[key]['data'])
+        lr = [('refX', refX), ('refY', refY), ('refZ', refZ), ('refU', refU)]
+        lr = [tt for tt in lr if tt[1] is not None]
+        for ii, (ss, rr) in enumerate(lr):
+            cc.add_ref(key=f'{rr}-{ii}', size=coll.dref[rr]['size'])
+        ref = tuple([f'{rr}-{ii}' for ii, (ss, rr) in enumerate(lr)])
+        cc.add_data(key=key, data=coll2.ddata[key]['data'], ref=ref)
         return cc.plot_as_array()
 
     # -------------------------
@@ -527,7 +532,13 @@ def _plot_as_array_check(
         else:
             nanmax = coll.ddata[key]['data'].max()
             nanmin = coll.ddata[key]['data'].min()
-        diverging = nanmin * nanmax <= 0
+
+        # diverging
+        delta = nanmax - nanmin
+        diverging = (
+            nanmin * nanmax < 0
+            and min(abs(nanmin), abs(nanmax)) > 0.1*delta
+        )
 
     if cmap is None:
         if diverging:
@@ -544,11 +555,12 @@ def _plot_as_array_check(
                 vmin = -max(abs(nanmin), nanmax)
         else:
             vmin = nanmin
-        if vmax is None:
-            if diverging:
-                vmax = max(abs(nanmin), nanmax)
-            else:
-                vmax = nanmax
+
+    if vmax is None:
+        if diverging:
+            vmax = max(abs(nanmin), nanmax)
+        else:
+            vmax = nanmax
 
     # vmin, vmax
     if ymin is None:
