@@ -56,6 +56,7 @@ def plot_as_array(
     ymax=None,
     aspect=None,
     nmax=None,
+    uniform=None,
     color_dict=None,
     dinc=None,
     lkeys=None,
@@ -123,6 +124,7 @@ def plot_as_array(
         ymax=ymax,
         aspect=aspect,
         nmax=nmax,
+        uniform=uniform,
         color_dict=color_dict,
         rotation=rotation,
         inverty=inverty,
@@ -436,6 +438,7 @@ def _plot_as_array_check(
     ymax=None,
     aspect=None,
     nmax=None,
+    uniform=None,
     color_dict=None,
     rotation=None,
     inverty=None,
@@ -478,18 +481,22 @@ def _plot_as_array_check(
 
     refs = coll._ddata[key]['ref']
     keyX, refX, islogX = _check_keyXYZ(
-        coll=coll, refs=refs, keyX=keyX, keyXstr='keyX', ndim=ndim, dimlim=1,
+        coll=coll, refs=refs, keyX=keyX, keyXstr='keyX',
+        ndim=ndim, dimlim=1, uniform=uniform,
     )
     keyY, refY, islogY = _check_keyXYZ(
-        coll=coll, refs=refs, keyX=keyY, keyXstr='keyY', ndim=ndim, dimlim=2,
+        coll=coll, refs=refs, keyX=keyY, keyXstr='keyY',
+        ndim=ndim, dimlim=2, uniform=uniform,
         already=[refX],
     )
     keyZ, refZ, islogZ = _check_keyXYZ(
-        coll=coll, refs=refs, keyX=keyZ, keyXstr='keyZ', ndim=ndim, dimlim=3,
+        coll=coll, refs=refs, keyX=keyZ, keyXstr='keyZ',
+        ndim=ndim, dimlim=3, uniform=uniform,
         already=[refX, refY]
     )
     keyU, refU, islogU = _check_keyXYZ(
-        coll=coll, refs=refs, keyX=keyU, keyXstr='keyU', ndim=ndim, dimlim=4,
+        coll=coll, refs=refs, keyX=keyU, keyXstr='keyU',
+        ndim=ndim, dimlim=4, uniform=uniform,
         already=[refX, refY, refZ]
     )
 
