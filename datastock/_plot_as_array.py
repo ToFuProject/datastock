@@ -1458,7 +1458,6 @@ def plot_as_array_3d(
     # ---------------
     # plot fixed part
 
-
     kax = 'traces'
     if dax.get(kax) and bck is not False:
         ax = dax[kax]['handle']
