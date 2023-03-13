@@ -760,11 +760,6 @@ def get_keyrefs(
     lk_done = [v0['ref'] for k0, v0 in dk.items() if v0['key'] is not None]
     sameref = len(set(lk_done)) < ndim
 
-    print()
-    print(sameref, ndim)     # DB
-    print(dk)
-    print()
-
     return (
         dk['keyX']['key'], dk['keyX']['ref'], dk['keyX']['islog'],
         dk['keyY']['key'], dk['keyY']['ref'], dk['keyY']['islog'],
