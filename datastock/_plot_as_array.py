@@ -481,20 +481,29 @@ def _plot_as_array_check(
 
     # TO BE REDONE (currently does not allow to directly set keyZ consistently)
     refs = coll._ddata[key]['ref']
+    
+    print(refs, keyX, keyY, keyZ)       # DB
+    print()
     keyX, refX, islogX = _check_keyXYZ(
         coll=coll, refs=refs, keyX=keyX, keyXstr='keyX',
         ndim=ndim, dimlim=1, uniform=uniform,
     )
+    print(refX, keyX)       # DB
+    
     keyY, refY, islogY = _check_keyXYZ(
         coll=coll, refs=refs, keyX=keyY, keyXstr='keyY',
         ndim=ndim, dimlim=2, uniform=uniform,
         already=[refX],
     )
+    print(refY, keyY)       # DB
+    
     keyZ, refZ, islogZ = _check_keyXYZ(
         coll=coll, refs=refs, keyX=keyZ, keyXstr='keyZ',
         ndim=ndim, dimlim=3, uniform=uniform,
         already=[refX, refY]
     )
+    print(refZ, keyZ)       # DB
+    
     keyU, refU, islogU = _check_keyXYZ(
         coll=coll, refs=refs, keyX=keyU, keyXstr='keyU',
         ndim=ndim, dimlim=4, uniform=uniform,
@@ -511,6 +520,14 @@ def _plot_as_array_check(
 
     if ndim == 4 and len(set([refX, refY, refZ, refU])) < 4:
         sameref = True
+
+    print()
+    print(sameref, ndim)     # DB
+    print(refX, keyX)
+    print(refY, keyY)
+    print(refZ, keyZ)
+    print()
+
 
     # ind
     ind = _generic_check._check_var(
