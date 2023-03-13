@@ -359,7 +359,7 @@ def _check_keyXYZ(
     keyX=None,
     keyXstr=None,
     ndim=None,
-    dimlim=None,
+    dim_min=None,
     uniform=None,
     already=None,
 ):
@@ -372,7 +372,7 @@ def _check_keyXYZ(
 
     refX = None
     islog = False
-    if ndim >= dimlim:
+    if ndim >= dim_min:
         if keyX is not None:
             if keyX in coll._ddata.keys():
                 lok = [
@@ -414,10 +414,22 @@ def _check_keyXYZ(
                 raise Exception(msg)
         else:
             keyX = 'index'
-            if already is None or all([kk in already for kk in refs]):
-                refX = refs[dimlim - 1]
+            if already is None:
+                refX = refs[dim_min - 1]
+            elif all([kk in already for kk in refs]): # TBC
+                # sameref
+                refX = refs[dim_min - 1]
+                msg = (
+                    "Special case\n"
+                    "\t- refs: {refs}\n"
+                    f"\t- '{keyXstr}': {keyX}\n"
+                    f"\t- already: {already}"
+                )
+                raise Exception(msg)
             else:
                 refX = [kk for kk in refs if kk not in already][0]
+    else:
+        keyX, refX, islog = None, None, None
 
     return keyX, refX, islog
 
@@ -453,7 +465,9 @@ def _plot_as_array_check(
 ):
 
 
+    # --------
     # groups
+
     if ndim == 1:
         groups = ['X']
     elif ndim == 2:
@@ -466,70 +480,31 @@ def _plot_as_array_check(
         msg = "ndim must be in [1, 2, 3]"
         raise Exception(msg)
 
-    # keyX, keyY, keyZ
+    # ----------------------
+    # keyX, keyY, keyZ, keyU
 
-    lk = [(keyX, 'keyX'), (keyY, 'keyY'), (keyZ, 'keyZ'), (keyU, 'keyU')]
-
-    for ii, (ss, vv) in enumerate(lk):
-        if vv is None and ii < len(lk) - 1 and lk[ii+1][1] is not None:
-            lstr = [f"\t- {ss}: {vv}" for (ss, vv) in lk]
-            msg = (
-                "Specify keyX, keyY, keyZ, keyU in this priority order\n"
-                + "\n".join(lstr)
-            )
-            raise Exception(msg)
-
-    # TO BE REDONE (currently does not allow to directly set keyZ consistently)
     refs = coll._ddata[key]['ref']
-    
-    print(refs, keyX, keyY, keyZ)       # DB
-    print()
-    keyX, refX, islogX = _check_keyXYZ(
-        coll=coll, refs=refs, keyX=keyX, keyXstr='keyX',
-        ndim=ndim, dimlim=1, uniform=uniform,
-    )
-    print(refX, keyX)       # DB
-    
-    keyY, refY, islogY = _check_keyXYZ(
-        coll=coll, refs=refs, keyX=keyY, keyXstr='keyY',
-        ndim=ndim, dimlim=2, uniform=uniform,
-        already=[refX],
-    )
-    print(refY, keyY)       # DB
-    
-    keyZ, refZ, islogZ = _check_keyXYZ(
-        coll=coll, refs=refs, keyX=keyZ, keyXstr='keyZ',
-        ndim=ndim, dimlim=3, uniform=uniform,
-        already=[refX, refY]
-    )
-    print(refZ, keyZ)       # DB
-    
-    keyU, refU, islogU = _check_keyXYZ(
-        coll=coll, refs=refs, keyX=keyU, keyXstr='keyU',
-        ndim=ndim, dimlim=4, uniform=uniform,
-        already=[refX, refY, refZ]
+
+    (
+        keyX, refX, islogX,
+        keyY, refY, islogY,
+        keyZ, refZ, islogZ,
+        keyU, refU, islogU,
+        sameref,
+    ) = get_keyrefs(
+        coll=coll,
+        refs=refs,
+        keyX=keyX,
+        keyY=keyY,
+        keyZ=keyZ,
+        keyU=keyU,
+        ndim=ndim,
+        uniform=uniform,
     )
 
-    # unicity of refX vs refY   
-    sameref = False
-    if ndim == 2 and refX == refY:
-        sameref = True
-
-    if ndim == 3 and len(set([refX, refY, refZ])) < 3:
-        sameref = True
-
-    if ndim == 4 and len(set([refX, refY, refZ, refU])) < 4:
-        sameref = True
-
-    print()
-    print(sameref, ndim)     # DB
-    print(refX, keyX)
-    print(refY, keyY)
-    print(refZ, keyZ)
-    print()
-
-
+    # -----
     # ind
+
     ind = _generic_check._check_var(
         ind, 'ind',
         default=[0 for ii in range(ndim)],
@@ -549,7 +524,9 @@ def _plot_as_array_check(
         )
         raise Exception(msg)
 
+    # ----
     # cmap
+
     if cmap is None or vmin is None or vmax is None:
         if isinstance(coll.ddata[key]['data'], np.ndarray):
             nanmax = np.nanmax(coll.ddata[key]['data'])
@@ -571,7 +548,9 @@ def _plot_as_array_check(
         else:
             cmap = 'viridis'
 
+    # -----------
     # vmin, vmax
+
     if vmin is None:
         if diverging:
             if isinstance(nanmin, np.bool_):
@@ -587,13 +566,15 @@ def _plot_as_array_check(
         else:
             vmax = nanmax
 
-    # vmin, vmax
+    # ymin, ymax
     if ymin is None:
         ymin = vmin
     if ymax is None:
         ymax = vmax
 
+    # -------
     # aspect
+
     aspect = _generic_check._check_var(
         aspect, 'aspect',
         default='equal',
@@ -601,14 +582,18 @@ def _plot_as_array_check(
         allowed=['auto', 'equal'],
     )
 
+    # ------
     # nmax
+
     nmax = _generic_check._check_var(
         nmax, 'nmax',
         default=3,
         types=int,
     )
 
+    # -----------
     # color_dict
+
     cdef = {
         k0: _LCOLOR_DICT[0] for ii, k0 in enumerate(groups)
     }
@@ -633,6 +618,9 @@ def _plot_as_array_check(
             "The following entries of color_dict are invalid"
         )
         raise Exception(msg)
+
+    # -----------------
+    # other parameters
 
     # rotation
     rotation = _generic_check._check_var(
@@ -721,6 +709,68 @@ def _plot_as_array_check(
         bck,
         interp,
         dcolorbar, dleg, label, connect,
+    )
+
+
+def get_keyrefs(
+    coll=None,
+    refs=None,
+    keyX=None,
+    keyY=None,
+    keyZ=None,
+    keyU=None,
+    ndim=None,
+    uniform=None,
+):
+
+    # -----------
+    # find order
+
+    dk = {
+        'keyX': {'key': keyX, 'ref': None, 'islog': None, 'dim_min': 1},
+        'keyY': {'key': keyY, 'ref': None, 'islog': None, 'dim_min': 2},
+        'keyZ': {'key': keyZ, 'ref': None, 'islog': None, 'dim_min': 3},
+        'keyU': {'key': keyU, 'ref': None, 'islog': None, 'dim_min': 4},
+    }
+
+    lk_in = sorted([k0 for k0, v0 in dk.items() if v0['key'] is not None])
+    lk_out = sorted([k0 for k0, v0 in dk.items() if v0['key'] is None])
+    assert len(lk_in) <= ndim
+
+    # -----------
+    # find order
+
+    already = []
+    for k0 in lk_in + lk_out:
+
+        dk[k0]['key'], dk[k0]['ref'], dk[k0]['islog'] = _check_keyXYZ(
+            coll=coll,
+            refs=refs,
+            keyX=dk[k0]['key'],
+            keyXstr=k0,
+            ndim=ndim,
+            dim_min=dk[k0]['dim_min'],
+            uniform=uniform,
+            already=already,
+        )
+
+        already.append(dk[k0]['ref'])
+
+    # unicity of refX vs refY
+    lk_done = [v0['ref'] for k0, v0 in dk.items() if v0['key'] is not None]
+    sameref = len(set(lk_done)) < ndim
+
+    print()
+    print(sameref, ndim)     # DB
+    print(dk)
+    print()
+
+    return (
+        dk['keyX']['key'], dk['keyX']['ref'], dk['keyX']['islog'],
+        dk['keyY']['key'], dk['keyY']['ref'], dk['keyY']['islog'],
+        dk['keyZ']['key'], dk['keyZ']['ref'], dk['keyZ']['islog'],
+        dk['keyU']['key'], dk['keyU']['ref'], dk['keyU']['islog'],
+        sameref,
     )
 
 
