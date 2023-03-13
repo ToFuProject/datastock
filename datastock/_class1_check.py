@@ -738,7 +738,10 @@ def _get_suitable_ref(
 
     # no match => create new ref
     else:
-        lref = _generic_check._obj_key(d0=dref0, short=dshort['ref'])
+        lref = _generic_check._obj_key(
+            d0=dict(dref0, **dref_add),
+            short=dshort['ref'],
+        )
 
     return lref, size
 

@@ -27,7 +27,7 @@ def plot_as_array(data=None):
 
     try:
         data = np.asarray(data)
-        assert data.ndim in [1, 2, 3]
+        assert data.ndim in [1, 2, 3, 4]
     except Exception as err:
         msg = (
             str(err)
@@ -40,7 +40,7 @@ def plot_as_array(data=None):
     # Instanciate datastock
 
     st = DataStock()
-    st.add_data(data)
+    st.add_data(key='data', data=data)
 
     return st.plot_as_array(inplace=True)
 

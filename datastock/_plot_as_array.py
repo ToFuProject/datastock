@@ -479,6 +479,7 @@ def _plot_as_array_check(
             )
             raise Exception(msg)
 
+    # TO BE REDONE (currently does not allow to directly set keyZ consistently)
     refs = coll._ddata[key]['ref']
     keyX, refX, islogX = _check_keyXYZ(
         coll=coll, refs=refs, keyX=keyX, keyXstr='keyX',
@@ -500,7 +501,7 @@ def _plot_as_array_check(
         already=[refX, refY, refZ]
     )
 
-    # unicity of refX vs refY
+    # unicity of refX vs refY   
     sameref = False
     if ndim == 2 and refX == refY:
         sameref = True

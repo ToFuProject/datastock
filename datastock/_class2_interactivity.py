@@ -137,7 +137,6 @@ def _setup_dgroup(
         msg = "Non-valid form for arg dgroup:\n" + "\n".join(lstr)
         raise Exception(msg)
 
-    ic = 0
     for k0, v0 in dgroup.items():
         if v0.get('nmax') is None:
             dgroup[k0]['nmax'] = 0
@@ -501,8 +500,8 @@ def _update_mobile(k0=None, dmobile=None, dref=None, ddata=None):
 
     for ii in range(nocc):
         c0 = (
-            dmobile[k0]['data'][0] == 'index'
-            or ddata[dmobile[k0]['data'][0]]['data'].dtype.type == np.str_
+            dmobile[k0]['data'][ii] == 'index'
+            or ddata[dmobile[k0]['data'][ii]]['data'].dtype.type == np.str_
         )
         if c0:
             dmobile[k0]['func_set_data'][ii](*iref[ii])
