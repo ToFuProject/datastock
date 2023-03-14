@@ -273,6 +273,8 @@ def _get_whichorkey(key=None, which=None, din=None, dname=None):
             raise Exception(msg)
 
     if key is not None:
+        if isinstance(key, str):
+            key = [key]
         key = _generic_check._check_var_iter(
             key, 'key',
             types=list,
