@@ -248,11 +248,11 @@ def _plot_as_mobile_lines_check(
 
     # keyt, keych
     keyt, reft, islogt = _check_keyXYZ(
-        coll=coll, refs=refs, keyX=key_time, ndim=ndim, dimlim=1,
+        coll=coll, refs=refs, keyX=key_time, ndim=ndim, dim_min=1,
         uniform=False,
     )
     keych, refch, islogch = _check_keyXYZ(
-        coll=coll, refs=refs, keyX=key_chan, ndim=ndim, dimlim=2,
+        coll=coll, refs=refs, keyX=key_chan, ndim=ndim, dim_min=2,
         uniform=False,
     )
 

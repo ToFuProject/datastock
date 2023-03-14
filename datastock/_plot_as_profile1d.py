@@ -270,7 +270,7 @@ def _plot_as_profile1d_check(
     # key_time, keyX
     refs = coll._ddata[key]['ref']
     key_time, ref_time, islogtime = _check_keyXYZ(
-        coll=coll, refs=refs, keyX=key_time, ndim=ndim, dimlim=1,
+        coll=coll, refs=refs, keyX=key_time, ndim=ndim, dim_min=1,
         uniform=False,
     )
     keyX, refX, refX0 = _check_keyX(
