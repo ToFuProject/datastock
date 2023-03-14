@@ -299,8 +299,19 @@ def plot_as_array(
 
     # add axes
     for ii, kax in enumerate(dax.keys()):
+
         harmonize = ii == len(dax.keys()) - 1
-        coll2.add_axes(key=kax, harmonize=harmonize, **dax[kax])
+        if kax not in coll2.dax.keys():
+            coll2.add_axes(key=kax, harmonize=harmonize, **dax[kax])
+
+        else:
+            dnc = {
+                k0: v0 for k0, v0 in dax[kax].items()
+                if v0 != coll2.dax[kax][k0]
+            }
+            if len(dnc) != 0:
+                import pdb; pdb.set_trace()     # DB
+                pass
 
     # connect
     if connect is True:
@@ -594,6 +605,13 @@ def _plot_as_array_check(
     # -----------
     # color_dict
 
+    if color_dict is not None and not isinstance(color_dict, dict):
+        if isinstance(color_dict, (list, tuple)):
+            color_dict = {k0: color_dict for k0 in groups}
+        elif mcolors.is_color_like(color_dict):
+            color_dict = {k0: [color_dict]*nmax for k0 in groups}
+
+
     cdef = {
         k0: _LCOLOR_DICT[0] for ii, k0 in enumerate(groups)
     }
@@ -615,7 +633,8 @@ def _plot_as_array_check(
     if len(dout) > 0:
         lstr = [f"{k0}: {v0}" for k0, v0 in dout.items()]
         msg = (
-            "The following entries of color_dict are invalid"
+            "The following entries of color_dict are invalid:\n"
+            + "\n".join(lstr)
         )
         raise Exception(msg)
 
@@ -894,7 +913,7 @@ def plot_as_array_1d(
     # plot fixed part
 
     axtype = 'matrix'
-    lkax = [kk for kk, vv in dax.items() if vv['type'] == axtype]
+    lkax = [kk for kk, vv in dax.items() if axtype in vv['type']]
     for kax in lkax:
         ax = dax[kax]['handle']
 
@@ -925,7 +944,7 @@ def plot_as_array_1d(
     # plot mobile part
 
     axtype = 'matrix'
-    lkax = [kk for kk, vv in dax.items() if vv['type'] == axtype]
+    lkax = [kk for kk, vv in dax.items() if axtype in vv['type']]
     for kax in lkax:
         ax = dax[kax]['handle']
 
@@ -934,7 +953,7 @@ def plot_as_array_1d(
             lv = ax.axvline(ind[0], c=color_dict['X'][ii], lw=1., ls='-')
 
             # update coll
-            kv = f'v{ii:02.0f}'
+            kv = f'{key}_v{ii:02.0f}'
             coll.add_mobile(
                 key=kv,
                 handle=lv,
@@ -1169,7 +1188,7 @@ def plot_as_array_2d(
     # plot fixed part
 
     axtype = 'matrix'
-    kax = [k0 for k0, v0 in dax.items() if v0['type'] == axtype]
+    kax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
     if len(kax) == 1:
         kax = kax[0]
         ax = dax[kax]['handle']
@@ -1207,14 +1226,14 @@ def plot_as_array_2d(
     # plot mobile part
 
     axtype = 'matrix'
-    lax = [k0 for k0, v0 in dax.items() if v0['type'] == axtype]
+    lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
     if len(lax) == 1:
         kax = lax[0]
         ax = dax[kax]['handle']
 
         # ind0, ind1
         axtype = 'vertical'
-        lax = [k0 for k0, v0 in dax.items() if v0['type'] == axtype]
+        lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
         if len(lax) == 1:
             for ii in range(nmax):
                 lh = ax.axhline(
@@ -1222,7 +1241,7 @@ def plot_as_array_2d(
                 )
 
                 # update coll
-                kh = f'h{ii:02.0f}'
+                kh = f'{key}_h{ii:02.0f}'
                 coll.add_mobile(
                     key=kh,
                     handle=lh,
@@ -1243,7 +1262,7 @@ def plot_as_array_2d(
 
         # ind0
         axtype = 'horizontal'
-        lax = [k0 for k0, v0 in dax.items() if v0['type'] == axtype]
+        lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
         if len(lax) == 1:
             for ii in range(nmax):
                 lv = ax.axvline(
@@ -1251,7 +1270,7 @@ def plot_as_array_2d(
                 )
 
                 # update coll
-                kv = f'v{ii:02.0f}'
+                kv = f'{key}_v{ii:02.0f}'
                 coll.add_mobile(
                     key=kv,
                     handle=lv,
@@ -1271,11 +1290,14 @@ def plot_as_array_2d(
             ax_datay = None
 
         dax[kax].update(
-            refx=ax_refx, datax=ax_datax, refy=ax_refy, datay=ax_datay,
+            refx=ax_refx,
+            datax=ax_datax,
+            refy=ax_refy,
+            datay=ax_datay,
         )
 
     axtype = 'vertical'
-    lax = [k0 for k0, v0 in dax.items() if v0['type'] == axtype]
+    lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
     if len(lax) == 1:
         kax = lax[0]
         ax = dax[kax]['handle']
@@ -1291,7 +1313,7 @@ def plot_as_array_2d(
                 label=f'ind0 = {ind[0]}',
             )
 
-            km = f'vprof{ii:02.0f}'
+            km = f'{key}_vprof{ii:02.0f}'
             coll.add_mobile(
                 key=km,
                 handle=l0,
@@ -1306,7 +1328,7 @@ def plot_as_array_2d(
                 dataY[ind[1]],
                 c=color_dict['X'][ii],
             )
-            km = f'lh-v{ii:02.0f}'
+            km = f'{key}_lh-v{ii:02.0f}'
             coll.add_mobile(
                 key=km,
                 handle=l0,
@@ -1317,10 +1339,10 @@ def plot_as_array_2d(
                 ind=ii,
             )
 
-        dax[kax].update(refy=[refY], datay=keyY)
+        dax[kax].update(refy=[refY], datay=[keyY])
 
     axtype = 'horizontal'
-    lax = [k0 for k0, v0 in dax.items() if v0['type'] == axtype]
+    lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
     if len(lax) == 1:
         kax = lax[0]
         ax = dax[kax]['handle']
@@ -1336,7 +1358,7 @@ def plot_as_array_2d(
                 label=f'ind1 = {ind[1]}',
             )
 
-            km = f'hprof{ii:02.0f}'
+            km = f'{key}_hprof{ii:02.0f}'
             coll.add_mobile(
                 key=km,
                 handle=l1,
@@ -1351,7 +1373,7 @@ def plot_as_array_2d(
                 dataX[ind[0]],
                 c=color_dict['Y'][ii],
             )
-            km = f'lv-h{ii:02.0f}'
+            km = f'{key}_lv-h{ii:02.0f}'
             coll.add_mobile(
                 key=km,
                 handle=l0,
@@ -1362,13 +1384,13 @@ def plot_as_array_2d(
                 ind=ii,
             )
 
-        dax[kax].update(refx=[refX], datax=keyX)
+        dax[kax].update(refx=[refX], datax=[keyX])
 
     # ---------
     # add text
 
     axtype = 'text0'
-    lax = [k0 for k0, v0 in dax.items() if v0['type'] == axtype]
+    lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
     if len(lax) == 1:
         kax = lax[0]
         ax = dax[kax]['handle']
@@ -1387,7 +1409,7 @@ def plot_as_array_2d(
         )
 
     axtype = 'text1'
-    lax = [k0 for k0, v0 in dax.items() if v0['type'] == axtype]
+    lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
     if len(lax) == 1:
         kax = lax[0]
         ax = dax[kax]['handle']
@@ -1537,8 +1559,8 @@ def plot_as_array_3d(
     # ---------------
     # plot fixed part
 
-    axtype = 'traces'
-    lax = [k0 for k0, v0 in dax.items() if v0['type'] == axtype]
+    axtype = 'tracesZ'
+    lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
     if len(lax) == 1:
         kax = lax[0]
         ax = dax[kax]['handle']
@@ -1596,7 +1618,7 @@ def plot_as_array_3d(
     # plot mobile part
 
     axtype = 'matrix'
-    lax = [k0 for k0, v0 in dax.items() if v0['type'] == axtype]
+    lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
     if len(lax) == 1:
         kax = lax[0]
         ax = dax[kax]['handle']
@@ -1613,7 +1635,7 @@ def plot_as_array_3d(
             vmax=vmax,
         )
 
-        km = f'im'
+        km = f'{key}_im'
         coll.add_mobile(
             key=km,
             handle=im,
@@ -1622,6 +1644,7 @@ def plot_as_array_3d(
             dtype=datatype,
             axes=kax,
             ind=0,
+            harmonize=False,
         )
 
         if inverty is True:
@@ -1645,8 +1668,8 @@ def plot_as_array_3d(
             )
 
             # update coll
-            kh = f'h{ii:02.0f}'
-            kv = f'v{ii:02.0f}'
+            kh = f'{key}_h{ii:02.0f}'
+            kv = f'{key}_v{ii:02.0f}'
             coll.add_mobile(
                 key=kh,
                 handle=lh,
@@ -1655,6 +1678,7 @@ def plot_as_array_3d(
                 dtype='ydata',
                 axes=kax,
                 ind=ii,
+                harmonize=False,
             )
             coll.add_mobile(
                 key=kv,
@@ -1664,8 +1688,9 @@ def plot_as_array_3d(
                 dtype='xdata',
                 axes=kax,
                 ind=ii,
+                harmonize=False,
             )
-            km = f'm{ii:02.0f}'
+            km = f'{key}_m{ii:02.0f}'
             coll.add_mobile(
                 key=km,
                 handle=mi,
@@ -1674,12 +1699,18 @@ def plot_as_array_3d(
                 dtype=['xdata', 'ydata'],
                 axes=kax,
                 ind=ii,
+                harmonize=False,
             )
 
-        dax[kax].update(refx=[refX], refy=[refY], datax=keyX, datay=keyY)
+        dax[kax].update(
+            refx=[refX],
+            refy=[refY],
+            datax=[keyX],
+            datay=[keyY],
+        )
 
     axtype = 'vertical'
-    lax = [k0 for k0, v0 in dax.items() if v0['type'] == axtype]
+    lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
     if len(lax) == 1:
         kax = lax[0]
         ax = dax[kax]['handle']
@@ -1695,7 +1726,7 @@ def plot_as_array_3d(
                 label=f'ind0 = {ind[0]}',
             )
 
-            km = f'vprof{ii:02.0f}'
+            km = f'{key}_vprof{ii:02.0f}'
             coll.add_mobile(
                 key=km,
                 handle=l0,
@@ -1705,13 +1736,14 @@ def plot_as_array_3d(
                 group_vis='X',
                 axes=kax,
                 ind=ii,
+                harmonize=False,
             )
 
             l0 = ax.axhline(
                 dataY[ind[1]],
                 c=color_dict['X'][ii],
             )
-            km = f'lh-v{ii:02.0f}'
+            km = f'{key}_lh-v{ii:02.0f}'
             coll.add_mobile(
                 key=km,
                 handle=l0,
@@ -1721,12 +1753,13 @@ def plot_as_array_3d(
                 group_vis='Y',
                 axes=kax,
                 ind=ii,
+                harmonize=False,
             )
 
-        dax[kax].update(refy=[refY], datay=keyY)
+        dax[kax].update(refy=[refY], datay=[keyY])
 
     axtype = 'horizontal'
-    lax = [k0 for k0, v0 in dax.items() if v0['type'] == axtype]
+    lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
     if len(lax) == 1:
         kax = lax[0]
         ax = dax[kax]['handle']
@@ -1741,7 +1774,7 @@ def plot_as_array_3d(
                 color=color_dict['X'][ii],
             )
 
-            km = f'hprof{ii:02.0f}'
+            km = f'{key}_hprof{ii:02.0f}'
             coll.add_mobile(
                 key=km,
                 handle=l1,
@@ -1751,13 +1784,14 @@ def plot_as_array_3d(
                 group_vis='Y',
                 axes=kax,
                 ind=ii,
+                harmonize=False,
             )
 
             l0 = ax.axvline(
                 dataX[ind[0]],
                 c=color_dict['Y'][ii],
             )
-            km = f'lv-h{ii:02.0f}'
+            km = f'{key}_lv-h{ii:02.0f}'
             coll.add_mobile(
                 key=km,
                 handle=l0,
@@ -1767,13 +1801,14 @@ def plot_as_array_3d(
                 group_vis='X',
                 axes=kax,
                 ind=ii,
+                harmonize=False,
             )
 
-        dax[kax].update(refx=[refX], datax=keyX)
+        dax[kax].update(refx=[refX], datax=[keyX])
 
     # traces
-    axtype = 'traces'
-    lax = [k0 for k0, v0 in dax.items() if v0['type'] == axtype]
+    axtype = 'tracesZ'
+    lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
     if len(lax) == 1:
         kax = lax[0]
         ax = dax[kax]['handle']
@@ -1787,7 +1822,7 @@ def plot_as_array_3d(
                 color=color_dict['X'][ii],
             )
 
-            km = f'trace{ii:02.0f}'
+            km = f'{key}_traceZ{ii:02.0f}'
             coll.add_mobile(
                 key=km,
                 handle=l1,
@@ -1796,13 +1831,14 @@ def plot_as_array_3d(
                 dtype=['ydata'],
                 axes=kax,
                 ind=ii,
+                harmonize=False,
             )
 
         l0 = ax.axvline(
             dataZ[ind[2]],
             c='k',
         )
-        km = 'lv-z'
+        km = f'{key}_lv-z'
         coll.add_mobile(
             key=km,
             handle=l0,
@@ -1811,15 +1847,16 @@ def plot_as_array_3d(
             dtype='xdata',
             axes=kax,
             ind=0,
+            harmonize=False,
         )
 
-        dax[kax].update(refx=[refZ], datax=keyZ)
+        dax[kax].update(refx=[refZ], datax=[keyZ])
 
     # ---------
     # add text
 
     axtype = 'textX'
-    lax = [k0 for k0, v0 in dax.items() if v0['type'] == axtype]
+    lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
     if len(lax) == 1:
         kax = lax[0]
         ax = dax[kax]['handle']
@@ -1838,7 +1875,7 @@ def plot_as_array_3d(
         )
 
     axtype = 'textY'
-    lax = [k0 for k0, v0 in dax.items() if v0['type'] == axtype]
+    lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
     if len(lax) == 1:
         kax = lax[0]
         ax = dax[kax]['handle']
@@ -1857,7 +1894,7 @@ def plot_as_array_3d(
         )
 
     axtype = 'textZ'
-    lax = [k0 for k0, v0 in dax.items() if v0['type'] == axtype]
+    lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
     if len(lax) == 1:
         kax = lax[0]
         ax = dax[kax]['handle']
@@ -1919,7 +1956,7 @@ def _plot_as_array_3d_create_axes(
         'matrix': {'handle': ax0},
         'vertical': {'handle': ax1},
         'horizontal': {'handle': ax2},
-        'traces': {'handle': ax3},
+        'tracesZ': {'handle': ax3},
         # text
         'textX': {'handle': ax4},
         'textY': {'handle': ax5},
@@ -1955,8 +1992,10 @@ def _plot_as_array_3d_label_axes(
     fig.suptitle(key, size=14, fontweight='bold')
 
     # axes for image
-    kax = 'matrix'
-    if dax.get(kax) is not None:
+    axtype = 'matrix'
+    lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
+    if len(lax) == 1:
+        kax = lax[0]
         ax = dax[kax]['handle']
         ax.tick_params(
             axis="x",
@@ -1992,8 +2031,10 @@ def _plot_as_array_3d_label_axes(
         dax[kax]['inverty'] = inverty
 
     # axes for vertical profile
-    kax = 'vertical'
-    if dax.get(kax) is not None:
+    axtype = 'vertical'
+    lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
+    if len(lax) == 1:
+        kax = lax[0]
         ax = dax[kax]['handle']
         ax.set_xlabel('data')
         ax.set_ylabel(labY)
@@ -2027,8 +2068,10 @@ def _plot_as_array_3d_label_axes(
         dax[kax]['inverty'] = inverty
 
     # axes for horizontal profile
-    kax = 'horizontal'
-    if dax.get(kax) is not None:
+    axtype = 'horizontal'
+    lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
+    if len(lax) == 1:
+        kax = lax[0]
         ax = dax[kax]['handle']
         ax.set_ylabel('data')
         ax.set_xlabel(labX)
@@ -2048,8 +2091,10 @@ def _plot_as_array_3d_label_axes(
             ax.set_xlabel(labX)
 
     # axes for traces
-    kax = 'traces'
-    if dax.get(kax) is not None:
+    axtype = 'tracesZ'
+    lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
+    if len(lax) == 1:
+        kax = lax[0]
         ax = dax[kax]['handle']
         ax.set_ylabel('data')
         ax.set_xlabel(labZ)
@@ -2069,20 +2114,26 @@ def _plot_as_array_3d_label_axes(
             ax.set_ylabel(labZ)
 
     # axes for text
-    kax = 'textX'
-    if dax.get(kax) is not None:
+    axtype = 'textX'
+    lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
+    if len(lax) == 1:
+        kax = lax[0]
         ax = dax[kax]['handle']
         ax.set_xticks([])
         ax.set_yticks([])
 
-    kax = 'textY'
-    if dax.get(kax) is not None:
+    axtype = 'textY'
+    lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
+    if len(lax) == 1:
+        kax = lax[0]
         ax = dax[kax]['handle']
         ax.set_xticks([])
         ax.set_yticks([])
 
-    kax = 'textZ'
-    if dax.get(kax) is not None:
+    axtype = 'textZ'
+    lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
+    if len(lax) == 1:
+        kax = lax[0]
         ax = dax[kax]['handle']
         ax.set_xticks([])
         ax.set_yticks([])
@@ -2231,7 +2282,7 @@ def plot_as_array_4d(
 
     # tracesZ
     axtype = 'tracesZ'
-    lax = [k0 for k0, v0 in dax.items() if v0['type'] == axtype]
+    lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
     if len(lax) == 1:
         kax = lax[0]
         ax = dax[kax]['handle']
@@ -2266,7 +2317,7 @@ def plot_as_array_4d(
 
     # tracesU
     axtype = 'tracesU'
-    lax = [k0 for k0, v0 in dax.items() if v0['type'] == axtype]
+    lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
     if len(lax) == 1:
         kax = lax[0]
         ax = dax[kax]['handle']
@@ -2328,9 +2379,9 @@ def plot_as_array_4d(
     # -----------------
     # plot mobile parts
 
-    # tracesU
+    # matrix
     axtype = 'matrix'
-    lax = [k0 for k0, v0 in dax.items() if v0['type'] == axtype]
+    lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
     if len(lax) == 1:
         kax = lax[0]
         ax = dax[kax]['handle']
@@ -2347,7 +2398,7 @@ def plot_as_array_4d(
             vmax=vmax,
         )
 
-        km = f'im'
+        km = f'{key}_im'
         coll.add_mobile(
             key=km,
             handle=im,
@@ -2379,8 +2430,8 @@ def plot_as_array_4d(
             )
 
             # update coll
-            kh = f'h{ii:02.0f}'
-            kv = f'v{ii:02.0f}'
+            kh = f'{key}_h{ii:02.0f}'
+            kv = f'{key}_v{ii:02.0f}'
             coll.add_mobile(
                 key=kh,
                 handle=lh,
@@ -2399,7 +2450,7 @@ def plot_as_array_4d(
                 axes=kax,
                 ind=ii,
             )
-            km = f'm{ii:02.0f}'
+            km = f'{key}_m{ii:02.0f}'
             coll.add_mobile(
                 key=km,
                 handle=mi,
@@ -2410,11 +2461,16 @@ def plot_as_array_4d(
                 ind=ii,
             )
 
-        dax[kax].update(refx=[refX], refy=[refY], datax=keyX, datay=keyY)
+        dax[kax].update(
+            refx=[refX],
+            refy=[refY],
+            datax=[keyX],
+            datay=[keyY],
+        )
 
     # vertical
     axtype = 'vertical'
-    lax = [k0 for k0, v0 in dax.items() if v0['type'] == axtype]
+    lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
     if len(lax) == 1:
         kax = lax[0]
         ax = dax[kax]['handle']
@@ -2430,7 +2486,7 @@ def plot_as_array_4d(
                 label=f'ind0 = {ind[0]}',
             )
 
-            km = f'vprof{ii:02.0f}'
+            km = f'{key}_vprof{ii:02.0f}'
             coll.add_mobile(
                 key=km,
                 handle=l0,
@@ -2446,7 +2502,7 @@ def plot_as_array_4d(
                 dataY[ind[1]],
                 c=color_dict['X'][ii],
             )
-            km = f'lh-v{ii:02.0f}'
+            km = f'{key}_lh-v{ii:02.0f}'
             coll.add_mobile(
                 key=km,
                 handle=l0,
@@ -2458,11 +2514,11 @@ def plot_as_array_4d(
                 ind=ii,
             )
 
-        dax[kax].update(refy=[refY], datay=keyY)
+        dax[kax].update(refy=[refY], datay=[keyY])
 
     # horizontal
     axtype = 'horizontal'
-    lax = [k0 for k0, v0 in dax.items() if v0['type'] == axtype]
+    lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
     if len(lax) == 1:
         kax = lax[0]
         ax = dax[kax]['handle']
@@ -2477,7 +2533,7 @@ def plot_as_array_4d(
                 color=color_dict['X'][ii],
             )
 
-            km = f'hprof{ii:02.0f}'
+            km = f'{key}_hprof{ii:02.0f}'
             coll.add_mobile(
                 key=km,
                 handle=l1,
@@ -2493,7 +2549,7 @@ def plot_as_array_4d(
                 dataX[ind[0]],
                 c=color_dict['Y'][ii],
             )
-            km = f'lv-h{ii:02.0f}'
+            km = f'{key}_lv-h{ii:02.0f}'
             coll.add_mobile(
                 key=km,
                 handle=l0,
@@ -2505,11 +2561,11 @@ def plot_as_array_4d(
                 ind=ii,
             )
 
-        dax[kax].update(refx=[refX], datax=keyX)
+        dax[kax].update(refx=[refX], datax=[keyX])
 
     # tracesZ
     axtype = 'tracesZ'
-    lax = [k0 for k0, v0 in dax.items() if v0['type'] == axtype]
+    lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
     if len(lax) == 1:
         kax = lax[0]
         ax = dax[kax]['handle']
@@ -2523,7 +2579,7 @@ def plot_as_array_4d(
                 color=color_dict['X'][ii],
             )
 
-            km = f'trace{ii:02.0f}'
+            km = f'{key}_trace{ii:02.0f}'
             coll.add_mobile(
                 key=km,
                 handle=l1,
@@ -2538,7 +2594,7 @@ def plot_as_array_4d(
             dataZ[ind[2]],
             c='k',
         )
-        km = 'lv-z'
+        km = f'{key}_lv-z'
         coll.add_mobile(
             key=km,
             handle=l0,
@@ -2549,11 +2605,11 @@ def plot_as_array_4d(
             ind=0,
         )
 
-        dax[kax].update(refx=[refZ], datax=keyZ)
+        dax[kax].update(refx=[refZ], datax=[keyZ])
 
     # tracesU
     axtype = 'tracesU'
-    lax = [k0 for k0, v0 in dax.items() if v0['type'] == axtype]
+    lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
     if len(lax) == 1:
         kax = lax[0]
         ax = dax[kax]['handle']
@@ -2567,7 +2623,7 @@ def plot_as_array_4d(
                 color=color_dict['U'][ii],
             )
 
-            km = f'traceZ{ii:02.0f}'
+            km = f'{key}_traceU{ii:02.0f}'
             coll.add_mobile(
                 key=km,
                 handle=l1,
@@ -2582,7 +2638,7 @@ def plot_as_array_4d(
             dataU[ind[2]],
             c='k',
         )
-        km = f'lv-u'
+        km = f'{key}_lv-u'
         coll.add_mobile(
             key=km,
             handle=l0,
@@ -2593,14 +2649,14 @@ def plot_as_array_4d(
             ind=0,
         )
 
-        dax[kax].update(refx=[refU], datax=keyU)
+        dax[kax].update(refx=[refU], datax=[keyU])
 
     # ---------
     # add text
 
     # textX
     axtype = 'textX'
-    lax = [k0 for k0, v0 in dax.items() if v0['type'] == axtype]
+    lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
     if len(lax) == 1:
         kax = lax[0]
         ax = dax[kax]['handle']
@@ -2620,7 +2676,7 @@ def plot_as_array_4d(
 
     # textY
     axtype = 'textY'
-    lax = [k0 for k0, v0 in dax.items() if v0['type'] == axtype]
+    lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
     if len(lax) == 1:
         kax = lax[0]
         ax = dax[kax]['handle']
@@ -2640,7 +2696,7 @@ def plot_as_array_4d(
 
     # textZ
     axtype = 'textZ'
-    lax = [k0 for k0, v0 in dax.items() if v0['type'] == axtype]
+    lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
     if len(lax) == 1:
         kax = lax[0]
         ax = dax[kax]['handle']
@@ -2660,7 +2716,7 @@ def plot_as_array_4d(
 
     # textU
     axtype = 'textU'
-    lax = [k0 for k0, v0 in dax.items() if v0['type'] == axtype]
+    lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
     if len(lax) == 1:
         kax = lax[0]
         ax = dax[kax]['handle']
@@ -2768,8 +2824,10 @@ def _plot_as_array_4d_label_axes(
     fig.suptitle(key, size=14, fontweight='bold')
 
     # axes for image
-    kax = 'matrix'
-    if dax.get(kax) is not None:
+    axtype = 'matrix'
+    lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
+    if len(lax) == 1:
+        kax = lax[0]
         ax = dax[kax]['handle']
         ax.tick_params(
             axis="x",
@@ -2805,8 +2863,10 @@ def _plot_as_array_4d_label_axes(
         dax[kax]['inverty'] = inverty
 
     # axes for vertical profile
-    kax = 'vertical'
-    if dax.get(kax) is not None:
+    axtype = 'vertical'
+    lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
+    if len(lax) == 1:
+        kax = lax[0]
         ax = dax[kax]['handle']
         ax.set_xlabel('data')
         ax.set_ylabel(labY)
@@ -2840,8 +2900,10 @@ def _plot_as_array_4d_label_axes(
         dax[kax]['inverty'] = inverty
 
     # axes for horizontal profile
-    kax = 'horizontal'
-    if dax.get(kax) is not None:
+    axtype = 'horizontal'
+    lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
+    if len(lax) == 1:
+        kax = lax[0]
         ax = dax[kax]['handle']
         ax.set_ylabel('data')
         ax.set_xlabel(labX)
@@ -2861,8 +2923,10 @@ def _plot_as_array_4d_label_axes(
             ax.set_xlabel(labX)
 
     # axes for tracesZ
-    kax = 'tracesZ'
-    if dax.get(kax) is not None:
+    axtype = 'tracesZ'
+    lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
+    if len(lax) == 1:
+        kax = lax[0]
         ax = dax[kax]['handle']
         ax.set_ylabel('data')
         ax.set_xlabel(labZ)
@@ -2882,8 +2946,10 @@ def _plot_as_array_4d_label_axes(
             ax.set_ylabel(labZ)
 
     # axes for tracesU
-    kax = 'tracesU'
-    if dax.get(kax) is not None:
+    axtype = 'tracesU'
+    lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
+    if len(lax) == 1:
+        kax = lax[0]
         ax = dax[kax]['handle']
         ax.set_ylabel('data')
         ax.set_xlabel(labU)
@@ -2903,26 +2969,34 @@ def _plot_as_array_4d_label_axes(
             ax.set_ylabel(labU)
 
     # axes for text
-    kax = 'textX'
-    if dax.get(kax) is not None:
+    axtype = 'textX'
+    lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
+    if len(lax) == 1:
+        kax = lax[0]
         ax = dax[kax]['handle']
         ax.set_xticks([])
         ax.set_yticks([])
 
-    kax = 'textY'
-    if dax.get(kax) is not None:
+    axtype = 'textY'
+    lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
+    if len(lax) == 1:
+        kax = lax[0]
         ax = dax[kax]['handle']
         ax.set_xticks([])
         ax.set_yticks([])
 
-    kax = 'textZ'
-    if dax.get(kax) is not None:
+    axtype = 'textZ'
+    lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
+    if len(lax) == 1:
+        kax = lax[0]
         ax = dax[kax]['handle']
         ax.set_xticks([])
         ax.set_yticks([])
 
-    kax = 'textU'
-    if dax.get(kax) is not None:
+    axtype = 'textU'
+    lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
+    if len(lax) == 1:
+        kax = lax[0]
         ax = dax[kax]['handle']
         ax.set_xticks([])
         ax.set_yticks([])
