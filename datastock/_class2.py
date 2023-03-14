@@ -43,6 +43,7 @@ class DataStock2(DataStock1):
         dtype=None,
         bstr=None,
         visible=None,
+        harmonize=False,
         group_vis=None,
         axes=None,
         **kwdargs,
@@ -160,6 +161,7 @@ class DataStock2(DataStock1):
             axis=axis,
             dtype=dtype,
             visible=visible,
+            harmonize=harmonize,
             bstr=bstr,
             axes=axes,
             func=None,
@@ -694,7 +696,7 @@ class DataStock2(DataStock1):
                         self.__store_rcParams[kd].append(kk)
                         plt.rcParams[kk].remove(kd)
 
-        # disconnect button pick 
+        # disconnect button pick
         for k0, v0 in self._dobj['canvas'].items():
             v0['handle'].mpl_disconnect(v0['handle'].button_pick_id)
 
