@@ -306,12 +306,17 @@ def plot_as_array(
 
         else:
             dnc = {
-                k0: v0 for k0, v0 in dax[kax].items()
+                k0: f"{v0} vs {coll2.dax[kax][k0]}"
+                for k0, v0 in dax[kax].items()
                 if v0 != coll2.dax[kax][k0]
             }
             if len(dnc) != 0:
-                import pdb; pdb.set_trace()     # DB
-                pass
+                lstr = [f"\t- {k0}: {v0}" for k0, v0 in dnc.items()]
+                msg = (
+                    f"Mismatching dax['{kax}']!\n"
+                    + "\n".join(lstr)
+                )
+                raise Exception(msg)
 
     # connect
     if connect is True:
