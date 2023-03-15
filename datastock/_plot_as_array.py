@@ -976,6 +976,7 @@ def plot_as_array_1d(
         _plot_text.plot_text(
             coll=coll,
             kax=kax,
+            key=key,
             ax=ax,
             ref=ref,
             group='X',
@@ -1398,6 +1399,7 @@ def plot_as_array_2d(
         _plot_text.plot_text(
             coll=coll,
             kax=kax,
+            key=key,
             ax=ax,
             ref=refX,
             group='X',
@@ -1417,6 +1419,7 @@ def plot_as_array_2d(
         _plot_text.plot_text(
             coll=coll,
             kax=kax,
+            key=key,
             ax=ax,
             ref=refY,
             group='Y',
@@ -1864,6 +1867,7 @@ def plot_as_array_3d(
         _plot_text.plot_text(
             coll=coll,
             kax=kax,
+            key=key,
             ax=ax,
             ref=refX,
             group='X',
@@ -1883,6 +1887,7 @@ def plot_as_array_3d(
         _plot_text.plot_text(
             coll=coll,
             kax=kax,
+            key=key,
             ax=ax,
             ref=refY,
             group='Y',
@@ -1902,6 +1907,7 @@ def plot_as_array_3d(
         _plot_text.plot_text(
             coll=coll,
             kax=kax,
+            key=key,
             ax=ax,
             ref=refZ,
             group='Z',
@@ -2664,6 +2670,7 @@ def plot_as_array_4d(
         _plot_text.plot_text(
             coll=coll,
             kax=kax,
+            key=key,
             ax=ax,
             ref=refX,
             group='X',
@@ -2684,6 +2691,7 @@ def plot_as_array_4d(
         _plot_text.plot_text(
             coll=coll,
             kax=kax,
+            key=key,
             ax=ax,
             ref=refY,
             group='Y',
@@ -2704,6 +2712,7 @@ def plot_as_array_4d(
         _plot_text.plot_text(
             coll=coll,
             kax=kax,
+            key=key,
             ax=ax,
             ref=refZ,
             group='Z',
@@ -2724,6 +2733,7 @@ def plot_as_array_4d(
         _plot_text.plot_text(
             coll=coll,
             kax=kax,
+            key=key,
             ax=ax,
             ref=refU,
             group='U',
