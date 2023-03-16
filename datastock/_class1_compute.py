@@ -81,6 +81,11 @@ def _get_index_from_data(
 
     elif monot:
 
+        # trivial case
+        if data.size == 1:
+            return np.zeros(data_pick.shape, dtype=int)
+
+        # non-trivial caes
         bins = np.r_[
             data[0] - 0.5*(data[1] - data[0]),
             0.5*(data[1:] + data[:-1]),

@@ -206,10 +206,10 @@ def _check_remove(key=None, dkey=None, name=None):
     if not (c0 or c1):
         msg = (
             """
-            Removed param must be a str already in self.d{}
+            Removed item must be a str already in self.d{}
             It can also be a list of such
             \t- provided: '{}'
-            \t- already available: {}
+            \t- available: {}
             """.format(name, key, sorted(dkey.keys()))
         )
         raise Exception(msg)
@@ -273,6 +273,8 @@ def _get_whichorkey(key=None, which=None, din=None, dname=None):
             raise Exception(msg)
 
     if key is not None:
+        if isinstance(key, str):
+            key = [key]
         key = _generic_check._check_var_iter(
             key, 'key',
             types=list,
@@ -304,10 +306,23 @@ def _remove_ref(
     if key is None:
         return dref0, ddata0, dobj0
 
+    # ------------
     # check input
+
+    # key
     key = _check_remove(
         key=key, dkey=dref0, name='ref',
     )
+
+    # propagate
+    propagate = _generic_check._check_var(
+        propagate, 'propagate',
+        types=bool,
+        default=True,
+    )
+
+    # ----------
+    # loop
 
     for k0 in key:
         # Remove orphan ddata
@@ -357,8 +372,16 @@ def _remove_data(
     # ------------
     # check inputs
 
+    # key
     key = _check_remove(
         key=key, dkey=ddata0, name='data',
+    )
+
+    # propagate
+    propagate = _generic_check._check_var(
+        propagate, 'propagate',
+        types=bool,
+        default=True,
     )
 
     # ------
@@ -399,6 +422,7 @@ def _remove_obj(
     # key to remove
     key=None,
     which=None,
+    propagate=None,
     # dict
     dobj0=None,
     ddata0=None,
@@ -415,6 +439,7 @@ def _remove_obj(
     # ------------
     # check inputs
 
+    # key
     key, which = _get_whichorkey(
         key=key,
         which=which,
@@ -422,11 +447,17 @@ def _remove_obj(
         dname='dobj',
     )
 
+    # propagate
+    propagate = _generic_check._check_var(
+        propagate, 'propagate',
+        types=bool,
+        default=True,
+    )
+
     # --------------------------------
     # key is None => delete whole dict
 
     if key is None:
-
         # remove
         del dobj0[which]
 
@@ -441,6 +472,10 @@ def _remove_obj(
         )
         for kk in set(key).intersection(dobj0[which].keys()):
             del dobj0[which][kk]
+
+    # cleanup
+    if propagate is True and len(dobj0.get(which, {})) == 0:
+        del dobj0[which]
 
     return _consistency(
         ddata=None, ddata0=ddata0,
@@ -738,7 +773,10 @@ def _get_suitable_ref(
 
     # no match => create new ref
     else:
-        lref = _generic_check._obj_key(d0=dref0, short=dshort['ref'])
+        lref = _generic_check._obj_key(
+            d0=dict(dref0, **dref_add),
+            short=dshort['ref'],
+        )
 
     return lref, size
 

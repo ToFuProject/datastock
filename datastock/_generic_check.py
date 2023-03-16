@@ -579,20 +579,26 @@ def _check_inplace(coll=None, keys=None, inplace=None):
 
 def _check_dax(dax=None, main=None):
 
-    # None
+    # ---------
+    # trivial
+
     if dax is None:
         return dax
 
-    # Axes
+    # --------------
+    # if axes handle
+
     if issubclass(dax.__class__, plt.Axes):
         if main is None:
             msg = (
             )
             raise Exception(msg)
         else:
-            return {main: dax}
+            dax = {main: {'handle': dax, 'type': main}}
 
-    # dict
+    # -------------
+    # check is dict
+
     c0 = (
         isinstance(dax, dict)
         and all([
@@ -622,11 +628,20 @@ def _check_dax(dax=None, main=None):
             msg += f"{dax}"
         raise Exception(msg)
 
+    # -----------------------------------
+    # make sure handle and type are there
+
     for k0, v0 in dax.items():
+
         if issubclass(v0.__class__, plt.Axes):
-            dax[k0] = {'handle': v0, 'type': k0}
+            dax[k0] = {'handle': v0, 'type': [k0]}
+
         if isinstance(v0, dict):
-            dax[k0]['type'] = v0.get('type')
+            dax[k0]['type'] = v0.get('type', [k0])
+
+        # make sure type is a list
+        if isinstance(dax[k0]['type'], str):
+            dax[k0]['type'] = [dax[k0]['type']]
 
     return dax
 
