@@ -15,6 +15,7 @@ from . import _generic_check
 def plot_text(
     coll=None,
     kax=None,
+    key=None,
     ax=None,
     ref=None,
     group=None,
@@ -127,7 +128,7 @@ def plot_text(
             )
 
             coll.add_mobile(
-                key=f'txt-{ref}-{k0}-{jj}',
+                key=f'txt-{ref}-{k0}-{jj}_{key}',
                 handle=ht,
                 refs=(ref,),
                 data=data,

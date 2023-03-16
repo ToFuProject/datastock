@@ -207,6 +207,7 @@ class DataStock1(DataStock0):
         ) = _class1_check._remove_obj(
             key=key,
             which=which,
+            propagate=propagate,
             dobj0=self._dobj,
             ddata0=self._ddata,
             dref0=self._dref,
