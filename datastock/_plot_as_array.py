@@ -364,8 +364,11 @@ def _check_uniform_log(k0=None, ddata=None):
             np.diff(np.log(v0['data'])),
             np.log(v0['data'][1]) - np.log(v0['data'][0]),
             equal_nan=False,
+            atol=0.,
+            rtol=1e-10,
         )
     )
+
     return c0
 
 
