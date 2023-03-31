@@ -932,7 +932,7 @@ def _get_dout(
             for k1, v1 in dvect.items():
                 if coll.ddata[k1]['ref'][0] in rd:
                     ax = rd.index(coll.ddata[k1]['ref'][0])
-                    sh[ax] = v1.sum()
+                    sh[ax] = len(v1) if v1.dtype == int else v1.sum()
                     rd[ax] = None
 
         # ------------------------
