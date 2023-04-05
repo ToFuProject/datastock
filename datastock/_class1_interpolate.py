@@ -866,11 +866,10 @@ def _get_dvect(
             raise Exception(msg)
 
         # build final dvect
-        for k0, v0 in dvect.items(): 
-            dvect = {
-                k0: domain[v0[0]]['ind']
-                for k0, v0 in dvect.items()
-            }
+        dvect = {
+            k0: domain[v0[0]]['ind']
+            for k0, v0 in dvect.items()
+        }
 
     else:
         dvect = None
