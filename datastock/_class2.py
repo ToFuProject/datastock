@@ -92,7 +92,7 @@ class DataStock2(DataStock1):
             'dtype',
             types=(list, tuple),
             types_iter=str,
-            allowed=['xdata', 'ydata', 'data', 'data.T', 'alpha', 'txt']
+            allowed=['xdata', 'ydata', 'data', 'data.T', 'xy', 'alpha', 'txt']
         )
         if len(dtype) != nref:
             msg = (

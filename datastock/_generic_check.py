@@ -637,7 +637,8 @@ def _check_dax(dax=None, main=None):
             dax[k0] = {'handle': v0, 'type': [k0]}
 
         if isinstance(v0, dict):
-            dax[k0]['type'] = v0.get('type', [k0])
+            if v0.get('type') is None:
+                dax[k0]['type'] = [k0]
 
         # make sure type is a list
         if isinstance(dax[k0]['type'], str):

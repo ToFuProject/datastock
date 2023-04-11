@@ -270,7 +270,11 @@ def _check(
     # ---------------------
     # get dvect from domain
 
-    domain, dvect = _get_dvect(coll=coll, domain=domain, ref_key=ref_key)
+    domain, dvect = _get_dvect(
+        coll=coll,
+        domain=domain,
+        ref_key=ref_key,
+    )
 
     # ----------------------------------
     # apply domain to coefs (input data)
@@ -862,7 +866,10 @@ def _get_dvect(
             raise Exception(msg)
 
         # build final dvect
-        dvect = {k0: domain[v0[0]]['ind'] for k0, v0 in dvect.items()}
+        dvect = {
+            k0: domain[v0[0]]['ind']
+            for k0, v0 in dvect.items()
+        }
 
     else:
         dvect = None
@@ -888,11 +895,13 @@ def _get_ddata(
         # apply domain
         if dvect is not None:
             for k1, v1 in dvect.items():
-                ax = coll.ddata[k0]['ref'].index(coll.ddata[k1]['ref'][0])
-                sli = tuple([
-                    v1 if ii == ax else slice(None) for ii in range(data.ndim)
-                ])
-                data = data[sli]
+                if coll.ddata[k1]['ref'][0] in coll.ddata[k0]['ref']:
+                    ax = coll.ddata[k0]['ref'].index(coll.ddata[k1]['ref'][0])
+                    sli = tuple([
+                        v1 if ii == ax else slice(None)
+                        for ii in range(data.ndim)
+                    ])
+                    data = data[sli]
 
         ddata[k0] = data
 
@@ -932,7 +941,7 @@ def _get_dout(
             for k1, v1 in dvect.items():
                 if coll.ddata[k1]['ref'][0] in rd:
                     ax = rd.index(coll.ddata[k1]['ref'][0])
-                    sh[ax] = v1.sum()
+                    sh[ax] = len(v1) if v1.dtype == int else v1.sum()
                     rd[ax] = None
 
         # ------------------------

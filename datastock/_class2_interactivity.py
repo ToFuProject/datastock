@@ -471,6 +471,9 @@ def get_fupdate(handle=None, dtype=None, norm=None, bstr=None):
     elif dtype in ['data.T']:   # Also works for imshow
         def func(val, handle=handle):
             handle.set_data(val.T)
+    elif dtype in ['xy']:   # works for filled polygons
+        def func(val, handle=handle):
+            handle.set_xy(val)
     elif dtype in ['alpha']:   # Also works for imshow
         def func(val, handle=handle, norm=norm):
             handle.set_alpha(norm(val))
