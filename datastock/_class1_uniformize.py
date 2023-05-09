@@ -111,8 +111,11 @@ def get_ref_vector(
                 or (vv is not None and v0[ss] == vv)
                 for ss, vv in lp
             ])
-            and (key is None or k0 == key)
         ]
+
+        # particular case
+        if key is not None and key in lk_vect:
+            lk_vect = [key]
 
         # cases
         if len(lk_vect) == 0:
