@@ -98,13 +98,19 @@ def _check(
             continue
 
         # v0 is dict
-        if isinstance(v0, (list, tuple)):
+        ltyp = (list, tuple, np.ndarray)
+        if isinstance(v0, ltyp):
+            domain[k0] = {'domain': v0}
+        elif np.isscalar(v0):
             domain[k0] = {'domain': v0}
 
         c0 = (
             isinstance(domain[k0], dict)
             and any(ss in ['ind', 'domain'] for ss in domain[k0].keys())
-            and isinstance(domain[k0].get('domain', []), (list, tuple))
+            and (
+                isinstance(domain[k0].get('domain'), ltyp)
+                or np.isscalar(domain[k0].get('domain', 0))
+            )
             and isinstance(domain[k0].get('ind', np.r_[0]), np.ndarray)
         )
         if not c0:
@@ -165,7 +171,8 @@ def _check_domain(dom=None):
         and len(dom) == 2
         and all(np.isscalar(dd) for dd in dom)
         and dom[0] <= dom[1],
-        all(
+        hasattr(dom, '__iter__')
+        and all(
             isinstance(dd, (list, tuple))
             and len(dd) == 2
             and all(np.isscalar(di) for di in dd)

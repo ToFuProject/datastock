@@ -895,8 +895,9 @@ def _get_ddata(
         # apply domain
         if dvect is not None:
             for k1, v1 in dvect.items():
-                if coll.ddata[k1]['ref'][0] in coll.ddata[k0]['ref']:
-                    ax = coll.ddata[k0]['ref'].index(coll.ddata[k1]['ref'][0])
+                ref = coll.ddata[k1]['ref'][0]
+                if ref in coll.ddata[k0]['ref']:
+                    ax = coll.ddata[k0]['ref'].index(ref)
                     sli = tuple([
                         v1 if ii == ax else slice(None)
                         for ii in range(data.ndim)
@@ -951,7 +952,7 @@ def _get_dout(
             ss for ii, ss in enumerate(sh) if ii not in daxis[k0]
         ])
 
-        # ------------------
+        # ---------------
         # x shape and ref
 
         # shx, rx
