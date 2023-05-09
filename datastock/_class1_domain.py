@@ -98,13 +98,19 @@ def _check(
             continue
 
         # v0 is dict
-        if isinstance(v0, (list, tuple)):
+        ltyp = (list, tuple, np.ndarray)
+        if isinstance(v0, ltyp):
+            domain[k0] = {'domain': v0}
+        elif np.isscalar(v0):
             domain[k0] = {'domain': v0}
 
         c0 = (
             isinstance(domain[k0], dict)
             and any(ss in ['ind', 'domain'] for ss in domain[k0].keys())
-            and isinstance(domain[k0].get('domain', []), (list, tuple))
+            and (
+                isinstance(domain[k0].get('domain'), ltyp)
+                or np.isscalar(domain[k0].get('domain', 0))
+            )
             and isinstance(domain[k0].get('ind', np.r_[0]), np.ndarray)
         )
         if not c0:
@@ -133,7 +139,7 @@ def _check(
                 ind2 = np.zeros((vsize,), dtype=bool)
                 ind2[ind] = True
                 domain[k0]['ind'] = ind2
-                
+
             if domain[k0]['ind'].size != vsize:
                 msg = (
                     f"Wrong size for domain['{k0}']['ind']:\n"
@@ -159,21 +165,29 @@ def _check(
 
 def _check_domain(dom=None):
 
+    # 3 possibilities
     lc = [
         isinstance(dom, (list, tuple))
         and len(dom) == 2
         and all(np.isscalar(dd) for dd in dom)
         and dom[0] <= dom[1],
-        all(
+        hasattr(dom, '__iter__')
+        and all(
             isinstance(dd, (list, tuple))
             and len(dd) == 2
             and all(np.isscalar(di) for di in dd)
             and dd[0] <= dd[1]
             for dd in dom
-        )
+        ),
+        np.isscalar(dom) or np.array(dom).size == 1,
     ]
+
+    # adjust
     if lc[0]:
         dom = [dom]
+    elif lc[2]:
+        if not isinstance(dom, (float, int)):
+            dom = np.array(dom).ravel()[0]
     elif not lc[1]:
         msg = "be a list of tuples or lists of len() = 2!"
         return None, msg
@@ -191,6 +205,15 @@ def _set_ind_from_domain(
     vect=None,
     domain=None,
 ):
+
+    # ------------
+    # scalar
+
+    if np.isscalar(domain):
+        indi = np.nanargmin(np.abs(vect - domain))
+        ind = np.zeros(vect.shape, dtype=bool)
+        ind[indi] = True
+        return ind
 
     # -----------------
     # sort intervals
