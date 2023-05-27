@@ -541,7 +541,8 @@ def get_ref_vector_common(
 
             else:
                 # increments
-                val = np.linspace(b0, b1, int(np.ceil((b1-b0)/ld[imin])))
+                # val = np.linspace(b0, b1, int(np.ceil((b1-b0)/ld[imin])))
+                val = lv[1]
                 key_vector = None
 
             # indices dict
