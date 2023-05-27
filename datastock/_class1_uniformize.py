@@ -113,6 +113,10 @@ def get_ref_vector(
             ])
         ]
 
+        # particular case
+        if key is not None and key in lk_vect:
+            lk_vect = [key]
+
         # cases
         if len(lk_vect) == 0:
             if warn is True:
