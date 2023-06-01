@@ -286,7 +286,6 @@ def get_files(
                     for p0 in patterns
                 ])
         ])
-        print(pfe)
     
     # ---------------------
     # format pfe into dpfe
@@ -327,7 +326,7 @@ def get_files(
             msg = (
                 "Arg dpath must be a dict with:\n"
                 "\t- keys: valid paths\n"
-                "\t- values: dict with 'patterns' xor 'pfe'"
+                "\t- values: dict with 'patterns' xor 'pfe'\n"
                 f"Provided:\n{dpath}"
             )
             raise Exception(msg)
