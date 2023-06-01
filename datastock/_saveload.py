@@ -211,6 +211,8 @@ def get_files(
         - keys: valid path
         - values: dict with 'patterns' or 'pfe'
     
+    If pattern is (or contains) tuples, the str in tuples are exclusive
+    
     """
     
     # ------
@@ -268,17 +270,23 @@ def get_files(
     
     if patterns is not None:
         
-        if isinstance(patterns, str):
+        if isinstance(patterns, (str, tuple)):
             patterns = [patterns]
         
-        if not all([isinstance(pp, str) for pp in patterns]):
-            msg = f"Arg patterns must be a list of str!\n{patterns}"
+        if not all([isinstance(pp, (str, tuple)) for pp in patterns]):
+            msg = f"Arg patterns must be a list of str / tuple!\n{patterns}"
             raise Exception(msg)
         
         pfe = sorted([
             os.path.join(path, ff) for ff in os.listdir(path)
-            if all([pp in ff for pp in patterns])
+            if os.path.isfile(os.path.join(path, ff))
+            if all([
+                    p0 in ff if isinstance(p0, str) 
+                    else all([p1 not in ff for p1 in p0])
+                    for p0 in patterns
+                ])
         ])
+        print(pfe)
     
     # ---------------------
     # format pfe into dpfe
@@ -308,7 +316,7 @@ def get_files(
                     isinstance(v0, (str, list))
                     or (
                         isinstance(v0, dict)
-                        and isinstance(v0.get('patterns', ''), (list, str))
+                        and isinstance(v0.get('patterns', ''), (list, str, tuple))
                         and isinstance(v0.get('pfe', ''), (list, str))
                     )
                 )
@@ -332,7 +340,6 @@ def get_files(
         # append list of files
         dpfe = {}
         for k0, v0 in dpath.items():
-            
             dpfe.update(get_files(
                 path=k0,
                 pfe=v0.get('pfe'),
