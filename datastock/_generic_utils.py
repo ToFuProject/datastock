@@ -8,10 +8,10 @@ import astropy.units as asunits
 from . import _generic_check
 
 
-# #################################################################
-# #################################################################
+# ###############################################################
+# ###############################################################
 #                   Pretty printing
-# #################################################################
+# ###############################################################
 
 
 def _pretty_print_check(
@@ -234,10 +234,10 @@ def pretty_print(
         return msg
 
 
-# #################################################################
-# #################################################################
+# ###############################################################
+# ###############################################################
 #                   Compare dict
-# #################################################################
+# ###############################################################
 
 
 def _compare_dict_verb_return(dout, returnas, verb):
@@ -266,7 +266,13 @@ def _compare_dict_verb_return(dout, returnas, verb):
         return True
 
 
-def compare_dict(d0=None, d1=None, dname=None, returnas=None, verb=None):
+def compare_dict(
+    d0=None,
+    d1=None,
+    dname=None,
+    returnas=None,
+    verb=None,
+):
 
     # ------------
     # check inputs
@@ -414,7 +420,7 @@ def compare_obj(obj0=None, obj1=None, returnas=None, verb=None):
         raise Exception(msg)
 
     # -----------
-    # Check 
+    # Check
 
     return compare_dict(
         d0=obj0.to_dict(),
@@ -425,20 +431,20 @@ def compare_obj(obj0=None, obj1=None, returnas=None, verb=None):
     )
 
 
-# #################################################################
-# #################################################################
-#               Flatten / reshape dict                 
-# #################################################################
+# ###############################################################
+# ###############################################################
+#               Flatten / reshape dict
+# ###############################################################
 
 
 def flatten_dict(
-        din=None, 
-        parent_key=None, 
-        sep=None,
-        asarray=None,
-        with_types=None,
-        type_str=None,
-    ):
+    din=None,
+    parent_key=None,
+    sep=None,
+    asarray=None,
+    with_types=None,
+    type_str=None,
+):
     """ Return a flattened version of the input dict """
 
     # ------------
@@ -465,7 +471,7 @@ def flatten_dict(
         default=False,
         types=bool,
     )
-    
+
     # with_types
     with_types = _generic_check._check_var(
         with_types, 'with_types',
@@ -476,7 +482,7 @@ def flatten_dict(
     # with_types
     type_str = _generic_check._check_var(
         type_str, 'type_str',
-        default='_type',
+        default='__type',
         types=str,
     )
 
@@ -510,25 +516,25 @@ def flatten_dict(
                     type_str=type_str,
                 ).items()
             )
-            
+
         else:
-            
+
             # get class
             cc = v0.__class__.__name__
-            
+
             # store type?
             if with_types:
-                dtypes[f'{key}{type_str}'] = cc                
-            
+                dtypes[f'{key}{type_str}'] = cc
+
             # asarray
             if asarray:
-                
+
                 # astropy unit to str
                 if 'Unit' in cc:
                     v0 = str(v0)
 
                 items.append((key, np.asarray(v0)))
-                
+
             else:
                 items.append((key, v0))
 
