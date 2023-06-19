@@ -100,7 +100,7 @@ def save(
 
 def load(
     pfe=None,
-    clsname=None,
+    cls=None,
     allow_pickle=None,
     sep=None,
     verb=None,
@@ -109,10 +109,24 @@ def load(
     # -------------
     # check inputs
 
+    # pfe
     if not os.path.isfile(pfe):
         msg = f"Arg pfe must be a valid path to a file!\n\t- Provided: {pfe}"
         raise Exception(msg)
 
+    # cls
+    if cls is None:
+        from ._class import DataStock
+        cls = DataStock
+
+    if not (type(cls) is type and hasattr(cls, 'from_dict')):
+        msg = (
+            "Arg cls must be a class with method 'from_dict()'\n"
+            f"\t- Provided: {cls}"
+        )
+        raise Exception(msg)
+
+    # allow_pickle
     allow_pickle = _generic_check._check_var(
         allow_pickle, 'allow_pickle',
         default=True,
@@ -180,9 +194,7 @@ def load(
     # -----------
     # Instanciate
 
-    from ._class import DataStock
-
-    obj = DataStock.from_dict(dout)
+    obj = cls.from_dict(dout)
 
     if verb:
         msg = f"Loaded from\n\t{pfe}"
