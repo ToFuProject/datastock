@@ -517,6 +517,7 @@ def get_ref_vector_common(
     keys = list(dkeys.keys())
     refs = [v0['ref'] for v0 in dkeys.values() if v0['ref'] is not None]
     keysv = [v0['key_vect'] for v0 in dkeys.values() if v0['key_vect'] is not None]
+    assert len(refs) == len(keysv)
 
     # strategy
     strategy = _generic_check._check_var(
@@ -545,8 +546,11 @@ def get_ref_vector_common(
 
     else:
         hasref = True
-        lrefu = list([v0['ref'] for k0, v0 in dkeys.items()])
-        lkeyu = list([v0['key_vect'] for k0, v0 in dkeys.items()])
+
+        lkeyu = list(set(keysv))
+        lrefu = []
+        for ii, kv in enumerate(lkeyu):
+            lrefu.append(refs[keysv.index(kv)])
 
         if len(lkeyu) == 1:
             key_vector = lkeyu[0]
@@ -658,11 +662,6 @@ def get_ref_vector_common(
                     val=val,
                 )
 
-            # -------------- DEBUG ---------
-            if 'eq.nt' in lrefu and 'nt' in lrefu:
-                import pdb; pdb.set_trace()     # DB
-            # ------------------------------
-
         else:
             val = ddata[key_vector]['data']
 
@@ -693,11 +692,6 @@ def get_ref_vector_common(
         ref = ddata[key_vector]['ref'][0]
     else:
         ref = None
-
-    # -------------- DEBUG ---------
-    if 'eq.nt' in lrefu and 'nt' in lrefu:
-        import pdb; pdb.set_trace()     # DB
-    # ------------------------------
 
     return hasref, ref, key_vector, val, dkeys
 
