@@ -451,7 +451,7 @@ def get_ref_vector_common(
     ind_strict=None,
 ):
     """ Return a common ref vector for all data
-    
+
     For example if several data are based on different time vectors
     This routine helps identify a common time vector according to strategy:
         - 'dt_min': picks the time vector with smallest time step
@@ -459,15 +459,15 @@ def get_ref_vector_common(
         - key/ref:  force-pick the time vector of choice
 
     Additionally, stragety_bounds:
-        - 
+        -
 
     Additionally, ind_strict:
         - False: no additional constraint
-        - True: 
+        - True:
 
     Additionally, indices:
         - None
-        - 
+        -
 
     Additionally values:
 
@@ -932,13 +932,13 @@ def _uniformize_check(
     return keys, refs, param, dparam, dkeypar, returnas
 
 
-
 def uniformize(
     coll=None,
     keys=None,
     refs=None,
     param=None,
     lparam=None,
+    ref_vector_strategy=None,
     returnas=None,
 ):
 
@@ -966,6 +966,7 @@ def uniformize(
     for k0, v0 in dparam.items():
         hasref, ref, key, val, dind = coll.get_ref_vector_common(
             keys=v0['keys'],
+            strategy=ref_vector_strategy,
             **{param: k0},
         )
 

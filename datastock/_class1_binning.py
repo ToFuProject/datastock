@@ -29,6 +29,7 @@ def binning(
     ref_key=None,
     bins=None,
     safety_ratio=None,
+    ref_vector_strategy=None,
 ):
     """ Return the binned data
 
@@ -43,6 +44,7 @@ def binning(
         keys=keys,
         ref_key=ref_key,
         only1d=True,
+        ref_vector_strategy=ref_vector_strategy,
     )
 
     # because 1d only
@@ -97,6 +99,7 @@ def _check_keys(
     keys=None,
     ref_key=None,
     only1d=None,
+    ref_vector_strategy=None,
 ):
 
     # only1d
@@ -142,7 +145,10 @@ def _check_keys(
                 kwd = {'ref': rr}
             else:
                 kwd = {'key': rr}
-            hasref, hasvect, ref, ref_key[ii] = coll.get_ref_vector(**kwd)[:4]
+            hasref, hasvect, ref, ref_key[ii] = coll.get_ref_vector(
+                strategy=ref_vector_strategy,
+                **kwd,
+            )[:4]
 
             if not (hasref and hasvect):
                 msg = (
