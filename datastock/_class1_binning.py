@@ -146,7 +146,6 @@ def _check_keys(
             else:
                 kwd = {'key': rr}
             hasref, hasvect, ref, ref_key[ii] = coll.get_ref_vector(
-                strategy=ref_vector_strategy,
                 **kwd,
             )[:4]
 
@@ -182,6 +181,7 @@ def _check_keys(
     if ref_key is None:
         hasref, ref, ref_key, val, dkeys = coll.get_ref_vector_common(
             keys=keys,
+            strategy=ref_vector_strategy,
         )
         if ref_key is None:
             msg = (
