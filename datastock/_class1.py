@@ -638,6 +638,9 @@ class DataStock1(DataStock0):
         quant=None,
         name=None,
         units=None,
+        # strategy for choosing common ref vector
+        strategy=None,
+        strategy_bounds=None,
         # values, indices
         values=None,
         indices=None,
@@ -667,6 +670,9 @@ class DataStock1(DataStock0):
             quant=quant,
             name=name,
             units=units,
+            # strategy for choosing common ref vector
+            strategy=strategy,
+            strategy_bounds=strategy_bounds,
             # parameters
             values=values,
             indices=indices,
@@ -717,6 +723,7 @@ class DataStock1(DataStock0):
         keys=None,
         ref_key=None,
         bins=None,
+        ref_vector_strategy=None,
     ):
         """ Bin data along ref_key
 
@@ -735,6 +742,7 @@ class DataStock1(DataStock0):
             keys=keys,
             ref_key=ref_key,
             bins=bins,
+            ref_vector_strategy=ref_vector_strategy,
         )
 
     # ---------------------

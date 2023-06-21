@@ -113,6 +113,10 @@ def get_ref_vector(
             ])
         ]
 
+        # particular case
+        if key is not None and key in lk_vect:
+            lk_vect = [key]
+
         # cases
         if len(lk_vect) == 0:
             if warn is True:
@@ -438,11 +442,36 @@ def get_ref_vector_common(
     quant=None,
     name=None,
     units=None,
+    # strategy for choosing common ref vector
+    strategy=None,
+    strategy_bounds=None,
     # parameters
     values=None,
     indices=None,
     ind_strict=None,
 ):
+    """ Return a common ref vector for all data
+
+    For example if several data are based on different time vectors
+    This routine helps identify a common time vector according to strategy:
+        - 'dt_min': picks the time vector with smallest time step
+        - 'dt_max': picks the time vector with largest time step
+        - key/ref:  force-pick the time vector of choice
+
+    Additionally, stragety_bounds:
+        -
+
+    Additionally, ind_strict:
+        - False: no additional constraint
+        - True:
+
+    Additionally, indices:
+        - None
+        -
+
+    Additionally values:
+
+    """
 
     # ------------
     # check inputs
@@ -486,6 +515,24 @@ def get_ref_vector_common(
             }
 
     keys = list(dkeys.keys())
+    refs = [v0['ref'] for v0 in dkeys.values() if v0['ref'] is not None]
+    keysv = [v0['key_vect'] for v0 in dkeys.values() if v0['key_vect'] is not None]
+    assert len(refs) == len(keysv)
+
+    # strategy
+    strategy = _generic_check._check_var(
+        strategy, 'strategy',
+        types=str,
+        default='dt_min',
+        allowed=['dt_min', 'dt_max'] + refs + keysv,
+    )
+
+    # strategy_bounds
+    strategy_bounds = _generic_check._check_var(
+        strategy_bounds, 'strategy_bounds',
+        default='min' if strategy in ['dt_min', 'dt_max'] else False,
+        allowed=['min', False],
+    )
 
     # ------------
     # list unique ref, key_vector
@@ -499,8 +546,11 @@ def get_ref_vector_common(
 
     else:
         hasref = True
-        lrefu = list([v0['ref'] for k0, v0 in dkeys.items()])
-        lkeyu = list([v0['key_vect'] for k0, v0 in dkeys.items()])
+
+        lkeyu = list(set(keysv))
+        lrefu = []
+        for ii, kv in enumerate(lkeyu):
+            lrefu.append(refs[keysv.index(kv)])
 
         if len(lkeyu) == 1:
             key_vector = lkeyu[0]
@@ -516,35 +566,61 @@ def get_ref_vector_common(
 
     # common vector
     val = None
-    if hasref:
+    if hasref is True:
         if key_vector is None:
 
             lv = [ddata[k0]['data'] for k0 in lkeyu]
 
-            # bounds
-            b0 = np.max([np.min(vv) for vv in lv])
-            b1 = np.min([np.max(vv) for vv in lv])
-
-            # check bounds
-            if b0 >= b1:
-                msg = "Non valid common vector values could be identified!"
-                raise Exception(msg)
+            # ---------------------------
+            # Strategy for choosing ref / key_vector
 
             # check if ready-made solution exists
             ld = [np.min(np.diff(vv)) for vv in lv]
-            imin = np.argmin(np.abs(ld))
+            if strategy == 'dt_min':
+                i0 = np.argmin(np.abs(ld))
 
-            if np.all((lv[imin] >= b0) & (lv[imin] <= b1)):
-                # the finest vector is all included in bounds
-                key_vector = lkeyu[imin]
-                val = lv[imin]
+            elif strategy == 'dt_max':
+                i0 = np.argmax(np.abs(ld))
 
             else:
-                # increments
-                val = np.linspace(b0, b1, int(np.ceil((b1-b0)/ld[imin])))
-                key_vector = None
+                i0 = [
+                    ii for ii, k0 in enumerate(lkeyu)
+                    if k0 == strategy or lrefu[ii] == strategy
+                ]
+                assert len(i0) == 1
+                i0 = i0[0]
 
+            # -----------------------------
+            # strategy regarding boundaries
+
+            if strategy_bounds == 'min':
+
+                # bounds
+                b0 = np.max([np.min(vv) for vv in lv])
+                b1 = np.min([np.max(vv) for vv in lv])
+
+                # check bounds
+                if b0 >= b1:
+                    msg = "Non valid common vector values could be identified!"
+                    raise Exception(msg)
+
+                if np.all((lv[i0] >= b0) & (lv[i0] <= b1)):
+                    # the finest vector is all included in bounds
+                    key_vector = lkeyu[i0]
+                    val = lv[i0]
+
+                else:
+                    # increments
+                    val = np.linspace(b0, b1, int(np.ceil((b1-b0)/ld[i0]) + 2))
+                    # val = lv[1]
+                    key_vector = None
+            else:
+                key_vector = lkeyu[i0]
+                val = lv[i0]
+
+            # -------------
             # indices dict
+
             for k0, v0 in dkeys.items():
                 ind, indok = _get_ref_vector_nearest(
                     ddata[v0['key_vect']]['data'],
@@ -555,9 +631,11 @@ def get_ref_vector_common(
 
             iok = np.all([v0['indok'] for v0 in dkeys.values()], axis=0)
 
-            # adjust
+            # -------------------------
+            # adjust if ind_strict
+
             if not np.all(iok):
-                if key_vector is None or ind_strict:
+                if key_vector is None and ind_strict:
                     val = val[iok]
                     # TBC
                     # for k0, v0 in dkeys.items():
@@ -566,7 +644,9 @@ def get_ref_vector_common(
                     # if key_vector is not None:
                         # key_vector = None
 
+            # ----------------------------------------------
             # try to identify identical pre-existing vector
+
             if key_vector is None:
                 key_vector = _get_ref_vector_find_identical(
                     # ressources
@@ -846,13 +926,13 @@ def _uniformize_check(
     return keys, refs, param, dparam, dkeypar, returnas
 
 
-
 def uniformize(
     coll=None,
     keys=None,
     refs=None,
     param=None,
     lparam=None,
+    ref_vector_strategy=None,
     returnas=None,
 ):
 
@@ -880,6 +960,7 @@ def uniformize(
     for k0, v0 in dparam.items():
         hasref, ref, key, val, dind = coll.get_ref_vector_common(
             keys=v0['keys'],
+            strategy=ref_vector_strategy,
             **{param: k0},
         )
 
