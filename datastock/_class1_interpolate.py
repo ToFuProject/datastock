@@ -36,6 +36,7 @@ def interpolate(
     domain=None,
     # common ref
     ref_com=None,
+    ref_vector_strategy=None,
     # parameters
     deg=None,
     deriv=None,
@@ -77,6 +78,7 @@ def interpolate(
         keys=keys,
         ref_key=ref_key,
         only1d=False,
+        ref_vector_strategy=ref_vector_strategy,
     )
 
     # params
