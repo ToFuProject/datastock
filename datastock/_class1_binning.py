@@ -407,41 +407,25 @@ def _bin(
         indi = list(range(data.ndim-1))
         indi.insert(axis, None)
 
-        # Not clear which is faster
-        if True:
-            # get indices
-            ind0 = np.searchsorted(
-                bins,
-                vect,
-                sorter=None,
-            )
-            assert np.allclose(np.unique(vect), vect)
+        # get indices
+        ind0 = np.searchsorted(
+            bins,
+            vect,
+            sorter=None,
+        )
+        assert np.allclose(np.unique(vect), vect)
 
-            # ind
-            ind = np.r_[0, np.where(np.diff(ind0))[0]]
+        # ind
+        ind = np.r_[0, np.where(np.diff(ind0))[0]]
 
-            # neutralize nans
-            data[np.isnan(data)] = 0.
+        # neutralize nans
+        data[np.isnan(data)] = 0.
 
-            # sum
-            data = np.add.reduceat(data, ind, axis=axis, out=val)
+        # reshape dv
+        dvshape = [-1 if ii == axis else 1 for ii in range(len(shape))]
+        dv = dv.reshape(dvshape)
 
-
-        else:
-            # loop on indices
-            for ind in itt.product(*linds):
-
-                sli = tuple([
-                    slice(None) if ii == axis else ind[indi[ii]]
-                    for ii in range(len(shape))
-                ])
-
-                # bin
-                val[sli] = scpst.binned_statistic(
-                    vect,
-                    data[sli] * dv,
-                    bins=bins,
-                    statistic=np.nansum,
-                )[0]
+        # sum
+        data = np.add.reduceat(data*dv, ind, axis=axis, out=val)
 
     return val
