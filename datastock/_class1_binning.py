@@ -352,32 +352,54 @@ def _bin(
     axis=None,
 ):
 
+    # ----------------------------
+    # select only relevant indices
+
     indin = (vect >= bins[0]) & (vect <= bins[-1])
+
+    # shape
+    shape = list(data.shape)
+    shape[axis] = int(bins.size - 1)
+    val = np.zeros(tuple(shape), dtype=data.dtype)
+
+    # -------------
+    # safety check
+
+    if not np.any(indin):
+        return val
+
+    # -------------
+    # subset
+
+    # vect, dv
     vect = vect[indin]
     dv = dv[indin]
+
+    # data
+    sli = tuple([
+        indin if ii == axis else slice(None)
+        for ii in range(data.ndim)
+    ])
+    data = data[sli]
+
+    # ------------
+    # dim == 1
 
     if data.ndim == 1:
 
         val = scpst.binned_statistic(
             vect,
-            data[indin] * dv,
+            data * dv,
             bins=bins,
             statistic=np.nansum,
         )[0]
 
+    # ------------
+    # dim > 1
+
     else:
 
-        # remove out
-        sli = tuple([
-            indin if ii == axis else slice(None)
-            for ii in range(data.ndim)
-        ])
-
-        data = data[sli]
-
         # shape
-        shape = list(data.shape)
-        shape[axis] = int(bins.size - 1)
         shape_other = np.r_[shape[:axis], shape[axis+1:]].astype(int)
 
         # indices
@@ -385,22 +407,41 @@ def _bin(
         indi = list(range(data.ndim-1))
         indi.insert(axis, None)
 
-        # initialize val
-        val = np.zeros(tuple(shape), dtype=data.dtype)
-
-        for ind in itt.product(*linds):
-
-            sli = tuple([
-                slice(None) if ii == axis else ind[indi[ii]]
-                for ii in range(len(shape))
-            ])
-
-            # bin
-            val[sli] = scpst.binned_statistic(
+        # Not clear which is faster
+        if True:
+            # get indices
+            ind0 = np.searchsorted(
+                bins,
                 vect,
-                data[sli] * dv,
-                bins=bins,
-                statistic=np.nansum,
-            )[0]
+                sorter=None,
+            )
+            assert np.allclose(np.unique(vect), vect)
+
+            # ind
+            ind = np.r_[0, np.where(np.diff(ind0))[0]]
+
+            # neutralize nans
+            data[np.isnan(data)] = 0.
+
+            # sum
+            data = np.add.reduceat(data, ind, axis=axis, out=val)
+
+
+        else:
+            # loop on indices
+            for ind in itt.product(*linds):
+
+                sli = tuple([
+                    slice(None) if ii == axis else ind[indi[ii]]
+                    for ii in range(len(shape))
+                ])
+
+                # bin
+                val[sli] = scpst.binned_statistic(
+                    vect,
+                    data[sli] * dv,
+                    bins=bins,
+                    statistic=np.nansum,
+                )[0]
 
     return val
