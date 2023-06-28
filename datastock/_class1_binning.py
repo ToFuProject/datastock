@@ -422,16 +422,21 @@ def _bin(
 
         # ind
         indu = np.unique(ind0 - 1)
-        sli = tuple([
-            indu if ii == axis else slice(None)
-            for ii in range(data.ndim)
-        ])
-
+        
         # cases
         if indu.size == 1:
+            sli = tuple([
+                indu[0] if ii == axis else slice(None)
+                for ii in range(data.ndim)
+            ])
             val[sli] = np.nansum(data*dv, axis=axis)
 
         elif indu.size > 1:
+
+            sli = tuple([
+                indu if ii == axis else slice(None)
+                for ii in range(data.ndim)
+            ])            
 
             # neutralize nans
             data[np.isnan(data)] = 0.
