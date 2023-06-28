@@ -355,7 +355,7 @@ def _bin(
     # ----------------------------
     # select only relevant indices
 
-    indin = (vect >= bins[0]) & (vect <= bins[-1])
+    indin = (vect >= bins[0]) & (vect < bins[-1])
 
     # shape
     shape = list(data.shape)
@@ -402,6 +402,10 @@ def _bin(
         # shape
         shape_other = np.r_[shape[:axis], shape[axis+1:]].astype(int)
 
+        # reshape dv
+        dvshape = [-1 if ii == axis else 1 for ii in range(len(shape))]
+        dv = dv.reshape(dvshape)
+
         # indices
         linds = [range(nn) for nn in shape_other]
         indi = list(range(data.ndim-1))
@@ -413,19 +417,31 @@ def _bin(
             vect,
             sorter=None,
         )
+        ind0[ind0 == 0] = 1
         assert np.allclose(np.unique(vect), vect)
 
         # ind
-        ind = np.r_[0, np.where(np.diff(ind0))[0]]
+        indu = np.unique(ind0 - 1)
+        sli = tuple([
+            indu if ii == axis else slice(None)
+            for ii in range(data.ndim)
+        ])
 
-        # neutralize nans
-        data[np.isnan(data)] = 0.
+        # cases
+        if indu.size == 1:
+            val[sli] = np.nansum(data*dv, axis=axis)
 
-        # reshape dv
-        dvshape = [-1 if ii == axis else 1 for ii in range(len(shape))]
-        dv = dv.reshape(dvshape)
+        elif indu.size > 1:
 
-        # sum
-        val = np.add.reduceat(data*dv, ind, axis=axis, out=val)
+            # neutralize nans
+            data[np.isnan(data)] = 0.
+            ind = np.r_[0, np.where(np.diff(ind0))[0] + 1]
+
+            # sum
+            val[sli] = np.add.reduceat(data*dv, ind, axis=axis)
+
+        else:
+            import pdb; pdb.set_trace()     # DB
+            pass
 
     return val
