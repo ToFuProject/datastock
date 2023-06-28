@@ -426,6 +426,6 @@ def _bin(
         dv = dv.reshape(dvshape)
 
         # sum
-        data = np.add.reduceat(data*dv, ind, axis=axis, out=val)
+        val = np.add.reduceat(data*dv, ind, axis=axis, out=val)
 
     return val
