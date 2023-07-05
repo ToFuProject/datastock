@@ -7,6 +7,19 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
+__all__ = [
+    '_check_var',
+    '_check_var_iter',
+    '_check_flat1darray',
+    '_check_dict_valid_keys',
+    '_check_vectbasis',
+    '_obj_key',
+    '_check_dax',
+    '_apply_dlim',
+    '_check_cmap_vminvmax',
+]
+
+
 _LALLOWED_AXESTYPES = [
     None,
     'cross', 'hor',
