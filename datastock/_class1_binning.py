@@ -106,23 +106,29 @@ def binning(
     # --------------
     # actual binning
 
-    if dbins1 is None:
-
-        for k0, v0 in dout.items():
-            dout[k0]['data'] = _bin(
-                bins0=dbins0['edges'],
-                bins1=None if dbins1 is None else dbins1['edges'],
-                vect0=dbins0['data'],
-                vect1=dbins1['data'],
-                data=ddata[k0]['data'],
-                axis=dbins0['axis'],
-            )
+    dout = {}
+    for k0, v0 in dout.items():
+        
+        dout[k0] = {}
+        
+        dout[k0]['data'] = _bin(
+            bins0=dbins0['edges'],
+            bins1=None if dbins1 is None else dbins1['edges'],
+            vect0=dbins0['data'],
+            vect1=None if dbins1 is None else dbins1['data'],
+            data=ddata[k0]['data'],
+            axis=axis,
+            variable_data=variable_data,
+            variable_bin=variable_bin,
+        )
+        
+        dout[k0]['units'] = ddata[k0]['units']
+        
+        if coll.ddata[k0]['ref'] is not None:
             ref = list(coll.ddata[k0]['ref'])
             ref[daxis[k0]] = None
             dout[k0]['ref'] = tuple(ref)
 
-    else:
-        pass
     return dout
 
 
@@ -159,16 +165,17 @@ def _check(
         data = [data]
     assert isinstance(data, list)
 
-    # identify case: str vs array
+    # identify case: str vs array, all with same ndim
     lc = [
         all([
             isinstance(dd, str)
             and dd in coll.ddata.keys()
-            and coll.ddata[dd]['ref'] == coll.ddata[data[0]]['ref']
+            and coll.ddata[dd]['data'].ndim == coll.ddata[data[0]]['data'].ndim
             for dd in data
         ]),
         all([
-            isinstance(dd, np.ndarray) and dd.shape == data[0].shape
+            isinstance(dd, np.ndarray)
+            and dd.ndim == data[0].ndim
             for dd in data
         ]),
     ]
@@ -207,7 +214,7 @@ def _check(
             for ii in range(len(data))
         }
         
-    shape_data = list(ddata.values())[0]['data'].shape
+    ndim_data = list(ddata.values())[0]['data'].ndim
         
     # --------------
     # axis
@@ -221,7 +228,7 @@ def _check(
         sign='>=0',
     )
     
-    if np.any(axis > len(shape_data) - 1):
+    if np.any(axis > ndim_data - 1):
         msg = f"axis too large\n{axis}"
         raise Exception(msg)
     
@@ -229,7 +236,7 @@ def _check(
         msg = f"axis must be adjacent indices!\n{axis}"
         raise Exception(msg)
     
-    variable_data = len(axis) < shape_data
+    variable_data = len(axis) < ndim_data
 
     # -----------------
     # check integrate
@@ -278,10 +285,10 @@ def _check(
     # ------------
 
     # dbins0
-    dbins0, _ = _check_bins(
+    dbins0, variable_bin0, _ = _check_bins(
         coll=coll,
+        axis=axis,
         ddata=ddata,
-        coll=coll,
         bin_data=bin_data0,
         bins=bins0,
         bin_units=bin_units0,
@@ -289,41 +296,48 @@ def _check(
 
     # dbins1
     if bin_data1 is not None:
-        dbins1, _ = _check_bins(
+        dbins1, variable_bin1, _ = _check_bins(
             coll=coll,
-            dref=dref,
-            dref_cam=dref_cam,
-            key_diag=key_diag,
-            key_cam=key_cam,
+            axis=axis,
+            ddata=ddata,
             bin_data=bin_data1,
             bins=bins1,
+            bin_units=None,
         )
+        
+        if variable_bin0 != variable_bin1:
+            msg = "bin_data0 and bin_data1 must have the same shapes!"
+            raise Exception(msg)
+        
     else:
         dbins1 = None
 
     # -----------------------
     # additional safety check
 
-    if integrate is True:
-
-        if dbins0['data'].ndim > 1:
-            msg = "Binned integration => only 1d bin_data usable"
-            raise Exception(msg)
+    if integrate is True:        
 
         for k0, v0 in ddata.items():
-            dv = np.diff(dbins0['data'])
-            dv = np.r_[dv[0], dv]
+        
+            dv = np.diff(dbins0[k0]['data'], axis=axis[0])
+            dv = np.concatenate(
+                (np.take(dv, [0], axis=axis[0]), dv),
+                axis=axis[0],
+            )
 
             # reshape
-            if v0['data'].ndim > 1:
-                shape_dv = [
-                    -1 if ii == axis[0] else 1
-                    for ii in range(v0['data'].shape)
-                ]
-                dv = dv.reshape(shape_dv)
+            if variable_data != variable_bin0:
+                
+                if variable_data:
+                    shape_dv = np.ones((ndim_data,), dtype=int)
+                    shape_dv[axis[0]] = -1
+                    dv = dv.reshape(tuple(shape_dv))
+                    
+                if variable_bin0:
+                    raise NotImplementedError()
 
             ddata[k0]['data'] = v0['data'] * dv
-            ddata[k0]['units'] = v0['units'] * dbins0['units']
+            ddata[k0]['units'] = v0['units'] * dbins0[k0]['units']
 
     return ddata, dbins0, dbins1, statistic
 
@@ -332,13 +346,12 @@ def _check_bins(
     coll=None,
     axis=None,
     ddata=None,
-    shape_data=None,
     bin_data=None,
     bins=None,
     bin_units=None,
     # if bsplines
-    safety_ratio=None,
     strict=None,
+    safety_ratio=None,
     deg=None,
 ):
 
@@ -360,6 +373,8 @@ def _check_bins(
         default=1.5,
         sign='>0.'
     )
+    
+    if strict is True and deg is None:
 
     # -------------
     # bin_data
@@ -376,56 +391,32 @@ def _check_bins(
     
     # case sorting
     lc = [
-        all([isinstance(bb, str) for bb in bin_data]),
+        all([isinstance(bb, str) and bb in coll.ddata for bb in bin_data]),
         all([isinstance(bb, np.ndarray) for bb in bin_data]),
     ]
     if np.sum(lc) != 1:
-        msg = "Arg bin_data must be a list of arrays or str matching len(data)"
+        msg = (
+            "Arg bin_data must be a list of:\n"
+            f"\t- np.ndarrays\n"
+            f"\t- keys to coll.ddata items\n"
+            f"Provided:\n{bin_data}"
+        )
         raise Exception(msg)
     
     # case with all str
     if lc[0]:
-
-        # lquant = ['etendue', 'amin', 'amax']  # 'los'
-        # lcomp = ['length', 'tangency radius', 'alpha']
-        # llamb = ['lamb', 'lambmin', 'lambmax', 'dlamb', 'res']
-        # lok_fixed = ['x0', 'x1'] + lquant + lcomp + llamb
-
-        lok = list(coll.ddata.keys())
-        bin_keys = _generic_check._check_var_iter(
-            bin_data, 'bin_data',
-            types=list,
-            types_iter=str,
-            allowed=lok,
-        )
-        
         # derive dbins
         dbins = {
             k0: {
-                'key': bin_keys[ii],
-                'data': coll.ddata[bin_keys[ii]]['data'],
-                'ref': coll.ddata[bin_keys[ii]]['ref'],
-                'units': coll.ddata[bin_keys[ii]]['units'],
+                'key': bin_data[ii],
+                'data': coll.ddata[bin_data[ii]]['data'],
+                'ref': coll.ddata[bin_data[ii]]['ref'],
+                'units': coll.ddata[bin_data[ii]]['units'],
             }
             for ii, k0 in enumerate(ddata.keys())
         }
 
     else:
-        
-        c0 = all([
-            
-        ])
-        shape = tuple([ss for ii, ss in shape_data if ii in axis])
-        if bin_data.shape != shape:
-            msg = (
-                "Arg bin_data.shape must be contained in adjacent indices  "
-                "of shape_data:\n"
-                f"\t- shape_bin = {bin_data.shape}\n"
-                f"\t- shape_data = {shape_data}"
-            )
-            raise Exception(msg)
-            
-        # derive dbins
         dbins = {
             k0: {
                 'key': None,
@@ -436,24 +427,49 @@ def _check_bins(
             for ii, k0 in enumerate(ddata.keys())
         }
 
-    # --------------------------------------------
-    # check non-axis shapes => should be the same
-    # --------------------------------------------
+    # -----------------------------------
+    # check nb of dimensions consistency
     
-    lshape_bin_other = [
-        tuple([ss for ii, ss in enumerate(v0['data'].shape) if ii not in axis])
-        for k0, v0 in dbins.items()
-    ]
-    
-    shape_bin_otheru = list(set(lshape_bin_other))
-    if len(shape_bin_otheru) != 1:
+    ldim = list(set([v0['data'].ndim for v0 in dbins.values()]))
+    if len(ldim) > 1:
         msg = (
+            "All bin_data provided must have the same nb of dimensions!\n"
+            f"Provided: {ldim}"
         )
         raise Exception(msg)
-    
-    # derive variable_bin
-    shape_bin_other = shape_bin_otheru[0]
-    variable_bin = len(shape_bin_other) > 0    
+        
+    ndim_bin = ldim[0]
+    variable_bin = ndim_bin > len(axis)
+
+    # -------------------------------
+    # check vs data shape along axis
+
+    ndim_data = list(ddata.values())[0]['data'].ndim
+    variable_data = len(axis) < ndim_data
+    for k0, v0 in dbins.items():
+        
+        shape_data = ddata[k0]['data'].shape
+        shape_bin = v0['data'].shape
+        
+        
+        if variable_bin == variable_data:
+            assert shape_data == v0['data'].shape
+
+        else:
+            if variable_data:
+                sh_var, sh_fix = shape_data, shape_bin
+            else:
+                sh_fix, sh_var = shape_data, shape_bin
+                
+            shape_axis = [ss for ii, ss in enumerate(sh_var) if ii in axis]
+            if sh_fix != tuple(shape_axis):
+                msg = (
+                    "Wrong shapes between data  vs bin_data!\n"
+                    f"\t- shape_data: {shape_data}\n"
+                    f"\t- shape_bin: {shape_bin}\n"
+                    f"\t- axis: {axis}\n"
+                )
+                raise Exception(msg) 
 
     # --------------
     # bins
@@ -489,36 +505,35 @@ def _check_bins(
             
         dbins[k0]['edges'] = bin_edges
 
-    # ----------
-    # bin method - TBF -------------------------------------------------------
-    # ----------
+    # ----------------------------------------
+    # safety check on bin sizes
+    # ----------------------------------------
 
-    if integrate is True:
+    npts = None
+    if len(axis) == 1:
         
         for k0, v0 in dbins.items():
-            if variable_bin:
+            
+            dv = np.abs(np.diff(v0['data'], axis=axis[0]))
+            dvmean = np.mean(dv) + np.std(dv)
+    
+            if strict is True:
                 
+                lim = safety_ratio * dvmean
+                if not np.mean(np.diff(bin_edges)) > lim:
+                    msg = (
+                        f"Uncertain binning for '{sorted(keys)}', ref vect '{ref_key}':\n"
+                        f"Binning steps ({db}) are < {safety_ratio}*ref ({lim}) vector step"
+                    )
+                    raise Exception(msg)
+        
+                else:
+                    npts = None
+        
             else:
-                dv = np.abs(np.diff(v0['data']))
-                dv = np.append(dv, dv[-1])
-                dvmean = np.mean(dv) + np.std(dv)
+                npts = (deg + 3) * max(1, dvmean / db)
 
-        if strict is True:
-            lim = safety_ratio*dvmean
-            if not np.mean(np.diff(bin_edges)) > lim:
-                msg = (
-                    f"Uncertain binning for '{sorted(keys)}', ref vect '{ref_key}':\n"
-                    f"Binning steps ({db}) are < {safety_ratio}*ref ({lim}) vector step"
-                )
-                raise Exception(msg)
-
-            else:
-                npts = None
-
-        else:
-            npts = (deg + 3) * max(1, dvmean / db)
-
-    return dbins, npts
+    return dbins, variable_bin, npts
 
 
 # ####################################
@@ -535,8 +550,8 @@ def _bin(
     bins1=None,
     axis=None,
     # integration
-    integrate=None,
-    dv=None,
+    variable_data=None,
+    variable_bin=None,
 ):
 
     # ----------------------------
