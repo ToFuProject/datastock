@@ -728,13 +728,13 @@ class DataStock1(DataStock0):
         bins1=None,
         bin_data0=None,
         bin_data1=None,
-        bin_units=None,
+        bin_units0=None,
         # kind of binning
         integrate=None,
         statistic=None,
         # options
         safety_ratio=None,
-        ref_vector_strategy=None,
+        dref_vector=None,
         store=None,
     ):
         """ Bin data along ref_key
@@ -759,12 +759,13 @@ class DataStock1(DataStock0):
             bins1=bins1,
             bin_data0=bin_data0,
             bin_data1=bin_data1,
-            bin_units=bin_units,
+            bin_units0=bin_units0,
             # kind of binning
             integrate=integrate,
             statistic=statistic,
             # options
-            safety_ratio=saftey_ratio,
+            safety_ratio=safety_ratio,
+            dref_vector=dref_vector,
             store=store,
         )
 

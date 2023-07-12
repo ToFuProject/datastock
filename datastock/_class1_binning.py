@@ -42,12 +42,13 @@ def binning(
     bins1=None,
     bin_data0=None,
     bin_data1=None,
-    bin_units=None,
+    bin_units0=None,
     # kind of binning
     integrate=None,
     statistic=None,
     # options
     safety_ratio=None,
+    dref_vector=None,
     ref_vector_strategy=None,
     store=None,
 ):
@@ -92,26 +93,12 @@ def binning(
     # checks
 
     # keys
-    ddata, dbins0, dbins1, statistic, dvariable, store = _check(
-        coll=coll,
-        data=data,
-        data_units=data_units,
-        # binning
-        bins0=bins0,
-        bins1=bins1,
-        bin_data0=bin_data0,
-        bin_data1=bin_data1,
-        bin_units=bin_units,
-        # kind of binning
-        integrate=integrate,
-        statistic=statistic,
-        safety_ratio=safety_ratio,
-        strict=True,
-        # options
-        only1d=True,
-        ref_vector_strategy=ref_vector_strategy,
-        store=store,
-    )
+    (
+     ddata, dbins0, dbins1, axis,
+     statistic, dvariable,
+     dref_vector,
+     store,
+     ) = _check(**locals())
 
     # --------------
     # actual binning
@@ -129,12 +116,18 @@ def binning(
                 data=v0['data'],
                 axis=axis,
                 variable_data=dvariable['data'],
+                statistic=statistic,
             )
             
             dout[k0]['units'] = v0['units']
                 
     else:
-        msg = "Variable bin vectors not implemented yet!"
+        msg = (
+            "Variable bin vectors not implemented yet!\n"
+            f"\t- axis: {axis}\n"
+            f"\t- bin_data0 variable: {dvariable['bin0']}\n"
+            f"\t- bin_data1 variable: {dvariable['bin1']}\n"
+        )
         raise NotImplementedError(msg)
 
     return dout
@@ -161,6 +154,7 @@ def _check(
     statistic=None,
     # options
     safety_ratio=None,
+    dref_vector=None,
     ref_vector_strategy=None,
     store=None,
 ):
@@ -245,7 +239,7 @@ def _check(
     # axis
     # -------------------
     
-    axis = _generic_check._check_flat1d_array(
+    axis = _generic_check._check_flat1darray(
         axis, 'axis',
         dtype=int,
         unique=True,
@@ -317,6 +311,7 @@ def _check(
         bin_data=bin_data0,
         bins=bins0,
         bin_units=bin_units0,
+        dref_vector=dref_vector,
         store=store,
     )
 
@@ -329,6 +324,7 @@ def _check(
             bin_data=bin_data1,
             bins=bins1,
             bin_units=None,
+            dref_vector=dref_vector,
             store=store,
         )
         
@@ -338,6 +334,7 @@ def _check(
         
     else:
         dbins1 = None
+        variable_bin1 = False
 
     # -----------------------
     # additional safety check
@@ -375,7 +372,12 @@ def _check(
         'bin1': variable_bin1,
     }
 
-    return ddata, dbins0, dbins1, statistic, dvariable, store
+    return (
+        ddata, dbins0, dbins1, axis,
+        statistic, dvariable,
+        dref_vector,
+        store,
+    )
 
 
 def _check_bins(
@@ -385,6 +387,7 @@ def _check_bins(
     bin_data=None,
     bins=None,
     bin_units=None,
+    dref_vector=None,
     store=None,
     # if bsplines
     strict=None,
@@ -421,12 +424,24 @@ def _check_bins(
     
     # check consistency
     if not (isinstance(bin_data, list) and len(bin_data) == len(ddata)):
-        msg = "Arg bin_data must be a list of len() == len(data)"
+        msg = (
+            "Arg bin_data must be a list of len() == len(data)\n"
+            f"\t- type(bin_data) = {type(bin_data)}\n"
+        )
+        if isinstance(bin_data, list):
+            msg += (
+                f"\t- len(data) = {len(ddata)}\n"
+                f"\t- len(bin_data) = {len(bin_data)}\n"
+            )
         raise Exception(msg)
     
     # case sorting
     lc = [
-        all([isinstance(bb, str) and bb in coll.ddata for bb in bin_data]),
+        all([
+            isinstance(bb, str) 
+            and (bb in coll.ddata or bb in coll.dref)
+            for bb in bin_data
+        ]),
         all([isinstance(bb, np.ndarray) for bb in bin_data]),
     ]
     if np.sum(lc) != 1:
@@ -448,15 +463,33 @@ def _check_bins(
     # case with all str
     if lc[0]:
         # derive dbins
-        dbins = {
-            k0: {
+        dbins = {}
+        for ii, k0 in enumerate(ddata.keys()):
+            
+            # if ref => identify vector
+            if bin_data[ii] in coll.dref.keys():
+                
+                if dref_vector is None:
+                    dref_vector = {}
+                    
+                key_vect = coll.get_ref_vector(
+                    ref=bin_data[ii],
+                    **dref_vector,
+                )[3]
+                
+                if key_vect is None:
+                    msg = "bin_data '{bin_data[ii]}' has no reference vector !"
+                    raise Exception(msg)
+                    
+                bin_data[ii] = key_vect
+            
+            # fill dict
+            dbins[k0] = {
                 'key': bin_data[ii],
                 'data': coll.ddata[bin_data[ii]]['data'],
                 'ref': coll.ddata[bin_data[ii]]['ref'],
                 'units': coll.ddata[bin_data[ii]]['units'],
             }
-            for ii, k0 in enumerate(ddata.keys())
-        }
 
     else:
         dbins = {
@@ -532,7 +565,7 @@ def _check_bins(
         )
 
     else:
-        bins = _generic_check._check_flat1d_array(
+        bins = _generic_check._check_flat1darray(
             bins, 'bins',
             dtype=float,
             unique=True,
@@ -587,13 +620,17 @@ def _check_bins(
         
         for k0, v0 in dbins.items():
             
-            dv = np.abs(np.diff(v0['data'], axis=axis[0]))
+            if variable_bin:
+                raise NotImplementedError()
+            else:
+                dv = np.abs(np.diff(v0['data']))
+                
             dvmean = np.mean(dv) + np.std(dv)
     
             if strict is True:
                 
                 lim = safety_ratio * dvmean
-                db = np.mean(np.diff(bin_edges))
+                db = np.mean(np.diff(dbins[k0]['edges']))
                 if db < lim:
                     msg = (
                         f"Uncertain binning for bin_data '{v0['key']}':\n"
@@ -652,11 +689,12 @@ def _bin_fixed_bin(
     ind_other_flat = np.r_[ind_other[:axis[0]], ind_other[axis[-1]+1:] - nomit]
     ind_other = np.r_[ind_other[:axis[0]], ind_other[axis[-1]+1:]]
     
-    shape_other = [ss for ii, ss in shape_data if ii not in axis]
+    shape_other = [ss for ii, ss in enumerate(shape_data) if ii not in axis]
     
-    shape_val = shape_other.insert(axis[0], int(bins0.size - 1))
+    shape_val = list(shape_other)
+    shape_val.insert(axis[0], int(bins0.size - 1))
     if bins1 is not None:
-        shape_val = shape_val.insert(axis[0] + 1, int(bins1.size - 1))
+        shape_val.insert(axis[0] + 1, int(bins1.size - 1))
     val = np.zeros(shape_val, dtype=data.dtype)
 
     if not np.any(indin):
@@ -671,8 +709,10 @@ def _bin_fixed_bin(
         vect1 = vect1[indin]
 
     # data
-    sli = tuple([slice(None) for ii in shape_other].insert(axis[0], indin))
-    data = data[sli]
+    sli = [slice(None) for ii in shape_other]
+    sli.insert(axis[0], indin)
+    
+    data = data[tuple(sli)]
 
     # ------------------
     # simple case
@@ -732,8 +772,8 @@ def _bin_fixed_bin(
             ind = np.r_[0, np.where(np.diff(ind0))[0] + 1]
 
             # sum
-            val[sli] = ufunc(data, ind, axis=axis)
-
+            val[tuple(sli)] = ufunc(data, ind, axis=axis[0])
+                
     # -----------------------------------
     # other statistic with variable data
         
@@ -788,7 +828,9 @@ def _bin_fixed_bin(
         ref.insert(axis[0], bin_ref0)
         if bins1 is not None:
             ref.insert(axis[0] + 1, bin_ref1)
+            
+        ref = tuple(ref)
     else:
         ref = None
 
-    return val, tuple(ref)
+    return val, ref
