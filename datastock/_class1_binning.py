@@ -573,7 +573,7 @@ def _check_bins(
     if bins is None:
         bins = 100
 
-    if np.isscalar(bins):
+    if np.isscalar(bins) and not isinstance(bins, str):
         bins = int(bins)
 
     elif isinstance(bins, str):

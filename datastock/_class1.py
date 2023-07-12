@@ -735,7 +735,9 @@ class DataStock1(DataStock0):
         # options
         safety_ratio=None,
         dref_vector=None,
+        # storing
         store=None,
+        keys_store=None,
     ):
         """ Bin data along ref_key
 
@@ -766,7 +768,9 @@ class DataStock1(DataStock0):
             # options
             safety_ratio=safety_ratio,
             dref_vector=dref_vector,
+            # storing
             store=store,
+            keys_store=keys_store,
         )
 
     # ---------------------

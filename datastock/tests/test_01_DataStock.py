@@ -306,23 +306,44 @@ class Test02_Manipulate():
 
         bins = np.linspace(1, 5, 10)
         lk = [
-            ('y', 'nx', 0),
-            ('prof0', 'nt0', 0),
-            ('prof0', 'x', 1),
+            ('y', 'nx', bins, 0, False, False, 'y_bin0'),
+            ('y', 'nx', bins, 0, True, False, 'y_bin1'),
+            ('y', 'nx', 'x', 0, False, True, 'y_bin2'),
+            ('y', 'nx', 'x', 0, True, True, 'y_bin3'),
+            ('prof0', 'x', 'nt0', 0, False, True, 'p0_bin0'),
+            ('prof0', 'x', 'nt0', 0, True, True, 'p0_bin1'),
+            ('prof1', 'x', 'prof0', [0, 1], False, True, 'p1_bin0'),
         ]
 
-        for (k0, kr, ax) in lk:
+        for ii, (k0, kr, kb, ax, integ, store, kbin) in enumerate(lk):
             dout = self.st.binning(
                 data=k0,
                 bin_data0=kr,
-                bins0=bins,
+                bins0=kb,
                 axis=ax,
+                integrate=integ,
+                store=store,
+                keys_store=kbin,
             )
+            
+            if np.isscalar(ax):
+                ax = [ax]
 
+            nb = self.st.ddata[kb]['data'].size if isinstance(kb, str) else bins.size
             k0 = list(dout.keys())[0]
-            shape = list(self.st.ddata[k0]['data'].shape)
-            shape[ax] = bins.size
-            assert dout[k0]['data'].shape == tuple(shape)
+            shape = [
+                ss for ii, ss in enumerate(self.st.ddata[k0]['data'].shape)
+                if ii not in ax
+            ]
+
+            shape.insert(ax[0], nb)
+            if dout[k0]['data'].shape != tuple(shape):
+                msg = (
+                    "Mismatching shapes for case {ii}!\n"
+                    f"\t- dout['{k0}']['data'].shape = {dout[k0]['data'].shape}\n"
+                    f"\t- expected: {tuple(shape)}"
+                )
+                raise Exception(msg)
 
     def test10_interpolate(self):
 
