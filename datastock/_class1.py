@@ -720,10 +720,22 @@ class DataStock1(DataStock0):
 
     def binning(
         self,
-        keys=None,
-        ref_key=None,
-        bins=None,
+        data=None,
+        data_units=None,
+        axis=None,
+        # binning
+        bins0=None,
+        bins1=None,
+        bin_data0=None,
+        bin_data1=None,
+        bin_units=None,
+        # kind of binning
+        integrate=None,
+        statistic=None,
+        # options
+        safety_ratio=None,
         ref_vector_strategy=None,
+        store=None,
     ):
         """ Bin data along ref_key
 
@@ -739,10 +751,21 @@ class DataStock1(DataStock0):
 
         return _class1_binning.binning(
             coll=self,
-            keys=keys,
-            ref_key=ref_key,
-            bins=bins,
-            ref_vector_strategy=ref_vector_strategy,
+            data=data,
+            data_units=data_units,
+            axis=axis,
+            # binning
+            bins0=bins0,
+            bins1=bins1,
+            bin_data0=bin_data0,
+            bin_data1=bin_data1,
+            bin_units=bin_units,
+            # kind of binning
+            integrate=integrate,
+            statistic=statistic,
+            # options
+            safety_ratio=saftey_ratio,
+            store=store,
         )
 
     # ---------------------
