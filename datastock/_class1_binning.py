@@ -18,6 +18,14 @@ import scipy.stats as scpst
 from . import _generic_check
 
 
+# Dict of statistic <=> ufunc
+_DUFUNC = {
+    'sum': np.add.reduceat,
+    'max': np.maximum.reduceat,
+    'min': np.minimum.reduceat,
+}
+
+
 # ############################################################
 # ############################################################
 #               interpolate spectral
@@ -41,6 +49,7 @@ def binning(
     # options
     safety_ratio=None,
     ref_vector_strategy=None,
+    store=None,
 ):
     """ Return the binned data
     
@@ -83,7 +92,7 @@ def binning(
     # checks
 
     # keys
-    ddata, dbins0, dbins1, statistic = _check(
+    ddata, dbins0, dbins1, statistic, dvariable, store = _check(
         coll=coll,
         data=data,
         data_units=data_units,
@@ -101,33 +110,32 @@ def binning(
         # options
         only1d=True,
         ref_vector_strategy=ref_vector_strategy,
+        store=store,
     )
 
     # --------------
     # actual binning
 
-    dout = {}
-    for k0, v0 in dout.items():
-        
-        dout[k0] = {}
-        
-        dout[k0]['data'] = _bin(
-            bins0=dbins0['edges'],
-            bins1=None if dbins1 is None else dbins1['edges'],
-            vect0=dbins0['data'],
-            vect1=None if dbins1 is None else dbins1['data'],
-            data=ddata[k0]['data'],
-            axis=axis,
-            variable_data=variable_data,
-            variable_bin=variable_bin,
-        )
-        
-        dout[k0]['units'] = ddata[k0]['units']
-        
-        if coll.ddata[k0]['ref'] is not None:
-            ref = list(coll.ddata[k0]['ref'])
-            ref[daxis[k0]] = None
-            dout[k0]['ref'] = tuple(ref)
+    if dvariable['bin0'] is False and dvariable['bin1'] is False:
+
+        dout = {k0: {} for k0 in ddata.keys()}
+        for k0, v0 in ddata.items():
+            
+            dout[k0]['data'], dout[k0]['ref'] = _bin_fixed_bin(
+                bins0=dbins0[k0]['edges'],
+                bins1=None if dbins1 is None else dbins1['edges'],
+                vect0=dbins0[k0]['data'],
+                vect1=None if dbins1 is None else dbins1['data'],
+                data=v0['data'],
+                axis=axis,
+                variable_data=dvariable['data'],
+            )
+            
+            dout[k0]['units'] = v0['units']
+                
+    else:
+        msg = "Variable bin vectors not implemented yet!"
+        raise NotImplementedError(msg)
 
     return dout
 
@@ -154,8 +162,20 @@ def _check(
     # options
     safety_ratio=None,
     ref_vector_strategy=None,
+    store=None,
 ):
 
+    # -----------------
+    # store
+    # -------------------
+    
+    # store
+    store = _generic_check._check_var(
+        store, 'store',
+        types=bool,
+        default=False,
+    )
+    
     # ------------------
     # data: str vs array
     # -------------------
@@ -179,6 +199,11 @@ def _check(
             for dd in data
         ]),
     ]
+    
+    # vs store
+    if store is True and not lc[0]:
+        msg = "If storing, all data, bin data and bins must be declared!"
+        raise Exception(msg)
 
     # if none => err
     if np.sum(lc) != 1:
@@ -292,6 +317,7 @@ def _check(
         bin_data=bin_data0,
         bins=bins0,
         bin_units=bin_units0,
+        store=store,
     )
 
     # dbins1
@@ -303,11 +329,12 @@ def _check(
             bin_data=bin_data1,
             bins=bins1,
             bin_units=None,
+            store=store,
         )
         
         if variable_bin0 != variable_bin1:
-            msg = "bin_data0 and bin_data1 must have the same shapes!"
-            raise Exception(msg)
+            msg = "bin_data0 and bin_data1 have different shapes, todo"
+            raise NotImplementedError(msg)
         
     else:
         dbins1 = None
@@ -339,7 +366,16 @@ def _check(
             ddata[k0]['data'] = v0['data'] * dv
             ddata[k0]['units'] = v0['units'] * dbins0[k0]['units']
 
-    return ddata, dbins0, dbins1, statistic
+    # --------
+    # variability dict
+    
+    dvariable = {
+        'data': variable_data,
+        'bin0': variable_bin0,
+        'bin1': variable_bin1,
+    }
+
+    return ddata, dbins0, dbins1, statistic, dvariable, store
 
 
 def _check_bins(
@@ -349,6 +385,7 @@ def _check_bins(
     bin_data=None,
     bins=None,
     bin_units=None,
+    store=None,
     # if bsplines
     strict=None,
     safety_ratio=None,
@@ -373,8 +410,6 @@ def _check_bins(
         default=1.5,
         sign='>0.'
     )
-    
-    if strict is True and deg is None:
 
     # -------------
     # bin_data
@@ -401,6 +436,13 @@ def _check_bins(
             f"\t- keys to coll.ddata items\n"
             f"Provided:\n{bin_data}"
         )
+        raise Exception(msg)
+        
+    # --------------
+    # check vs store
+    
+    if store is True and not lc[0]:
+        msg = "With store=True, all bin_data must be keys refereing to ddata"
         raise Exception(msg)
     
     # case with all str
@@ -481,6 +523,14 @@ def _check_bins(
     if np.isscalar(bins):
         bins = int(bins)
 
+    elif isinstance(bins, str):
+        lok = list(coll.ddata.keys())
+        bins = _generic_check._check_var(
+            bins, 'bins',
+            dtype=str,
+            allowed=lok,
+        )
+
     else:
         bins = _generic_check._check_flat1d_array(
             bins, 'bins',
@@ -488,22 +538,45 @@ def _check_bins(
             unique=True,
             can_be_None=False,
         )
-
-    # bins
-    for k0, v0 in dbins.items():
-        if isinstance(bins, int):
-            bin_min = np.nanmin(v0['data'])
-            bin_max = np.nanmax(v0['data'])
-            bin_edges = np.linspace(bin_min, bin_max, bins + 1)
-
-        else:
-            bin_edges = np.r_[
+        
+    # --------------
+    # check vs store
+    
+    if store is True and not isinstance(bins, str):
+        msg = "With store=True, bins must be keys to coll.dobj['bins'] items!"
+        raise Exception(msg)
+        
+    # ----------------------------
+    # compute bin edges if needed
+    
+    if isinstance(bins, str):
+        
+        bin_ref = coll.ddata[bins]['ref']
+        bins = coll.ddata[bins]['data']
+        for k0 in dbins.keys():
+            dbins[k0]['bin_ref'] = bin_ref
+            dbins[k0]['edges'] = np.r_[
                 bins[0] - 0.5*(bins[1] - bins[0]),
                 0.5*(bins[1:] + bins[:-1]),
                 bins[-1] + 0.5*(bins[-1] - bins[-2]),
             ]
+        
+    else:
             
-        dbins[k0]['edges'] = bin_edges
+        for k0, v0 in dbins.items():
+            if isinstance(bins, int):
+                bin_min = np.nanmin(v0['data'])
+                bin_max = np.nanmax(v0['data'])
+                bin_edges = np.linspace(bin_min, bin_max, bins + 1)
+    
+            else:
+                bin_edges = np.r_[
+                    bins[0] - 0.5*(bins[1] - bins[0]),
+                    0.5*(bins[1:] + bins[:-1]),
+                    bins[-1] + 0.5*(bins[-1] - bins[-2]),
+                ]
+                
+            dbins[k0]['edges'] = bin_edges
 
     # ----------------------------------------
     # safety check on bin sizes
@@ -520,10 +593,11 @@ def _check_bins(
             if strict is True:
                 
                 lim = safety_ratio * dvmean
-                if not np.mean(np.diff(bin_edges)) > lim:
+                db = np.mean(np.diff(bin_edges))
+                if db < lim:
                     msg = (
-                        f"Uncertain binning for '{sorted(keys)}', ref vect '{ref_key}':\n"
-                        f"Binning steps ({db}) are < {safety_ratio}*ref ({lim}) vector step"
+                        f"Uncertain binning for bin_data '{v0['key']}':\n"
+                        f"Binning steps ({db}) are < {safety_ratio} * bin_data ({lim}) step"
                     )
                     raise Exception(msg)
         
@@ -542,30 +616,47 @@ def _check_bins(
 # ####################################
 
 
-def _bin(
+def _bin_fixed_bin(
     data=None,
+    data_ref=None,
     vect0=None,
     vect1=None,
     bins0=None,
     bins1=None,
+    bin_ref0=None,
+    bin_ref1=None,
     axis=None,
+    statistic=None,
     # integration
     variable_data=None,
-    variable_bin=None,
 ):
 
     # ----------------------------
     # select only relevant indices
 
     indin = np.isfinite(vect0)
-    indin[indin] = (vect0[indin] >= bins[0]) & (vect0[indin] < bins[-1])
+    indin[indin] = (vect0[indin] >= bins0[0]) & (vect0[indin] < bins0[-1])
+    if bins1 is not None:
+        indin[indin] = np.isfinite(vect1[indin])
+        indin[indin] = (vect1[indin] >= bins1[0]) & (vect1[indin] < bins1[-1])
+
+    if not variable_data:
+        indin[indin] = np.isfinite(data[indin])
 
     # -------------
     # prepare shape
-
+    
     shape_data = data.shape
+    ind_other = np.arange(data.ndim)
+    nomit = len(axis) - 1
+    ind_other_flat = np.r_[ind_other[:axis[0]], ind_other[axis[-1]+1:] - nomit]
+    ind_other = np.r_[ind_other[:axis[0]], ind_other[axis[-1]+1:]]
+    
     shape_other = [ss for ii, ss in shape_data if ii not in axis]
-    shape_val = tuple(list(shape_other).insert(axis[0], int(bins.size - 1)))
+    
+    shape_val = shape_other.insert(axis[0], int(bins0.size - 1))
+    if bins1 is not None:
+        shape_val = shape_val.insert(axis[0] + 1, int(bins1.size - 1))
     val = np.zeros(shape_val, dtype=data.dtype)
 
     if not np.any(indin):
@@ -574,62 +665,55 @@ def _bin(
     # -------------
     # subset
 
-    # vect, dv
+    # vect
     vect0 = vect0[indin]
+    if bins1 is not None:
+        vect1 = vect1[indin]
 
     # data
     sli = tuple([slice(None) for ii in shape_other].insert(axis[0], indin))
     data = data[sli]
 
-    # integrate
-    if integrate is True:
-        if vect0.shape != data0.shape:
-            # reshape dv
-            shape_dv = [
-                ss if ii in axis else 1
-                for ii, ss in enumerate(shape_data)
-            ]
-            dv = dv.reshape(dvshape)
-
-        data = data * dv[indin]
-
-    # ------------
-    # dim == 1
-
-    if data.ndim == 1:
-
-        if dbins1 is None:
-            val = scpst.binned_statistic(
-                vect,
+    # ------------------
+    # simple case
+    
+    if variable_data is False:
+    
+        if bins1 is None:
+            val[...] = scpst.binned_statistic(
+                vect0,
                 data,
-                bins=dbins0['edges'],
+                bins=bins0,
                 statistic=statistic,
             )[0]
 
         else:
-            val = scpst.binned_statistic_2d(
-                vect,
+            val[...] = scpst.binned_statistic_2d(
+                vect0,
+                vect1,
                 data,
-                bins=bins,
+                bins=[bins0, bins1],
                 statistic=statistic,
             )[0]
-
-    # ---------------------------------
-    # data dim > 1 but vect dim minimal
-
-    elif vect.ndim == 1:
-
-        # indices
-        linds = [range(nn) for nn in shape_other]
+    
+    # -------------------------------------------------------
+    # variable data, but axis = int and ufunc exists (faster)
+    
+    elif len(axis) == 1 and statistic in _DUFUNC.keys() and bins1 is None:
+        
+        # safety check
+        assert np.allclose(np.unique(vect0), vect0)
+        
+        # get ufunc
+        ufunc = _DUFUNC[statistic]
 
         # get indices
         ind0 = np.searchsorted(
-            bins,
-            vect,
+            bins0,
+            vect0,
             sorter=None,
         )
         ind0[ind0 == 0] = 1
-        assert np.allclose(np.unique(vect), vect)
 
         # ind
         indu = np.unique(ind0 - 1)
@@ -639,7 +723,7 @@ def _bin(
             sli[axis[0]] = indu[0]
             val[sli] = np.nansum(data, axis=axis)
 
-        elif indu.size > 1:
+        else:
 
             sli[axis[0]] = indu
 
@@ -648,19 +732,63 @@ def _bin(
             ind = np.r_[0, np.where(np.diff(ind0))[0] + 1]
 
             # sum
-            val[sli] = np.add.reduceat(data, ind, axis=axis)
+            val[sli] = ufunc(data, ind, axis=axis)
 
-        else:
-            import pdb; pdb.set_trace()     # DB
-            pass
-
-    # -----------------------------
-    # data and vect have same shape
-
+    # -----------------------------------
+    # other statistic with variable data
+        
     else:
-        assert data.shape == vect.shape
+        
+        # indices
+        linds = [range(nn) for nn in shape_other]
+        
+        # slice_data
+        sli = np.array([0 for ii in shape_other])
+        sli = np.insert(sli, axis[0], slice(None))
+        
+        if bins1 is None:
+            
+            for ind in itt.product(linds):
+                sli[ind_other_flat] = ind
+                
+                val[tuple(sli)] = scpst.binned_statistic(
+                    vect0,
+                    data[tuple(sli)],
+                    bins=bins0,
+                    statistic=statistic,
+                )[0]
+            
+        else:
+            
+            sli_val = np.copy(sli)
+            sli_val = np.insert(axis[0] + 1, slice(None))
 
+            for ind in itt.product(linds):
+                
+                sli[ind_other_flat] = ind
+                sli_val[ind_other_flat] = ind
+            
+                val[tuple(sli_val)] = scpst.binned_statistic_2d(
+                    vect0,
+                    vect1,
+                    data[tuple(sli)],
+                    bins=[bins0, bins1],
+                    statistic=statistic,
+                )[0]
+                
+    # ------------
+    # references
+    
+    if data_ref is not None:
+        ref = [
+            rr for ii, rr in enumerate(data_ref)
+            if ii not in axis
+        ]
+        
+        ref.insert(axis[0], bin_ref0)
+        if bins1 is not None:
+            ref.insert(axis[0] + 1, bin_ref1)
+    else:
+        ref = None
 
-
-
-    return val
+    return val, tuple(ref)
