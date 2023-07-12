@@ -14,7 +14,6 @@ import scipy.interpolate as scpinterp
 
 # local
 from . import _generic_check
-from . import _class1_binning
 
 
 # ##################################################################
@@ -73,7 +72,7 @@ def interpolate(
     # check inputs
 
     # keys
-    keys, ref_key, daxis, dunits, _ = _class1_binning._check_keys(
+    keys, ref_key, daxis, dunits, _ = _check_keys(
         coll=coll,
         keys=keys,
         ref_key=ref_key,
@@ -188,6 +187,127 @@ def interpolate(
 # #############################################################################
 #               Main checking routine
 # #############################################################################
+
+
+def _check_keys(
+    coll=None,
+    keys=None,
+    ref_key=None,
+    only1d=None,
+    ref_vector_strategy=None,
+):
+
+    # only1d
+    only1d = _generic_check._check_var(
+        only1d, 'only1d',
+        types=bool,
+        default=True,
+    )
+
+    maxd = 1 if only1d else 2
+
+    # ---------------
+    # keys vs ref_key
+
+    # ref_key
+    if ref_key is not None:
+
+        # basic checks
+        if isinstance(ref_key, str):
+            ref_key = (ref_key,)
+
+        lref = list(coll.dref.keys())
+        ldata = list(coll.ddata.keys())
+
+        ref_key = list(_generic_check._check_var_iter(
+            ref_key, 'ref_key',
+            types=(list, tuple),
+            types_iter=str,
+            allowed=lref + ldata,
+        ))
+
+        # check vs maxd
+        if len(ref_key) > maxd:
+            msg = (
+                f"Arg ref_key shall have no more than {maxd} elements!\n"
+                f"Provided: {ref_key}"
+            )
+            raise Exception(msg)
+
+        # check vs valid vectors
+        for ii, rr in enumerate(ref_key):
+            if rr in lref:
+                kwd = {'ref': rr}
+            else:
+                kwd = {'key': rr}
+            hasref, hasvect, ref, ref_key[ii] = coll.get_ref_vector(
+                **kwd,
+            )[:4]
+
+            if not (hasref and hasvect):
+                msg = (
+                    f"Provided ref_key[{ii}] not a valid ref or ref vector!\n"
+                    "Provided: {rr}"
+                )
+                raise Exception(msg)
+
+        lok_keys = [
+            k0 for k0, v0 in coll.ddata.items()
+            if all([coll.ddata[rr]['ref'][0] in v0['ref'] for rr in ref_key])
+        ]
+
+        if keys is None:
+            keys = lok_keys
+    else:
+        lok_keys = list(coll.ddata.keys())
+
+    # keys
+    if isinstance(keys, str):
+        keys = [keys]
+
+    keys = _generic_check._check_var_iter(
+        keys, 'keys',
+        types=list,
+        types_iter=str,
+        allowed=lok_keys,
+    )
+
+    # ref_key
+    if ref_key is None:
+        hasref, ref, ref_key, val, dkeys = coll.get_ref_vector_common(
+            keys=keys,
+            strategy=ref_vector_strategy,
+        )
+        if ref_key is None:
+            msg = (
+                f"No matching ref vector found for:\n"
+                f"\t- keys: {keys}\n"
+                f"\t- hasref: {hasref}\n"
+                f"\t- ref: {ref}\n"
+                f"\t- ddata['{keys[0]}']['ref'] = {coll.ddata[keys[0]]['ref']} "
+            )
+            raise Exception(msg)
+        ref_key = (ref_key,)
+
+    # ------------------------
+    # daxis, dunits, units_ref
+
+    # daxis
+    daxis = {
+        k0: [
+            coll.ddata[k0]['ref'].index(coll.ddata[rr]['ref'][0])
+            for rr in ref_key
+        ]
+        for k0 in keys
+    }
+
+    # dunits
+    dunits = {k0: coll.ddata[k0]['units'] for k0 in keys}
+
+    # units_ref
+    units_ref = [coll.ddata[rr]['units'] for rr in ref_key]
+
+    return keys, ref_key, daxis, dunits, units_ref
 
 
 def _check(
