@@ -50,7 +50,9 @@ def binning(
     safety_ratio=None,
     dref_vector=None,
     ref_vector_strategy=None,
+    # storing
     store=None,
+    keys_store=None,
 ):
     """ Return the binned data
     
@@ -130,6 +132,16 @@ def binning(
         )
         raise NotImplementedError(msg)
 
+    # --------------
+    # storing
+    
+    if store is True:
+        
+        _store(
+            dout=dout,
+            keys_store=keys_store,
+        )
+
     return dout
 
 
@@ -156,7 +168,10 @@ def _check(
     safety_ratio=None,
     dref_vector=None,
     ref_vector_strategy=None,
+    # storing
     store=None,
+    # non-used
+    **kwdargs
 ):
 
     # -----------------
@@ -195,9 +210,11 @@ def _check(
     ]
     
     # vs store
-    if store is True and not lc[0]:
-        msg = "If storing, all data, bin data and bins must be declared!"
-        raise Exception(msg)
+    if store is True:  
+        if not lc[0]:
+            msg = "If storing, all data, bin data and bins must be declared!"
+            raise Exception(msg)
+
 
     # if none => err
     if np.sum(lc) != 1:
@@ -233,11 +250,14 @@ def _check(
             for ii in range(len(data))
         }
         
-    ndim_data = list(ddata.values())[0]['data'].ndim
-        
+    ndim_data = list(ddata.values())[0]['data'].ndim    
+    
     # --------------
     # axis
     # -------------------
+    
+    if axis is None:
+        axis = np.arange(0, ndim_data)
     
     axis = _generic_check._check_flat1darray(
         axis, 'axis',
@@ -834,3 +854,43 @@ def _bin_fixed_bin(
         ref = None
 
     return val, ref
+
+# #######################################################
+#           Store
+# #######################################################
+
+
+def _store(
+    coll=None,
+    dout=None,
+    keys_store=None,
+):
+
+
+    # ----------------
+    # check keys_store
+    
+    if len(dout) == 1 and isinstance(keys_store, str):
+        keys_store = [keys_store]
+    
+    ldef = [f"{k0}_binned" for k0 in dout.items()]
+    lex = list(coll.ddata.keys())
+    keys_store = _generic_check._check_var_iter(
+        keys_store, 'keys_store',
+        types=list,
+        types_iter=str,
+        default=ldef,
+        exclude=lex,
+    )
+    
+    # -------------
+    # store
+    
+    for ii, (k0, v0) in enumerate(dout.items()):
+        
+        coll.add_data(
+            key=keys_store[ii],
+            data=v0['data'],
+            ref=v0['ref'],
+            units=v0['units'],
+        )
