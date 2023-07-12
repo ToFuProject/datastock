@@ -306,23 +306,22 @@ class Test02_Manipulate():
 
         bins = np.linspace(1, 5, 10)
         lk = [
-            ('y', None, 0),
             ('y', 'nx', 0),
-            (None, 'nt0', 0),
             ('prof0', 'nt0', 0),
             ('prof0', 'x', 1),
         ]
 
         for (k0, kr, ax) in lk:
             dout = self.st.binning(
-                keys=k0,
-                ref_key=kr,
-                bins=bins,
+                data=k0,
+                bin_data0=kr,
+                bins0=bins,
+                axis=ax,
             )
 
             k0 = list(dout.keys())[0]
             shape = list(self.st.ddata[k0]['data'].shape)
-            shape[ax] = bins.size - 1
+            shape[ax] = bins.size
             assert dout[k0]['data'].shape == tuple(shape)
 
     def test10_interpolate(self):
