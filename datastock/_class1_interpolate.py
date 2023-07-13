@@ -45,6 +45,7 @@ def interpolate(
     return_params=None,
     returnas=None,
     store=None,
+    store_keys=None,
     inplace=None,
     # debug or unit tests
     debug=None,
@@ -152,6 +153,7 @@ def interpolate(
             coll=coll,
             dout=dout,
             inplace=inplace,
+            store_keys=store_keys,
         )
 
     # -------
@@ -1572,6 +1574,7 @@ def _store(
     coll=None,
     dout=None,
     inplace=None,
+    store_keys=None,
 ):
 
     # -----------
@@ -1586,17 +1589,31 @@ def _store(
         ])))
         coll2 = coll.extract(keys=ldata, vectors=True)
 
+    # -------------
+    # store_keys
+    
+    if store_keys is None:
+        store_keys = [f"{k0}_interp" for k0 in dout.keys()]
+    if isinstance(store_keys, str):
+        store_keys = [store_keys]
+    
+    lout = list(coll.ddata.keys())
+    store_keys = _generic_check._check_var_iter(
+        store_keys, 'store_keys',
+        types=list,
+        types_iter=str,
+        excluded=lout,
+    )
+    
+    assert len(store_keys) == len(dout)
+
     # ---------
     # add data
 
-    for k0, v0 in dout.items():
+    for ii, (k0, v0) in enumerate(dout.items()):
 
-        # ---------
-        # populate
-
-        # data
         coll2.add_data(
-            key=f'{k0}_interp',
+            key=store_keys[ii],
             data=v0['data'],
             ref=v0['ref'],
             units=v0['units'],

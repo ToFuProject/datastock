@@ -16,6 +16,7 @@ import scipy.stats as scpst
 
 # specific
 from . import _generic_check
+from . import _generic_utils
 
 
 # Dict of statistic <=> ufunc
@@ -68,6 +69,7 @@ def binning(
     axis: int or array of int indices
         the axis of data along which to bin
         data will be flattened along all those axis priori to binning
+        If None, assumes bin_data is not variable and uses all its axis 
     
     bins0: the bins (centers), can be
         - a 1d vector of monotonous bins
@@ -91,6 +93,10 @@ def binning(
         the statistic kwd feed to scipy.stats.binned_statistic()
         automatically set to 'sum' if integrate = True
 
+    store: bool
+        If True, will sotre the result in ddata
+        Only possible if all (data, bin_data and bin) are provided as keys
+
     """
 
     # ----------
@@ -109,7 +115,7 @@ def binning(
 
     if dvariable['bin0'] is False and dvariable['bin1'] is False:
 
-        dout = {k0: {} for k0 in ddata.keys()}
+        dout = {k0: {'units': v0['units']} for k0, v0 in ddata.items()}
         for k0, v0 in ddata.items():
             
             # handle dbins1
@@ -140,9 +146,6 @@ def binning(
                 # integration
                 variable_data=dvariable['data'],
             )
-            
-            # units
-            dout[k0]['units'] = v0['units']
                 
     else:
         msg = (
@@ -206,13 +209,6 @@ def _check(
     # store and verb
     # -------------------
     
-    # store
-    store = _generic_check._check_var(
-        store, 'store',
-        types=bool,
-        default=False,
-    )
-    
     # verb
     verb = _generic_check._check_var(
         verb, 'verb',
@@ -224,122 +220,15 @@ def _check(
     # data: str vs array
     # -------------------
 
-    # make sure it's a list
-    if isinstance(data, (np.ndarray, str)):
-        data = [data]
-    assert isinstance(data, list)
-
-    # identify case: str vs array, all with same ndim
-    lc = [
-        all([
-            isinstance(dd, str)
-            and dd in coll.ddata.keys()
-            and coll.ddata[dd]['data'].ndim == coll.ddata[data[0]]['data'].ndim
-            for dd in data
-        ]),
-        all([
-            isinstance(dd, np.ndarray)
-            and dd.ndim == data[0].ndim
-            for dd in data
-        ]),
-    ]
-    
-    # vs store
-    if store is True:  
-        if not lc[0]:
-            msg = "If storing, all data, bin data and bins must be declared!"
-            raise Exception(msg)
-
-
-    # if none => err
-    if np.sum(lc) != 1:
-        msg = (
-            "Arg data must be a list of either:\n"
-            "\t- keys to ddata with identical ref\n"
-            "\t- np.ndarrays with identical shape\n"
-            f"Provided:\n{data}"
-        )
-        raise Exception(msg)
-
-    # str => keys to existing data
-    if lc[0]:
-        ddata = {
-            k0: {
-                'key': k0,
-                'data': coll.ddata[k0]['data'],
-                'ref': coll.ddata[k0]['ref'],
-                'units': coll.ddata[k0]['units'],
-            }
-            for k0 in data
-        }
-
-    # arrays
-    else:
-        ddata = {
-            ii: {
-                'key': None,
-                'data': data[ii],
-                'ref': None,
-                'units': data_units,
-            }
-            for ii in range(len(data))
-        }
+    ddata = _check_data(
+        coll=coll,
+        data=data,
+        data_units=data_units,
+        store=store,
+    )
         
     ndim_data = list(ddata.values())[0]['data'].ndim    
     
-    # --------------
-    # axis
-    # -------------------
-    
-    if axis is None:
-        axis = np.arange(0, ndim_data)
-    
-    axis = _generic_check._check_flat1darray(
-        axis, 'axis',
-        dtype=int,
-        unique=True,
-        can_be_None=False,
-        sign='>=0',
-    )
-    
-    if np.any(axis > ndim_data - 1):
-        msg = f"axis too large\n{axis}"
-        raise Exception(msg)
-    
-    if np.any(np.diff(axis) > 1):
-        msg = f"axis must be adjacent indices!\n{axis}"
-        raise Exception(msg)
-    
-    variable_data = len(axis) < ndim_data
-
-    # -----------------
-    # check integrate
-    # -------------------
-    
-    # integrate
-    integrate = _generic_check._check_var(
-        integrate, 'integrate',
-        types=bool,
-        default=False,
-    )
-
-    # safety checks
-    if integrate is True:
-        
-        if bin_data1 is not None:
-            msg = (
-                "If integrate = True, bin_data1 must be None!\n"
-                "\t- bin_data1: {bin_data1}\n"
-            )
-            raise Exception(msg)
-            
-        if len(axis) > 1:
-            msg = (
-                "If integrate is true, binning can only be done on one axis!\n"
-                f"\t- axis: {axis}\n"
-            )
-            raise Exception(msg)
-            
     # -----------------
     # check statistic
     # -------------------
@@ -357,28 +246,55 @@ def _check(
     # -----------
     # bins
     # ------------
+    
+    dbins0 = _check_bins(
+        coll=coll,
+        lkdata=list(ddata.keys()),
+        bins=bins0,
+        dref_vector=dref_vector,
+        store=store,
+    )
+    if bins1 is not None:
+        dbins1 = _check_bins(
+            coll=coll,
+            lkdata=list(ddata.keys()),
+            bins=bins1,
+            dref_vector=dref_vector,
+            store=store,
+        )
+    
+    # -----------
+    # bins
+    # ------------
 
     # dbins0
-    dbins0, variable_bin0, _ = _check_bins(
+    dbins0, variable_bin0, axis = _check_bins_data(
         coll=coll,
         axis=axis,
         ddata=ddata,
         bin_data=bin_data0,
-        bins=bins0,
+        dbins=dbins0,
         bin_units=bin_units0,
         dref_vector=dref_vector,
         safety_ratio=safety_ratio,
         store=store,
     )
+    
+    # data vs axis
+    if np.any(axis > ndim_data - 1):
+        msg = f"axis too large\n{axis}"
+        raise Exception(msg)
+        
+    variable_data = len(axis) < ndim_data
 
     # dbins1
     if bin_data1 is not None:
-        dbins1, variable_bin1, _ = _check_bins(
+        dbins1, variable_bin1, axis = _check_bins_data(
             coll=coll,
             axis=axis,
             ddata=ddata,
             bin_data=bin_data1,
-            bins=bins1,
+            dbins=dbins1,
             bin_units=None,
             dref_vector=dref_vector,
             safety_ratio=safety_ratio,
@@ -392,6 +308,35 @@ def _check(
     else:
         dbins1 = None
         variable_bin1 = False
+
+    # -----------------
+    # check integrate
+    # -------------------
+    
+    # integrate
+    integrate = _generic_check._check_var(
+        integrate, 'integrate',
+        types=bool,
+        default=False,
+    )
+    
+    # safety checks
+    if integrate is True:
+        
+        if bin_data1 is not None:
+            msg = (
+                "If integrate = True, bin_data1 must be None!\n"
+                "\t- bin_data1: {bin_data1}\n"
+            )
+            raise Exception(msg)
+            
+        if len(axis) > 1:
+            msg = (
+                "If integrate is true, binning can only be done on one axis!\n"
+                f"\t- axis: {axis}\n"
+            )
+            raise Exception(msg)
+        
 
     # -----------------------
     # additional safety check
@@ -451,12 +396,188 @@ def _check(
     )
 
 
+def _check_data(
+    coll=None,
+    data=None,
+    data_units=None,
+    store=None,
+):
+    # -----------
+    # store
+    
+    store = _generic_check._check_var(
+        store, 'store',
+        types=bool,
+        default=False,
+    )
+    
+    # ---------------------
+    # make sure it's a list
+    
+    if isinstance(data, (np.ndarray, str)):
+        data = [data]
+    assert isinstance(data, list)
+
+    # ------------------------------------------------
+    # identify case: str vs array, all with same ndim
+    
+    lc = [
+        all([
+            isinstance(dd, str)
+            and dd in coll.ddata.keys()
+            and coll.ddata[dd]['data'].ndim == coll.ddata[data[0]]['data'].ndim
+            for dd in data
+        ]),
+        all([
+            isinstance(dd, np.ndarray)
+            and dd.ndim == data[0].ndim
+            for dd in data
+        ]),
+    ]
+    
+    # vs store
+    if store is True:  
+        if not lc[0]:
+            msg = "If storing, all data, bin data and bins must be declared!"
+            raise Exception(msg)
+
+
+    # if none => err
+    if np.sum(lc) != 1:
+        msg = (
+            "Arg data must be a list of either:\n"
+            "\t- keys to ddata with identical ref\n"
+            "\t- np.ndarrays with identical shape\n"
+            f"Provided:\n{data}"
+        )
+        raise Exception(msg)
+
+    # --------------------
+    # sort cases
+    
+    # str => keys to existing data
+    if lc[0]:
+        ddata = {
+            k0: {
+                'key': k0,
+                'data': coll.ddata[k0]['data'],
+                'ref': coll.ddata[k0]['ref'],
+                'units': coll.ddata[k0]['units'],
+            }
+            for k0 in data
+        }
+
+    # arrays
+    else:
+        ddata = {
+            ii: {
+                'key': None,
+                'data': data[ii],
+                'ref': None,
+                'units': data_units,
+            }
+            for ii in range(len(data))
+        }  
+        
+    return ddata
+
+
 def _check_bins(
+    coll=None,
+    lkdata=None,
+    bins=None,
+    dref_vector=None,
+    store=None,
+):
+
+    dbins = {k0: {} for k0 in lkdata}
+    if np.isscalar(bins) and not isinstance(bins, str):
+        bins = int(bins)
+
+    elif isinstance(bins, str):
+        lok_data = list(coll.ddata.keys())
+        lok_ref = list(coll.dref.keys())
+        if hasattr(coll, '_which_bins'):
+            wb = coll._which_bins
+            lok_bins = list(coll.dobj.get(wb, {}).keys())
+        else:
+            lok_bins = []
+        
+        bins = _generic_check._check_var(
+            bins, 'bins',
+            types=str,
+            allowed=lok_data + lok_ref + lok_bins,
+        )
+
+    else:
+        bins = _generic_check._check_flat1darray(
+            bins, 'bins',
+            dtype=float,
+            unique=True,
+            can_be_None=False,
+        )
+        
+    # --------------
+    # check vs store
+    
+    if store is True and not isinstance(bins, str):
+        msg = "With store=True, bins must be keys to coll.dobj['bins'] items!"
+        raise Exception(msg)
+        
+    # ----------------------------
+    # compute bin edges if needed
+    
+    if isinstance(bins, str):
+        
+        if bins in lok_bins:
+            for k0 in lkdata:
+                dbins[k0]['bin_ref'] = coll.dobj[wb][bins]['ref']
+                dbins[k0]['edges'] = coll.dobj[wb][bins]['edges']
+        
+        else:
+            
+            if bins in lok_ref:
+                
+                if dref_vector is None:
+                    dref_vector = {}
+                
+                bins = coll.get_ref_vector(
+                    ref=bins,
+                    **dref_vector,
+                )[3]
+                if bins is None:
+                    msg = "No ref vector identified!"
+                    raise Exception(msg)
+                    
+            binc = coll.ddata[bins]['data']
+            for k0 in lkdata:
+                dbins[k0]['bin_ref'] = coll.ddata[bins]['ref']
+                dbins[k0]['edges'] = np.r_[
+                    binc[0] - 0.5*(binc[1] - binc[0]),
+                    0.5*(binc[1:] + binc[:-1]),
+                    binc[-1] + 0.5*(binc[-1] - binc[-2]),
+                ]         
+        
+    else:
+            
+        for k0 in lkdata:
+            bin_edges = np.r_[
+                bins[0] - 0.5*(bins[1] - bins[0]),
+                0.5*(bins[1:] + bins[:-1]),
+                bins[-1] + 0.5*(bins[-1] - bins[-2]),
+            ]
+                
+            dbins[k0]['edges'] = bin_edges
+        
+    return dbins
+
+
+def _check_bins_data(
     coll=None,
     axis=None,
     ddata=None,
     bin_data=None,
-    bins=None,
+    dbins=None,
     bin_units=None,
     dref_vector=None,
     store=None,
@@ -506,13 +627,15 @@ def _check_bins(
             )
         raise Exception(msg)
     
+    # -------------
     # case sorting
+    
+    lok_ref = list(coll.dref.keys())
+    lok_data = [k0 for k0, v0 in coll.ddata.items()]
+    
+    lok = lok_data + lok_ref
     lc = [
-        all([
-            isinstance(bb, str) 
-            and (bb in coll.ddata or bb in coll.dref)
-            for bb in bin_data
-        ]),
+        all([isinstance(bb, str) and bb in lok for bb in bin_data]),
         all([isinstance(bb, np.ndarray) for bb in bin_data]),
     ]
     if np.sum(lc) != 1:
@@ -520,7 +643,8 @@ def _check_bins(
             "Arg bin_data must be a list of:\n"
             f"\t- np.ndarrays\n"
             f"\t- keys to coll.ddata items\n"
-            f"Provided:\n{bin_data}"
+            f"Provided:\n{bin_data}\n"
+            f"Available:\n{sorted(lok)}"
         )
         raise Exception(msg)
         
@@ -538,11 +662,10 @@ def _check_bins(
             dref_vector = {}
         
         # derive dbins
-        dbins = {}
         for ii, k0 in enumerate(ddata.keys()):
             
             # if ref => identify vector
-            if bin_data[ii] in coll.dref.keys():
+            if bin_data[ii] in lok_ref:
                     
                 key_vect = coll.get_ref_vector(
                     ref=bin_data[ii],
@@ -556,23 +679,21 @@ def _check_bins(
                 bin_data[ii] = key_vect
             
             # fill dict
-            dbins[k0] = {
+            dbins[k0].update({
                 'key': bin_data[ii],
                 'data': coll.ddata[bin_data[ii]]['data'],
                 'ref': coll.ddata[bin_data[ii]]['ref'],
                 'units': coll.ddata[bin_data[ii]]['units'],
-            }
+            })
 
     else:
-        dbins = {
-            k0: {
+        for ii, k0 in enumerate(ddata.keys()):
+            dbins[k0].update({
                 'key': None,
                 'data': bin_data[ii],
                 'ref': None,
                 'units': bin_units,
-            }
-            for ii, k0 in enumerate(ddata.keys())
-        }
+            })
 
     # -----------------------------------
     # check nb of dimensions consistency
@@ -585,6 +706,55 @@ def _check_bins(
         )
         raise Exception(msg)
         
+    # -------------------------
+    # check dimensions vs axis
+    
+    # None => set to all bin (assuming variable_bin = False)
+    if axis is None:
+        for k0, v0 in dbins.items():
+            
+            if ddata[k0]['ref'] is not None and v0['ref'] is not None:
+                seq_data = list(ddata[k0]['ref'])
+                seq_bin = v0['ref']
+                
+            else:
+                seq_data = list(ddata[k0]['data'].shape)
+                seq_bin = v0['data'].shape
+            
+            # get start indices of subsequence seq_bin in sequence seq_data
+            laxis0 = list(_generic_utils.KnuthMorrisPratt(seq_data, seq_bin))
+            if len(laxis0) != 1:
+                msg = (
+                    "Please specify axis, ambiguous results from ref / shape\n"
+                    f"\t- data '{k0}': {seq_data}\n"
+                    f"\t- bin '{v0['key']}': {seq_bin}\n"
+                    f"=> laxis0 = {laxis0}\n"
+                )
+                raise Exception(msg)
+            
+            axisi = laxis0[0] + np.arange(0, len(seq_bin))
+            if axis is None:
+                axis = axisi
+            else:
+                assert axis == axisi
+            
+    # --------------
+    # axis
+    # -------------------
+    
+    axis = _generic_check._check_flat1darray(
+        axis, 'axis',
+        dtype=int,
+        unique=True,
+        can_be_None=False,
+        sign='>=0',
+    )
+    
+    if np.any(np.diff(axis) > 1):
+        msg = f"axis must be adjacent indices!\n{axis}"
+        raise Exception(msg)
+
+    # check
     ndim_bin = ldim[0]
     if ndim_bin < len(axis):
         msg = (
@@ -634,97 +804,10 @@ def _check_bins(
                 )
                 raise Exception(msg) 
 
-    # --------------
-    # bins
-    # --------------
-
-    if bins is None:
-        bins = 100
-
-    if np.isscalar(bins) and not isinstance(bins, str):
-        bins = int(bins)
-
-    elif isinstance(bins, str):
-        lok_data = list(coll.ddata.keys())
-        lok_ref = list(coll.dref.keys())
-        if hasattr(coll, '_which_bins'):
-            wb = coll._which_bins
-            lok_bins = list(coll.dobj.get(wb, {}).keys())
-        else:
-            lok_bins = []
-        
-        bins = _generic_check._check_var(
-            bins, 'bins',
-            types=str,
-            allowed=lok_data + lok_ref + lok_bins,
-        )
-
-    else:
-        bins = _generic_check._check_flat1darray(
-            bins, 'bins',
-            dtype=float,
-            unique=True,
-            can_be_None=False,
-        )
-        
-    # --------------
-    # check vs store
-    
-    if store is True and not isinstance(bins, str):
-        msg = "With store=True, bins must be keys to coll.dobj['bins'] items!"
-        raise Exception(msg)
-        
-    # ----------------------------
-    # compute bin edges if needed
-    
-    if isinstance(bins, str):
-        
-        if bins in lok_bins:
-            for k0 in dbins.keys():
-                dbins[k0]['bin_ref'] = coll.dobj[wb][bins]['ref']
-                dbins[k0]['edges'] = coll.dobj[wb][bins]['edges']
-        
-        else:
-            if bins in lok_ref:
-                bins = coll.get_ref_vector(
-                    ref=bins,
-                    **dref_vector,
-                )[3]
-                if bins is None:
-                    msg = "No ref vector identified!"
-                    raise Exception(msg)
-                    
-            binc = coll.ddata[bins]['data']
-            for k0 in dbins.keys():
-                dbins[k0]['bin_ref'] = coll.ddata[bins]['ref']
-                dbins[k0]['edges'] = np.r_[
-                    binc[0] - 0.5*(binc[1] - binc[0]),
-                    0.5*(binc[1:] + binc[:-1]),
-                    binc[-1] + 0.5*(binc[-1] - binc[-2]),
-                ]         
-        
-    else:
-            
-        for k0, v0 in dbins.items():
-            if isinstance(bins, int):
-                bin_min = np.nanmin(v0['data'])
-                bin_max = np.nanmax(v0['data'])
-                bin_edges = np.linspace(bin_min, bin_max, bins + 1)
-    
-            else:
-                bin_edges = np.r_[
-                    bins[0] - 0.5*(bins[1] - bins[0]),
-                    0.5*(bins[1:] + bins[:-1]),
-                    bins[-1] + 0.5*(bins[-1] - bins[-2]),
-                ]
-                
-            dbins[k0]['edges'] = bin_edges
-
     # ----------------------------------------
     # safety check on bin sizes
     # ----------------------------------------
 
-    npts = None
     if len(axis) == 1:
         
         for k0, v0 in dbins.items():
@@ -746,19 +829,13 @@ def _check_bins(
                         f"Binning steps ({db}) are < {safety_ratio} * bin_data ({lim}) step"
                     )
                     raise Exception(msg)
-        
-                else:
-                    npts = None
-        
-            else:
-                npts = (deg + 3) * max(1, dvmean / db)
 
-    return dbins, variable_bin, npts
+    return dbins, variable_bin, axis
 
 
 # ####################################
 # ####################################
-#       bin
+#       binning
 # ####################################
 
 
@@ -851,7 +928,19 @@ def _bin_fixed_bin(
     elif len(axis) == 1 and statistic in _DUFUNC.keys() and bins1 is None:
         
         # safety check
-        assert np.allclose(np.unique(vect0), vect0)
+        vect0s = np.sort(vect0)
+        if not np.allclose(vect0s, vect0):
+            msg = (
+                "Non-sorted vect0 for binning 1d with ufunc!\n"
+                f"\t- axis: {axis}\n"
+                f"\t- shape_data: {shape_data}\n"
+                f"\t- shape_other: {shape_other}\n"
+                f"\t- shape_val: {shape_val}\n"
+                f"\t- vect0.shape: {vect0.shape}\n"
+                f"\t- vect0: {vect0}\n"
+                f"\t- vect0s: {vect0s}\n"
+            )
+            raise Exception(msg)
         
         # get ufunc
         ufunc = _DUFUNC[statistic]
@@ -990,3 +1079,7 @@ def _store(
             ref=v0['ref'],
             units=v0['units'],
         )
+        
+        
+        
+        

@@ -73,8 +73,8 @@ class DataStock1(DataStock0):
             'quant',
             'name',
             'units',
-            'source',
-            'monot',
+            # 'source',
+            # 'monot',
         ],
     }
 
@@ -741,15 +741,45 @@ class DataStock1(DataStock0):
         store=None,
         keys_store=None,
     ):
-        """ Bin data along ref_key
-
-        Binning is treated here as an integral
-        Hence, if:
-            - the data has units [ph/eV]
-            - the ref_key has units [eV]
-            - the binned data has units [ph]
-
-        return a dict with data and units per key
+        """ Return the binned data
+        
+        data:  the data on which to apply binning, can be
+            - a list of np.ndarray to be binned
+                (any dimension as long as they all have the same)
+            - a list of keys to ddata items sharing the same refs
+            
+        data_units: str only necessary if data is a list of arrays
+        
+        axis: int or array of int indices
+            the axis of data along which to bin
+            data will be flattened along all those axis priori to binning
+            If None, assumes bin_data is not variable and uses all its axis 
+        
+        bins0: the bins (centers), can be
+            - a 1d vector of monotonous bins
+            - a int, used to compute a bins vector from max(data), min(data)
+        
+        bin_data0: the data used to compute binning indices, can be:
+            - a str, key to a ddata item
+            - a np.ndarray
+            _ a list of any of the above if each data has different size along axis
+            
+        bin_units: str
+            only used if integrate = True and bin_data is a np.ndarray
+            
+        integrate: bool
+            flag indicating whether binning is used for integration
+            Implies that:
+                Only usable for 1d binning (axis has to be a single index)
+                data is multiplied by the underlying bin_data0 step prior to binning
+                
+        statistic: str
+            the statistic kwd feed to scipy.stats.binned_statistic()
+            automatically set to 'sum' if integrate = True
+            
+        store: bool
+            If True, will sotre the result in ddata
+            Only possible if all (data, bin_data and bin) are provided as keys
 
         """
 
@@ -803,6 +833,7 @@ class DataStock1(DataStock0):
         returnas=None,
         return_params=None,
         store=None,
+        store_keys=None,
         inplace=None,
     ):
         """ Interpolate keys in desired dimension
@@ -830,6 +861,7 @@ class DataStock1(DataStock0):
             returnas=returnas,
             return_params=return_params,
             store=store,
+            store_keys=store_keys,
             inplace=inplace,
         )
 
