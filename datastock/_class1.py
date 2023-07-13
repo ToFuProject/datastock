@@ -735,6 +735,8 @@ class DataStock1(DataStock0):
         # options
         safety_ratio=None,
         dref_vector=None,
+        verb=None,
+        returnas=None,
         # storing
         store=None,
         keys_store=None,
@@ -768,6 +770,8 @@ class DataStock1(DataStock0):
             # options
             safety_ratio=safety_ratio,
             dref_vector=dref_vector,
+            verb=verb,
+            returnas=returnas,
             # storing
             store=store,
             keys_store=keys_store,

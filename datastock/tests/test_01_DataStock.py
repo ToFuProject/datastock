@@ -304,15 +304,15 @@ class Test02_Manipulate():
 
     def test09_binning(self):
 
-        bins = np.linspace(1, 5, 10)
+        bins = np.linspace(1, 5, 8)
         lk = [
             ('y', 'nx', bins, 0, False, False, 'y_bin0'),
             ('y', 'nx', bins, 0, True, False, 'y_bin1'),
             ('y', 'nx', 'x', 0, False, True, 'y_bin2'),
             ('y', 'nx', 'x', 0, True, True, 'y_bin3'),
-            ('prof0', 'x', 'nt0', 0, False, True, 'p0_bin0'),
-            ('prof0', 'x', 'nt0', 0, True, True, 'p0_bin1'),
-            ('prof1', 'x', 'prof0', [0, 1], False, True, 'p1_bin0'),
+            ('prof0', 'x', 'nt0', 1, False, True, 'p0_bin0'),
+            ('prof0', 'x', 'nt0', 1, True, True, 'p0_bin1'),
+            ('prof0-bis', 'prof0', 'x', [0, 1], False, True, 'p1_bin0'),
         ]
 
         for ii, (k0, kr, kb, ax, integ, store, kbin) in enumerate(lk):
@@ -324,12 +324,21 @@ class Test02_Manipulate():
                 integrate=integ,
                 store=store,
                 keys_store=kbin,
+                safety_ratio=0.95,
+                returnas=True,
             )
             
             if np.isscalar(ax):
                 ax = [ax]
 
-            nb = self.st.ddata[kb]['data'].size if isinstance(kb, str) else bins.size
+            if isinstance(kb, str):
+                if kb in self.st.ddata:
+                    nb = self.st.ddata[kb]['data'].size
+                else:
+                    nb = self.st.dref[kb]['size']
+            else:
+                nb = bins.size
+
             k0 = list(dout.keys())[0]
             shape = [
                 ss for ii, ss in enumerate(self.st.ddata[k0]['data'].shape)
