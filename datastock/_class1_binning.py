@@ -350,7 +350,11 @@ def _check(
 
         for k0, v0 in ddata.items():
             
-            dv = np.diff(dbins0[k0]['data'], axis=axbin)
+            ddata[k0]['units'] = v0['units'] * dbins0[k0]['units']
+            if dbins0[k0]['data'].size == 0:
+                continue
+                
+            dv = np.diff(dbins0[k0]['data'], axis=axbin)           
             dv = np.concatenate(
                 (np.take(dv, [0], axis=axbin), dv),
                 axis=axbin,
@@ -368,7 +372,6 @@ def _check(
                     raise NotImplementedError()
 
             ddata[k0]['data'] = v0['data'] * dv
-            ddata[k0]['units'] = v0['units'] * dbins0[k0]['units']
 
     # --------
     # variability dict
@@ -959,7 +962,7 @@ def _bin_fixed_bin(
         # cases
         if indu.size == 1:
             sli[axis[0]] = indu[0]
-            val[sli] = np.nansum(data, axis=axis)
+            val[sli] = np.nansum(data, axis=axis[0])
 
         else:
 
@@ -1070,9 +1073,6 @@ def _store(
     # store
     
     for ii, (k0, v0) in enumerate(dout.items()):
-        
-        print(k0, store_keys[ii], v0['data'].shape, v0['ref'], v0['units'])
-        
         coll.add_data(
             key=store_keys[ii],
             data=v0['data'],
