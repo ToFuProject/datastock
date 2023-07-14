@@ -55,7 +55,7 @@ def binning(
     returnas=None,
     # storing
     store=None,
-    keys_store=None,
+    store_keys=None,
 ):
     """ Return the binned data
     
@@ -164,7 +164,7 @@ def binning(
         _store(
             coll=coll,
             dout=dout,
-            keys_store=keys_store,
+            store_keys=store_keys,
         )
 
     # -------------
@@ -1046,20 +1046,20 @@ def _bin_fixed_bin(
 def _store(
     coll=None,
     dout=None,
-    keys_store=None,
+    store_keys=None,
 ):
 
 
     # ----------------
-    # check keys_store
+    # check store_keys
     
-    if len(dout) == 1 and isinstance(keys_store, str):
-        keys_store = [keys_store]
+    if len(dout) == 1 and isinstance(store_keys, str):
+        store_keys = [store_keys]
     
     ldef = [f"{k0}_binned" for k0 in dout.items()]
     lex = list(coll.ddata.keys())
-    keys_store = _generic_check._check_var_iter(
-        keys_store, 'keys_store',
+    store_keys = _generic_check._check_var_iter(
+        store_keys, 'store_keys',
         types=list,
         types_iter=str,
         default=ldef,
@@ -1071,10 +1071,10 @@ def _store(
     
     for ii, (k0, v0) in enumerate(dout.items()):
         
-        print(k0, keys_store[ii], v0['data'].shape, v0['ref'], v0['units'])
+        print(k0, store_keys[ii], v0['data'].shape, v0['ref'], v0['units'])
         
         coll.add_data(
-            key=keys_store[ii],
+            key=store_keys[ii],
             data=v0['data'],
             ref=v0['ref'],
             units=v0['units'],

@@ -739,7 +739,7 @@ class DataStock1(DataStock0):
         returnas=None,
         # storing
         store=None,
-        keys_store=None,
+        store_keys=None,
     ):
         """ Return the binned data
         
@@ -804,7 +804,7 @@ class DataStock1(DataStock0):
             returnas=returnas,
             # storing
             store=store,
-            keys_store=keys_store,
+            store_keys=store_keys,
         )
 
     # ---------------------
