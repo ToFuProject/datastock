@@ -323,7 +323,7 @@ class Test02_Manipulate():
                 axis=ax,
                 integrate=integ,
                 store=store,
-                keys_store=kbin,
+                store_keys=kbin,
                 safety_ratio=0.95,
                 returnas=True,
             )
