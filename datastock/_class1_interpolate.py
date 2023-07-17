@@ -1552,7 +1552,15 @@ def _xunique(dout=None):
     for k0, v0 in dout.items():
 
         lind = [jj for jj, rr in enumerate(v0['ref']) if rr is None]
-        assert len(lind) == 1
+        if len(lind) != 1:
+            msg = (
+                "Interpolation at unique point => ref shold have a single None"
+                f"\n\t- k0 = {k0}\n"
+                f"\n\t- v0['ref'] = {v0['ref']}\n"
+                f"\n\t- lind = {lind}\n"
+            )
+            raise Exception(msg)
+            
         i0 = lind[0]
 
         sli = [slice(None) for jj in range(v0['data'].ndim)]
