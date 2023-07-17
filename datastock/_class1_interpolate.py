@@ -1548,21 +1548,31 @@ def _interp2d(
 def _xunique(dout=None):
     """ interpolation on a single point => eliminates a ref  """
 
+    # ----------
+    # safety check
+    
+    dind = {
+        k0: [jj for jj, rr in enumerate(v0['ref']) if rr is None]
+        for k0, v0 in dout.items()
+    }
 
+    dwrong = {k0: v0 for k0, v0 in dind.items() if len(v0) != 1}
+    if len(dwrong) > 0:
+        lstr = [
+            f"\t- {k0}: {dout[k0]['ref']} => {v0}" for k0, v0 in dwrong.items()
+        ]
+        msg = (
+            "Interpolation at unique point => ref should have one None:\n"
+            + "\n".join(lstr)
+        )
+        raise Exception(msg)
+    
+    # --------------
+    # ajusting dout
+    
     for k0, v0 in dout.items():
 
-        lind = [jj for jj, rr in enumerate(v0['ref']) if rr is None]
-        if len(lind) != 1:
-            msg = (
-                "Interpolation at unique point => ref should have one None"
-                f"\n\t- k0 = {k0}\n"
-                f"\t- v0['ref'] = {v0['ref']}\n"
-                f"\t- lind = {lind}\n"
-            )
-            raise Exception(msg)
-            
-        i0 = lind[0]
-
+        i0 = dind[k0][0]
         sli = [slice(None) for jj in range(v0['data'].ndim)]
         sli[i0] = 0
         dout[k0]['data'] = v0['data'][tuple(sli)]
