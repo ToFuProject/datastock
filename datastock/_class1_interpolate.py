@@ -1554,10 +1554,10 @@ def _xunique(dout=None):
         lind = [jj for jj, rr in enumerate(v0['ref']) if rr is None]
         if len(lind) != 1:
             msg = (
-                "Interpolation at unique point => ref shold have a single None"
+                "Interpolation at unique point => ref should have one None"
                 f"\n\t- k0 = {k0}\n"
-                f"\n\t- v0['ref'] = {v0['ref']}\n"
-                f"\n\t- lind = {lind}\n"
+                f"\t- v0['ref'] = {v0['ref']}\n"
+                f"\t- lind = {lind}\n"
             )
             raise Exception(msg)
             
