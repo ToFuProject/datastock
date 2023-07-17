@@ -984,8 +984,9 @@ def _bin_fixed_bin(
         linds = [range(nn) for nn in shape_other]
         
         # slice_data
-        sli = np.array([0 for ii in shape_other])
-        sli = np.insert(sli, axis[0], slice(None))
+        sli = [0 for ii in shape_other]
+        sli.insert(axis[0], slice(None))
+        sli = np.array(sli)
         
         if bins1 is None:
             
