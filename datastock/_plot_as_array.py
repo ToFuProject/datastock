@@ -2065,7 +2065,10 @@ def _plot_as_array_3d_label_axes(
         ax.yaxis.set_label_position('right')
         ax.xaxis.set_label_position('top')
 
-        ax.set_xlim(ymin, ymax)
+        if np.isfinite(ymin):
+            ax.set_xlim(left=ymin)
+        if np.isfinite(ymax):
+            ax.set_xlim(right=ymax)
 
         # y text ticks
         if ystr:
@@ -2090,7 +2093,10 @@ def _plot_as_array_3d_label_axes(
         ax.set_ylabel('data')
         ax.set_xlabel(labX)
 
-        ax.set_ylim(ymin, ymax)
+        if np.isfinite(ymin):
+            ax.set_ylim(bottom=ymin)
+        if np.isfinite(ymax):
+            ax.set_ylim(top=ymax)
 
         # x text ticks
         if xstr:
@@ -2113,7 +2119,10 @@ def _plot_as_array_3d_label_axes(
         ax.set_ylabel('data')
         ax.set_xlabel(labZ)
 
-        ax.set_ylim(ymin, ymax)
+        if np.isfinite(ymin):
+            ax.set_ylim(bottom=ymin)
+        if np.isfinite(ymax):
+            ax.set_ylim(top=ymax)
 
         # z text ticks
         if zstr:
