@@ -412,10 +412,18 @@ def _check_keyXYZ(
                         or _check_uniform_log(k0=k0, ddata=coll._ddata)
                     ]
 
-                keyX = _generic_check._check_var(
-                    keyX, 'keyX',
-                    allowed=lok,
-                )
+                try:
+                    keyX = _generic_check._check_var(
+                        keyX, keyXstr,
+                        allowed=lok,
+                    )
+                except Exception as err:
+                    msg = (
+                        err.args[0]
+                        + f"\nContraint on uniformity: {uniform}"
+                    )
+                    err.args = (msg,)
+                    raise err
 
                 refX = coll._ddata[keyX]['ref'][0]
 
