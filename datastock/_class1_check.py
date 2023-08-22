@@ -590,14 +590,14 @@ def _check_dref(
             isinstance(v0, dict)
             and (
                 isinstance(v0.get('data'), (np.ndarray, list, tuple))
-                or isinstance(v0.get('size'), (int, np.int_))
+                or isinstance(v0.get('size'), (int, np.integer))
             )
         )
         if not c0:
             msg = "v0 must be a dict with either 'data' or 'size'"
             raise Exception(msg)
 
-        if isinstance(v0.get('size'), (int, np.int_)):
+        if isinstance(v0.get('size'), (int, np.integer)):
             dref[k0]['size'] = int(v0['size'])
 
         dref2[key] = dict(dref[k0])
@@ -1553,9 +1553,9 @@ def _set_param(
     # Set value
 
     # Check value - TBC: allow list
-    ltypes = [str, int, np.integer, float, np.floating, tuple]
+    ltypes = (int, np.integer, float, str, tuple)
     lc = [
-        isinstance(value, tuple(ltypes)),
+        isinstance(value, ltypes),
         isinstance(value, (list, tuple, np.ndarray))
         and distribute is False,
         isinstance(value, (list, tuple, np.ndarray))
@@ -1569,15 +1569,15 @@ def _set_param(
     ]
     if not (value is None or any(lc)):
         msg = (
-            """
+            f"""
             Accepted types for value include:
                 - None
-                - {}: common to all
+                - {ltypes}: common to all
                 - list, np.ndarray: key by key
                 - dict of scalar / str
 
-            The length of value must match the selected keys ({})
-            """.format(ltypes, len(key))
+            The length of value must match the selected keys ({len(key)})
+            """
         )
         raise Exception(msg)
 
@@ -1690,7 +1690,7 @@ def _ind_tofrom_key(
             and (
                 (ind.dtype == np.bool and ind.size == len(dd))
                 or (
-                    ind.dtype == np.int
+                    ind.dtype == int
                     and np.all(np.isfinite(ind))
                     and np.max(ind) <= len(dd)
                 )
@@ -1798,10 +1798,11 @@ def _select(dd=None, dd_name=None, log=None, returnas=None, **kwdargs):
     # Get raw bool indices
 
     # Get list of accessible param
-    ltypes = (int, np.int_, float, np.float_)
+    ltypes = (float, int, np.integer)
     lquant = [
         kk for kk in kwdargs.keys()
-        if any([isinstance(dd[k0][kk], ltypes) for k0 in dd.keys()])
+        if any([isinstance(dd[k0][kk], ltypes) for k0 in dd.keys()
+        ])
     ]
 
     # Prepare array of bool indices and populate
@@ -1973,7 +1974,7 @@ def _show_extract(dobj=None, lk=None):
         if isinstance(v0, float):
             lv0.append(f'{v0:.2e}')
         elif isinstance(v0, np.ndarray) and v0.size == 3:
-            if v0.dtype == np.float:
+            if v0.dtype == float:
                 lv0.append(
                     np.array2string(
                         v0,
