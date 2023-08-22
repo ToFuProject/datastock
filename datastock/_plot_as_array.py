@@ -65,6 +65,7 @@ def plot_as_array(
     inverty=None,
     bck=None,
     interp=None,
+    show_commands=None,
     # figure-specific
     dax=None,
     dmargin=None,
@@ -324,7 +325,7 @@ def plot_as_array(
         coll2.disconnect_old()
         coll2.connect()
 
-        coll2.show_commands()
+        coll2.show_commands(verb=show_commands)
         return coll2
     else:
         return coll2, dgroup
@@ -432,6 +433,22 @@ def _check_keyXYZ(
 
             elif keyX in refs:
                 keyX, refX = 'index', keyX
+
+            elif keyX == 'index':
+                if already is None:
+                    refX = refs[dim_min - 1]
+                elif all([kk in already for kk in refs]): # TBC
+                    # sameref
+                    refX = refs[dim_min - 1]
+                    msg = (
+                        "Special case\n"
+                        "\t- refs: {refs}\n"
+                        f"\t- '{keyXstr}': {keyX}\n"
+                        f"\t- already: {already}"
+                    )
+                    raise Exception(msg)
+                else:
+                    refX = [kk for kk in refs if kk not in already][0]
 
             else:
                 msg = (
@@ -1140,8 +1157,13 @@ def plot_as_array_2d(
         ax2.set_ylabel('data')
         ax2.set_xlabel(labX)
 
-        ax1.set_xlim(ymin, ymax)
-        ax2.set_ylim(ymin, ymax)
+        if np.isfinite(ymin):
+            ax1.set_xlim(left=ymin)
+            ax2.set_ylim(bottom=ymin)
+        if np.isfinite(ymax):
+            ax1.set_xlim(right=ymax)
+            ax2.set_ylim(top=ymax)
+
 
         # axes for text
         ax3 = fig.add_subplot(gs[:3, 3], frameon=False)
@@ -2918,7 +2940,10 @@ def _plot_as_array_4d_label_axes(
         ax.yaxis.set_label_position('right')
         ax.xaxis.set_label_position('top')
 
-        ax.set_xlim(ymin, ymax)
+        if np.isfinite(ymin):
+            ax.set_xlim(left=ymin)
+        if np.isfinite(ymax):
+            ax.set_xlim(right=ymax)
 
         # y text ticks
         if ystr:
