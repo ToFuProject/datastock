@@ -65,6 +65,7 @@ def plot_as_array(
     inverty=None,
     bck=None,
     interp=None,
+    show_commands=None,
     # figure-specific
     dax=None,
     dmargin=None,
@@ -324,7 +325,7 @@ def plot_as_array(
         coll2.disconnect_old()
         coll2.connect()
 
-        coll2.show_commands()
+        coll2.show_commands(verb=show_commands)
         return coll2
     else:
         return coll2, dgroup

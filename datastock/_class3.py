@@ -38,6 +38,7 @@ class DataStock3(DataStock2):
         inverty=None,
         bck=None,
         interp=None,
+        show_commands=None,
         # figure-specific
         dax=None,
         dmargin=None,
@@ -72,6 +73,7 @@ class DataStock3(DataStock2):
             inverty=inverty,
             bck=bck,
             interp=interp,
+            show_commands=show_commands,
             # figure-specific
             dax=dax,
             dmargin=dmargin,
@@ -102,6 +104,7 @@ class DataStock3(DataStock2):
         rotation=None,
         inverty=None,
         bck=None,
+        show_commands=None,
         # figure-specific
         dax=None,
         dmargin=None,
@@ -131,6 +134,7 @@ class DataStock3(DataStock2):
             rotation=rotation,
             inverty=inverty,
             bck=bck,
+            show_commands=show_commands,
             # figure-specific
             dax=dax,
             dmargin=dmargin,
@@ -158,6 +162,7 @@ class DataStock3(DataStock2):
         lkeys=None,
         bstr_dict=None,
         rotation=None,
+        show_commands=None,
         # figure-specific
         dax=None,
         dmargin=None,
@@ -185,6 +190,7 @@ class DataStock3(DataStock2):
             lkeys=lkeys,
             bstr_dict=bstr_dict,
             rotation=rotation,
+            show_commands=show_commands,
             # figure-specific
             dax=dax,
             dmargin=dmargin,
@@ -247,6 +253,7 @@ class DataStock3(DataStock2):
         keyB=None,
         keyX=None,
         axis=None,
+        show_commands=None,
         # customization of scatter plot
         dlim=None,
         color_dict=None,
@@ -289,6 +296,7 @@ class DataStock3(DataStock2):
             keyB=keyB,
             keyX=keyX,
             axis=axis,
+            show_commands=show_commands,
             # customization of scatter plot
             dlim=dlim,
             color_dict=color_dict,

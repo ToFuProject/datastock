@@ -37,6 +37,7 @@ def plot_BvsA_as_distribution(
     keyB=None,
     keyX=None,
     axis=None,
+    show_commands=None,
     # customization of scatter plot
     dlim=None,
     dlim_logic=None,
@@ -471,7 +472,7 @@ def plot_BvsA_as_distribution(
         coll2.disconnect_old()
         coll2.connect()
 
-        coll2.show_commands()
+        coll2.show_commands(verb=show_commands)
         return coll2
     else:
         return coll2, dgroup
