@@ -58,6 +58,7 @@ def plot_as_mobile_lines(
     lkeys=None,
     bstr_dict=None,
     rotation=None,
+    show_commands=None,
     # figure-specific
     dax=None,
     dmargin=None,
@@ -184,7 +185,7 @@ def plot_as_mobile_lines(
         coll2.disconnect_old()
         coll2.connect()
 
-        coll2.show_commands()
+        coll2.show_commands(verb=show_commands)
         return coll2
     else:
         return coll2, dgroup

@@ -62,6 +62,7 @@ def plot_as_profile1d(
     rotation=None,
     inverty=None,
     bck=None,
+    show_commands=None,
     # figure-specific
     dax=None,
     dmargin=None,
@@ -173,7 +174,7 @@ def plot_as_profile1d(
         coll2.disconnect_old()
         coll2.connect()
 
-        coll2.show_commands()
+        coll2.show_commands(verb=show_commands)
         return coll2
     else:
         return coll2, dgroup
