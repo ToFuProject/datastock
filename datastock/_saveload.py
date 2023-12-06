@@ -181,13 +181,19 @@ def load(
             dout[k0] = None
         elif typ == 'ndarray':
             dout[k0] = dflat[k0]
+        elif any([ss in typ for ss in ['csc_', 'bsr_', 'coo_', 'csr_', 'dia_', 'dok_', 'lil_']]):
+            assert typ in type(dflat[k0]).__name__
+            dout[k0] = dflat[k0]
         elif 'Unit' in typ:
             dout[k0] = asunits.Unit(v0.tolist())
         elif typ == 'type':
             dout[k0] = dflat[k0]
         else:
             msg = (
-                f"Don't know how to deal with dflat['{k0}']: {typ}"
+                f"Don't know how to deal with dflat['{k0}']:\n"
+                f"\t- typ: {typ}\n"
+                f"\t- type: {type(dflat[k0])}\n"
+                f"\t- value: {dflat[k0]}\n"
             )
             raise Exception(msg)
 
