@@ -437,33 +437,57 @@ def compare_obj(obj0=None, obj1=None, returnas=None, verb=None):
 # ###############################################################
 
 
-def flatten_dict(
-    din=None,
+def _flatten_dict_check(
     parent_key=None,
     sep=None,
+    excluded=None,
     asarray=None,
     with_types=None,
     type_str=None,
 ):
-    """ Return a flattened version of the input dict """
-
     # ------------
     # check inputs
 
     # sep
-    sep = _generic_check._check_var(
-        sep, 'sep',
-        default='.',
-        types=str,
-    )
+    if sep is not None:
+        sep = _generic_check._check_var(
+            sep, 'sep',
+            default='.',
+            types=str,
+        )
 
     # parent_key
     if parent_key is not None:
         parent_key = _generic_check._check_var(
             parent_key, 'parent_key',
             default='.',
-            types=str,
+            types=(str, tuple),
         )
+
+    # excluded
+    if excluded is not None:
+        if isinstance(excluded, str):
+            excluded = ((excluded,),)
+
+        if not isinstance(excluded, (list, tuple)):
+            msg = "Arg excluded must be a tuple of tuples of str!"
+            raise Exception(msg)
+
+        if any([isinstance(ss, (str, list)) for ss in excluded]):
+            excluded = tuple([
+                tuple(ss) if isinstance(ss, list)
+                else (ss if isinstance(ss, tuple) else (ss,))
+                for ss in excluded
+            ])
+
+        c0 = (
+            isinstance(excluded, tuple)
+            and all([isinstance(tt, tuple) for tt in excluded])
+            and all([all([isinstance(ss, str) for ss in tt]) for tt in excluded])
+        )
+        if not c0:
+            msg = "Arg excluded must be a tuple of tuples of str!"
+            raise Exception(msg)
 
     # asarray
     asarray = _generic_check._check_var(
@@ -484,6 +508,146 @@ def flatten_dict(
         type_str, 'type_str',
         default='__type',
         types=str,
+    )
+
+    return parent_key, sep, excluded, asarray, with_types, type_str
+
+
+def flatten_dict_keys(
+    din=None,
+    parent_key=None,
+    sep=None,
+    excluded=None,
+):
+    """ Return a flattened version of the input dict keys"""
+
+    # ------------
+    # check inputs
+    # ------------
+
+    parent_key, sep, excluded = _flatten_dict_check(
+        parent_key=parent_key,
+        sep=sep,
+        excluded=excluded,
+    )[:3]
+
+    # ------------
+    # top level
+    # ------------
+
+    if isinstance(din, dict):
+
+        dkeys = {}
+        for k0, v0 in din.items():
+
+            # key
+            if parent_key is None:
+                key = (k0,)
+            else:
+                key = tuple([k1 for k1 in parent_key] + [k0])
+
+            # value
+            if isinstance(v0, dict):
+                dkeys.update(
+                    flatten_dict_keys(
+                        v0,
+                        key,
+                        sep=None,
+                        excluded=excluded,
+                    )
+                )
+
+            else:
+
+                # get class
+                if excluded is None or key not in excluded:
+                    dkeys[key] = v0.__class__.__name__
+
+    else:
+        dkeys = {}
+        lk0 = [
+            k0 for k0 in dir(din)
+            if isinstance(getattr(din, k0), dict)
+            and k0 != '__dict__'
+            and '__dlinks' not in k0
+            and not (
+                hasattr(din.__class__, k0)
+                and isinstance(getattr(din.__class__, k0), property)
+            )
+        ]
+        for k0 in lk0:
+            dout = flatten_dict_keys(
+                getattr(din, k0),
+                parent_key=None,
+                sep=None,
+                excluded=excluded,
+            )
+            for k1, v1 in dout.items():
+                dkeys[tuple([k0] + [k2 for k2 in k1])] = v1
+
+    # ---------------------
+    # format keys using sep
+    # ---------------------
+
+    if sep is not None:
+
+        # --------------------
+        # safety check vs sep
+
+        # dict of non-conform keys
+        dkout = {
+            k0: v0 for k0, v0 in dkeys.items()
+            if any([sep in k1 for k1 in k0])
+        }
+
+        # error msg
+        if len(dkout) > 0:
+            lstr = [f"\t- {k0}: {v0}" for k0, v0 in dkout.items()]
+            msg = (
+                f"The following keys already have the desired sep '{sep}':\n"
+                + '\n'.join(lstr)
+            )
+            raise Exception(msg)
+
+        # ----------
+        # formatting
+
+        dkeys = {sep.join(k0): v0 for k0, v0 in dkeys.items()}
+
+    return dkeys, sep
+
+def dict_from_dtypes(
+    coll=None,
+    dtypes=None,
+    flatten=None,
+    sep=None,
+    copy=None,
+):
+
+    pass
+
+
+
+
+def flatten_dict(
+    din=None,
+    parent_key=None,
+    sep=None,
+    asarray=None,
+    with_types=None,
+    type_str=None,
+):
+    """ Return a flattened version of the input dict """
+
+    # ------------
+    # check inputs
+
+    parent_key, sep, asarray, with_types, type_str = _flatten_dict_check(
+        parent_key=parent_key,
+        sep=sep,
+        asarray=asarray,
+        with_types=with_types,
+        type_str=type_str,
     )
 
     # --------
@@ -601,7 +765,7 @@ def reshape_dict(din, sep=None):
 def KnuthMorrisPratt(text, pattern):
 
     """ Yields all starting positions of copies of the pattern in the sequence
-    
+
     Calling conventions are similar to string.find, but its arguments can be
     lists or iterators, not just strings, it returns all matches, not just
     the first one, and it does not need the whole text in memory at once.

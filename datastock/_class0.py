@@ -17,7 +17,19 @@ class DataStock0(object):
     def __init__(self):
         self.__object = object()
 
-    def to_dict(self, flatten=None, sep=None, asarray=None, with_types=None):
+    def to_dict(
+        self,
+        flatten=None,
+        sep=None,
+        asarray=None,
+        with_types=None,
+        excluded=None,
+        # copy vs ref
+        copy=None,
+        # dtypes
+        types_only=None,
+        return_types=None,
+    ):
         """ Return a flat dict view of the object's attributes
 
         Useful for:
@@ -48,8 +60,44 @@ class DataStock0(object):
             types=bool,
         )
 
+        types_only = _generic_check._check_var(
+            types_only, 'types_only',
+            default=False,
+            types=bool,
+        )
+
+        return_types = _generic_check._check_var(
+            return_types, 'return_types',
+            default=False,
+            types=bool,
+        )
+
+        # ----------------------
+        # get flat key/type tree
+
+        dtypes, sep = _generic_utils.flatten_dict_keys(
+            din=self,
+            parent_key=None,
+            sep=sep,
+            excluded=excluded,
+        )
+
+        if types_only is True:
+            if flatten is False:
+                return _generic_utils._reshape_dict(din=dtypes, sep=sep)
+            else:
+                return dtypes
+
         # ---------------------------
         # Get list of dict attributes
+
+        dout = _generic_utils.dict_from_dtypes(
+            self,
+            dtypes=dtypes,
+            flatten=flatten,
+            sep=sep,
+            copy=copy,
+        )
 
         dout = copy.deepcopy({
             k0: getattr(self, k0)
@@ -75,7 +123,13 @@ class DataStock0(object):
                 with_types=with_types,
             )
 
-        return dout
+        # ---------
+        # return
+
+        if return_types is True:
+            return dout, dtypes
+        else:
+            return dout
 
     @classmethod
     def from_dict(cls, din=None, reshape=None, sep=None):
