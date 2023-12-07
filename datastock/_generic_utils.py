@@ -1,5 +1,8 @@
 
 
+from copy import deepcopy
+
+
 import numpy as np
 import scipy.sparse as scpsp
 import astropy.units as asunits
@@ -753,7 +756,7 @@ def dict_from_dtypes(
     # prepare output
 
     if copy is True:
-        return copy.deepcopy(dout)
+        return deepcopy(dout)
     else:
         return dout
 
@@ -794,22 +797,25 @@ def _blend_dicts(
 def _reshape_dict(k0, v0, dinit={}, sep=None):
     """ Populate dinit """
 
+    assert isinstance(dinit, dict), dinit
+
     if sep is None:
         lk = k0
     else:
         lk = k0.split(sep)
 
-    k0 = k0 if len(lk) == 1 else lk[0]
+    k0 = lk[0]
 
     if len(lk) == 2:
         if k0 not in dinit.keys():
             dinit[k0] = {}
-        assert isinstance(dinit[k0], dict)
+        assert isinstance(dinit[k0], dict), (k0, dinit[k0])
         dinit[k0].update({lk[1]: v0})
 
     elif len(lk) > 2:
         if k0 not in dinit.keys():
             dinit[k0] = {}
+        assert isinstance(dinit[k0], dict), (k0, dinit[k0])
 
         knew = lk[1:] if sep is None else sep.join(lk[1:])
         _reshape_dict(knew, v0, dinit=dinit[k0], sep=sep)

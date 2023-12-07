@@ -123,15 +123,15 @@ class DataStock0(object):
         dsize :     dict
             A dictionnary giving the size of each attribute
         """
-        dd = self.to_dict(flatten=True)
+        dd = self.to_dict(flatten=True, copy=False, returnas='values')
         dsize = dd.fromkeys(dd.keys(), 0)
         total = 0
         for k0, v0 in dd.items():
             try:
                 dsize[k0] = np.asarray(v0).nbytes
-                total += dsize[k0]
             except Exception as err:
                 dsize[k0] = str(err)
+            total += dsize[k0]
         return total, dsize
 
 
@@ -168,6 +168,9 @@ class DataStock0(object):
         return_pfe=False,
     ):
 
+        if sep is None:
+            sep = '.'
+
         # call parent method
         return _saveload.save(
             dflat=self.to_dict(
@@ -176,6 +179,7 @@ class DataStock0(object):
                 asarray=True,
                 returnas='blended',
             ),
+            sep=sep,
             path=path,
             name=name,
             clsname=self.__class__.__name__,
