@@ -3,6 +3,8 @@
 import numpy as np
 import scipy.sparse as scpsp
 import astropy.units as asunits
+from functools import reduce  # forward compatibility for Python 3
+import operator
 
 
 from . import _generic_check
@@ -407,8 +409,14 @@ def compare_dict(
     return _compare_dict_verb_return(dkeys, returnas, verb)
 
 
-def compare_obj(obj0=None, obj1=None, returnas=None, verb=None):
-    """ Compare thje content of 2 instances """
+def compare_obj(
+    obj0=None,
+    obj1=None,
+    excluded=None,
+    returnas=None,
+    verb=None,
+):
+    """ Compare the content of 2 instances """
 
     # -----------
     # Check class
@@ -423,8 +431,8 @@ def compare_obj(obj0=None, obj1=None, returnas=None, verb=None):
     # Check
 
     return compare_dict(
-        d0=obj0.to_dict(),
-        d1=obj1.to_dict(),
+        d0=obj0.to_dict(excluded=excluded, returnas='values', copy=False),
+        d1=obj1.to_dict(excluded=excluded, returnas='values', copy=False),
         dname=None,
         returnas=returnas,
         verb=verb,
@@ -437,13 +445,83 @@ def compare_obj(obj0=None, obj1=None, returnas=None, verb=None):
 # ###############################################################
 
 
+def to_dict(
+    coll=None,
+    flatten=None,
+    sep=None,
+    excluded=None,
+    # copy vs ref
+    asarray=None,
+    copy=None,
+    # dtypes
+    returnas=None,
+):
+
+    # ------------
+    # check inputs
+
+    flatten = _generic_check._check_var(
+        flatten, 'flatten',
+        default=True,
+        types=bool,
+    )
+
+    returnas = _generic_check._check_var(
+        returnas, 'returnas',
+        default='types',
+        types=str,
+        allowed=['types', 'values', 'both', 'blended'],
+    )
+
+    # ----------------------
+    # get flat key/type tree
+
+    dtypes, sep = flatten_dict_keys(
+        din=coll,
+        parent_key=None,
+        sep=sep,
+        excluded=excluded,
+    )
+
+    if returnas == 'types':
+        if flatten is False:
+            return reshape_dict(dtypes, sep=sep)
+        else:
+            return dtypes
+
+    # ---------------------------
+    # Get list of dict attributes
+
+    dout = dict_from_dtypes(
+        coll,
+        dtypes=dtypes,
+        flatten=flatten,
+        sep=sep,
+        asarray=asarray,
+        copy=copy,
+    )
+
+    # ---------
+    # return
+
+    if returnas == 'blended':
+        return _blend_dicts(
+            dbase=dout,
+            dextra=dtypes,
+            extra_key='__type',
+            flatten=flatten,
+        )
+    if returnas == 'both':
+        return dtypes, dout
+    else:
+        return dout
+
+
 def _flatten_dict_check(
     parent_key=None,
     sep=None,
     excluded=None,
     asarray=None,
-    with_types=None,
-    type_str=None,
 ):
     # ------------
     # check inputs
@@ -489,28 +567,7 @@ def _flatten_dict_check(
             msg = "Arg excluded must be a tuple of tuples of str!"
             raise Exception(msg)
 
-    # asarray
-    asarray = _generic_check._check_var(
-        asarray, 'asarray',
-        default=False,
-        types=bool,
-    )
-
-    # with_types
-    with_types = _generic_check._check_var(
-        with_types, 'with_types',
-        default=False,
-        types=bool,
-    )
-
-    # with_types
-    type_str = _generic_check._check_var(
-        type_str, 'type_str',
-        default='__type',
-        types=str,
-    )
-
-    return parent_key, sep, excluded, asarray, with_types, type_str
+    return parent_key, sep, excluded
 
 
 def flatten_dict_keys(
@@ -529,7 +586,7 @@ def flatten_dict_keys(
         parent_key=parent_key,
         sep=sep,
         excluded=excluded,
-    )[:3]
+    )
 
     # ------------
     # top level
@@ -554,7 +611,7 @@ def flatten_dict_keys(
                         key,
                         sep=None,
                         excluded=excluded,
-                    )
+                    )[0]
                 )
 
             else:
@@ -567,13 +624,13 @@ def flatten_dict_keys(
         dkeys = {}
         lk0 = [
             k0 for k0 in dir(din)
-            if isinstance(getattr(din, k0), dict)
-            and k0 != '__dict__'
+            if k0 != '__dict__'
             and '__dlinks' not in k0
             and not (
                 hasattr(din.__class__, k0)
                 and isinstance(getattr(din.__class__, k0), property)
             )
+            and isinstance(getattr(din, k0), dict)
         ]
         for k0 in lk0:
             dout = flatten_dict_keys(
@@ -581,7 +638,7 @@ def flatten_dict_keys(
                 parent_key=None,
                 sep=None,
                 excluded=excluded,
-            )
+            )[0]
             for k1, v1 in dout.items():
                 dkeys[tuple([k0] + [k2 for k2 in k1])] = v1
 
@@ -616,107 +673,132 @@ def flatten_dict_keys(
 
     return dkeys, sep
 
+
+def getFromDict(dataDict, mapList):
+    return reduce(operator.getitem, mapList, dataDict)
+
+
+def setInDict(dataDict, mapList, value):
+    getFromDict(dataDict, mapList[:-1])[mapList[-1]] = value
+
+
 def dict_from_dtypes(
     coll=None,
     dtypes=None,
     flatten=None,
     sep=None,
+    asarray=None,
     copy=None,
 ):
+    """ Assumes dtypes is flat """
 
-    pass
-
-
-
-
-def flatten_dict(
-    din=None,
-    parent_key=None,
-    sep=None,
-    asarray=None,
-    with_types=None,
-    type_str=None,
-):
-    """ Return a flattened version of the input dict """
-
-    # ------------
+    # -------------------------
     # check inputs
 
-    parent_key, sep, asarray, with_types, type_str = _flatten_dict_check(
-        parent_key=parent_key,
-        sep=sep,
-        asarray=asarray,
-        with_types=with_types,
-        type_str=type_str,
+    # asarray
+    asarray = _generic_check._check_var(
+        asarray, 'asarray',
+        default=False,
+        types=bool,
     )
 
-    # --------
-    # flatten
+    copy = _generic_check._check_var(
+        copy, 'copy',
+        default=False,
+        types=bool,
+    )
 
-    if with_types:
-        dtypes = {}
+    # -------------------------
+    # get flat / unflat version
 
-    # --------
-    # flatten
-
-    items = []
-    for k0, v0 in din.items():
-
-        # key
-        if parent_key is None:
-            key = k0
-        else:
-            key = f'{parent_key}{sep}{k0}'
-
-        # value
-        if isinstance(v0, dict):
-            items.extend(
-                flatten_dict(
-                    v0,
-                    key,
-                    sep=sep,
-                    asarray=asarray,
-                    with_types=with_types,
-                    type_str=type_str,
-                ).items()
-            )
-
-        else:
-
-            # get class
-            cc = v0.__class__.__name__
-
-            # store type?
-            if with_types:
-                dtypes[f'{key}{type_str}'] = cc
-
-            # asarray
-            if asarray:
-
-                # astropy unit to str
-                if 'Unit' in cc:
-                    v0 = str(v0)
-
-                items.append((key, np.asarray(v0)))
-
-            else:
-                items.append((key, v0))
-
-    # --------
-    # return
-
-    if with_types:
-        dout = dict(items)
-        dout.update(dtypes)
-        return dout
+    # keys
+    if sep is None:
+        lkeys = sorted(dtypes.keys())
     else:
-        return dict(items)
+        lkeys = sorted([k0.split(sep) for k0 in dtypes.keys()])
+
+    # -----------
+    # build
+
+    # initialize dout
+    if flatten is True:
+        dout = {}
+    else:
+        dout = dict(reshape_dict(dtypes, sep=sep))
+
+    # loop on all keys from (flat) dtypes
+    for k0 in lkeys:
+
+        # get value from coll
+        for ii, k1 in enumerate(k0):
+            if ii == 0:
+                out = getattr(coll, k1)
+            else:
+                out = out[k1]
+
+        # asarray
+        if asarray is True:
+            out = np.asarray(out)
+
+        # set value in dout
+        if flatten is True:
+            if sep is None:
+                dout[k0] = out
+            else:
+                dout[sep.join(k0)] = out
+        else:
+            setInDict(dout, k0, out)
+
+    # ---------------
+    # prepare output
+
+    if copy is True:
+        return copy.deepcopy(dout)
+    else:
+        return dout
+
+
+def _blend_dicts(
+    dbase=None,
+    dextra=None,
+    extra_key=None,
+    flatten=None,
+):
+
+    # -------------
+    # check inputs
+
+    extra_key = _generic_check._check_var(
+        extra_key, 'extra_key',
+        default='__type',
+        types=str,
+    )
+
+    assert isinstance(dbase, dict) and isinstance(dextra, dict)
+
+    # ------------
+    # blend
+
+    if flatten is True:
+
+        for k0, v0 in dextra.items():
+            dbase[f"{k0}{extra_key}"] = v0
+
+    else:
+        msg = "Blended dict not implement for flatten = False"
+        raise NotImplementedError(msg)
+
+    return dbase
 
 
 def _reshape_dict(k0, v0, dinit={}, sep=None):
     """ Populate dinit """
 
-    lk = k0.split(sep)
+    if sep is None:
+        lk = k0
+    else:
+        lk = k0.split(sep)
+
     k0 = k0 if len(lk) == 1 else lk[0]
 
     if len(lk) == 2:
@@ -728,7 +810,9 @@ def _reshape_dict(k0, v0, dinit={}, sep=None):
     elif len(lk) > 2:
         if k0 not in dinit.keys():
             dinit[k0] = {}
-        _reshape_dict(sep.join(lk[1:]), v0, dinit=dinit[k0], sep=sep)
+
+        knew = lk[1:] if sep is None else sep.join(lk[1:])
+        _reshape_dict(knew, v0, dinit=dinit[k0], sep=sep)
 
     else:
         assert k0 not in dinit.keys()
@@ -741,18 +825,20 @@ def reshape_dict(din, sep=None):
     # ------------
     # check inputs
 
-    sep = _generic_check._check_var(
-        sep, 'sep',
-        default='.',
-        types=str,
-    )
+    if sep is not None:
+        sep = _generic_check._check_var(
+            sep, 'sep',
+            default='.',
+            types=str,
+        )
 
-    # ------------
+    # ------------------------
     # Get all individual keys
 
     dout = {}
     for k0, v0 in din.items():
         _reshape_dict(k0, v0, dinit=dout, sep=sep)
+
     return dout
 
 
