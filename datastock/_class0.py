@@ -174,6 +174,10 @@ class DataStock0(object):
                 c0 = (
                     any([ss in k0 for k0 in self.ddata.keys()])
                     or any([ss in k0 for k0 in self.dref.keys()])
+                    or any([
+                        any([ss in k0 for k0 in self.dobj[k0].keys()])
+                        for k0 in self._dobj.keys()
+                    ])
                 )
                 if not c0:
                     sep = ss
