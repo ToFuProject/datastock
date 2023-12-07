@@ -15,6 +15,9 @@ from . import _generic_check
 from . import _generic_utils
 
 
+_KEY_SEP = '--sep--'
+
+
 # #################################################################
 # #################################################################
 #                   Save
@@ -23,6 +26,7 @@ from . import _generic_utils
 
 def save(
     dflat=None,
+    sep=None,
     name=None,
     path=None,
     clsname=None,
@@ -79,6 +83,9 @@ def save(
     user = getpass.getuser()
     dt = dtm.datetime.now().strftime("%Y%m%d-%H%M%S")
     name = f'{clsname}_{name}_{user}_{dt}.npz'
+
+    # add sep
+    dflat[_KEY_SEP] = sep
 
     # save
     pfe = os.path.join(path, name)
@@ -146,6 +153,17 @@ def load(
     # load flat dict
 
     dflat = dict(np.load(pfe, allow_pickle=allow_pickle))
+
+    # ------------------------------
+    # load sep from file if exists
+
+    if _KEY_SEP in dflat.keys():
+        # new
+        sep = str(dflat[_KEY_SEP])
+        del dflat[_KEY_SEP]
+    else:
+        # back-compatibility
+        sep = '.'
 
     # ----------
     # reshape
