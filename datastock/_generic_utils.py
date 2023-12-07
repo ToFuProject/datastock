@@ -532,19 +532,11 @@ def _flatten_dict_check(
 
     # sep
     if sep is not None:
-        lout = set(itt.chain.from_iterable(list(din.keys())))
         sep = _generic_check._check_var(
             sep, 'sep',
             default='.',
             types=str,
         )
-        if sep in lout:
-            lstr = [f"\t- {k0}" for k0 in din.keys() if sep in k0]
-            msg = (
-                f"The following keys already have the desired sep '{sep}':\n"
-                + '\n'.join(lstr)
-            )
-            raise Exception(msg)
 
     # parent_key
     if parent_key is not None:
