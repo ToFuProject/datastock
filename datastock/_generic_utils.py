@@ -1,5 +1,6 @@
 
 
+import itertools as itt
 from copy import deepcopy
 
 
@@ -521,27 +522,35 @@ def to_dict(
 
 
 def _flatten_dict_check(
+    din=None,
     parent_key=None,
     sep=None,
     excluded=None,
-    asarray=None,
 ):
     # ------------
     # check inputs
 
     # sep
     if sep is not None:
+        lout = set(itt.chain.from_iterable(list(din.keys())))
         sep = _generic_check._check_var(
             sep, 'sep',
             default='.',
             types=str,
         )
+        if sep in lout:
+            lstr = [f"\t- {k0}" for k0 in din.keys() if sep in k0]
+            msg = (
+                f"The following keys already have the desired sep '{sep}':\n"
+                + '\n'.join(lstr)
+            )
+            raise Exception(msg)
 
     # parent_key
     if parent_key is not None:
         parent_key = _generic_check._check_var(
             parent_key, 'parent_key',
-            default='.',
+            default=('',),
             types=(str, tuple),
         )
 
@@ -586,6 +595,7 @@ def flatten_dict_keys(
     # ------------
 
     parent_key, sep, excluded = _flatten_dict_check(
+        din=din,
         parent_key=parent_key,
         sep=sep,
         excluded=excluded,
@@ -636,14 +646,12 @@ def flatten_dict_keys(
             and isinstance(getattr(din, k0), dict)
         ]
         for k0 in lk0:
-            dout = flatten_dict_keys(
+            dkeys.update(flatten_dict_keys(
                 getattr(din, k0),
-                parent_key=None,
+                parent_key=(k0,),
                 sep=None,
                 excluded=excluded,
-            )[0]
-            for k1, v1 in dout.items():
-                dkeys[tuple([k0] + [k2 for k2 in k1])] = v1
+            )[0])
 
     # ---------------------
     # format keys using sep
