@@ -163,7 +163,7 @@ def load(
         del dflat[_KEY_SEP]
     else:
         # back-compatibility
-        sep = '.'
+        sep = [k0 for k0 in dflat.keys() if k0.startswith('_dref')][0][5]
 
     # ----------
     # reshape
