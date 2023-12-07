@@ -168,8 +168,16 @@ class DataStock0(object):
         return_pfe=False,
     ):
 
+        lsep = ['.', '-', '_', ',', ';', '~', '?']
         if sep is None:
-            sep = '.'
+            for ss in lsep:
+                c0 = (
+                    any([ss in k0 for k0 in self.ddata.keys()])
+                    or any([ss in k0 for k0 in self.dref.keys()])
+                )
+                if not c0:
+                    sep = ss
+                    break
 
         # call parent method
         return _saveload.save(
