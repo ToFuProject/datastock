@@ -15,6 +15,9 @@ from . import _generic_check
 from . import _generic_utils
 
 
+_KEY_SEP = '--sep--'
+
+
 # #################################################################
 # #################################################################
 #                   Save
@@ -23,6 +26,7 @@ from . import _generic_utils
 
 def save(
     dflat=None,
+    sep=None,
     name=None,
     path=None,
     clsname=None,
@@ -79,6 +83,9 @@ def save(
     user = getpass.getuser()
     dt = dtm.datetime.now().strftime("%Y%m%d-%H%M%S")
     name = f'{clsname}_{name}_{user}_{dt}.npz'
+
+    # add sep
+    dflat[_KEY_SEP] = sep
 
     # save
     pfe = os.path.join(path, name)
@@ -147,6 +154,17 @@ def load(
 
     dflat = dict(np.load(pfe, allow_pickle=allow_pickle))
 
+    # ------------------------------
+    # load sep from file if exists
+
+    if _KEY_SEP in dflat.keys():
+        # new
+        sep = str(dflat[_KEY_SEP])
+        del dflat[_KEY_SEP]
+    else:
+        # back-compatibility
+        sep = [k0 for k0 in dflat.keys() if k0.startswith('_dref')][0][5]
+
     # ----------
     # reshape
 
@@ -181,13 +199,19 @@ def load(
             dout[k0] = None
         elif typ == 'ndarray':
             dout[k0] = dflat[k0]
+        elif any([ss in typ for ss in ['csc_', 'bsr_', 'coo_', 'csr_', 'dia_', 'dok_', 'lil_']]):
+            assert typ in type(dflat[k0]).__name__
+            dout[k0] = dflat[k0]
         elif 'Unit' in typ:
             dout[k0] = asunits.Unit(v0.tolist())
         elif typ == 'type':
             dout[k0] = dflat[k0]
         else:
             msg = (
-                f"Don't know how to deal with dflat['{k0}']: {typ}"
+                f"Don't know how to deal with dflat['{k0}']:\n"
+                f"\t- typ: {typ}\n"
+                f"\t- type: {type(dflat[k0])}\n"
+                f"\t- value: {dflat[k0]}\n"
             )
             raise Exception(msg)
 

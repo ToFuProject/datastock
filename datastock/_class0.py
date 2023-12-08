@@ -17,7 +17,17 @@ class DataStock0(object):
     def __init__(self):
         self.__object = object()
 
-    def to_dict(self, flatten=None, sep=None, asarray=None, with_types=None):
+    def to_dict(
+        self,
+        flatten=None,
+        sep=None,
+        asarray=None,
+        excluded=None,
+        # copy vs ref
+        copy=None,
+        # dtypes
+        returnas=None,
+    ):
         """ Return a flat dict view of the object's attributes
 
         Useful for:
@@ -34,51 +44,28 @@ class DataStock0(object):
 
         Return
         ------
-        dout :      dict
-            dict containing all the objects attributes (optionally flattened)
+        returnas:      str
+            - 'types': a dict with only the types
+            - 'values': a dict with the values
+            - 'both': 2 seperate dicts, one with types, one with values
+            - 'blended': a dict with both types and values (save compatible)
 
         """
 
-        # ------------
-        # check inputs
-
-        flatten = _generic_check._check_var(
-            flatten, 'flatten',
-            default=False,
-            types=bool,
+        return _generic_utils.to_dict(
+            self,
+            flatten=flatten,
+            sep=sep,
+            asarray=asarray,
+            excluded=excluded,
+            # copy vs ref
+            copy=copy,
+            # dtypes
+            returnas=returnas,
         )
 
-        # ---------------------------
-        # Get list of dict attributes
-
-        dout = copy.deepcopy({
-            k0: getattr(self, k0)
-            for k0 in dir(self)
-            if isinstance(getattr(self, k0), dict)
-            and k0 != '__dict__'
-            and '__dlinks' not in k0
-            and not (
-                hasattr(self.__class__, k0)
-                and isinstance(getattr(self.__class__, k0), property)
-            )
-        })
-
-        # -------------------
-        # optional flattening
-
-        if flatten is True:
-            dout = _generic_utils.flatten_dict(
-                dout,
-                parent_key=None,
-                sep=sep,
-                asarray=asarray,
-                with_types=with_types,
-            )
-
-        return dout
-
     @classmethod
-    def from_dict(cls, din=None, reshape=None, sep=None):
+    def from_dict(cls, din=None, isflat=None, sep=None):
         """ Populate the instances attributes using an input dict
 
         The input dict must be properly formatted
@@ -92,7 +79,7 @@ class DataStock0(object):
             The separator that was used to format fd keys (cf. self.to_dict())
         """
 
-        if reshape is True:
+        if isflat is True:
             din = _generic_utils.reshape_dict(din, sep=sep)
 
         # ---------------------
@@ -109,12 +96,19 @@ class DataStock0(object):
 
         return obj
 
-    def copy(self):
+    def copy(self, excluded=None, sep=None):
         """ Return another instance of the object, with the same attributes
 
         If deep=True, all attributes themselves are also copies
         """
-        return self.__class__.from_dict(din=copy.deepcopy(self.to_dict()))
+        return self.__class__.from_dict(
+            din=self.to_dict(
+                flatten=False,
+                excluded=excluded,
+                returnas='values',
+                copy=True,
+            )
+        )
 
     def get_nbytes(self):
         """ Compute and return the object size in bytes (i.e.: octets)
@@ -129,15 +123,15 @@ class DataStock0(object):
         dsize :     dict
             A dictionnary giving the size of each attribute
         """
-        dd = self.to_dict(flatten=True)
+        dd = self.to_dict(flatten=True, copy=False, returnas='values')
         dsize = dd.fromkeys(dd.keys(), 0)
         total = 0
         for k0, v0 in dd.items():
             try:
                 dsize[k0] = np.asarray(v0).nbytes
-                total += dsize[k0]
             except Exception as err:
                 dsize[k0] = str(err)
+            total += dsize[k0]
         return total, dsize
 
 
@@ -145,16 +139,18 @@ class DataStock0(object):
     #  operator overloading
     #############################
 
-    def __eq__(self, obj, returnas=None, verb=None):
+
+    def __eq__(self, obj, excluded=None, returnas=None, verb=None):
         return _generic_utils.compare_obj(
             obj0=self,
             obj1=obj,
+            excluded=excluded,
             returnas=returnas,
             verb=verb,
         )
 
-    def __neq__(self, obj, returnas=None, verb=None):
-        return not self.__eq__(obj, returnas=returnas, verb=verb)
+    def __neq__(self, obj, excluded=None, returnas=None, verb=None):
+        return not self.__eq__(obj, excluded=excluded, returnas=returnas, verb=verb)
 
     def __hash__(self, *args, **kargs):
         return self.__object.__hash__(*args, **kargs)
@@ -172,14 +168,30 @@ class DataStock0(object):
         return_pfe=False,
     ):
 
+        lsep = ['.', '-', '_', ',', ';', '~', '?']
+        if sep is None:
+            for ss in lsep:
+                c0 = (
+                    any([ss in k0 for k0 in self.ddata.keys()])
+                    or any([ss in k0 for k0 in self.dref.keys()])
+                    or any([
+                        any([ss in k0 for k0 in self.dobj[k0].keys()])
+                        for k0 in self._dobj.keys()
+                    ])
+                )
+                if not c0:
+                    sep = ss
+                    break
+
         # call parent method
         return _saveload.save(
             dflat=self.to_dict(
                 flatten=True,
                 sep=sep,
                 asarray=True,
-                with_types=True,
+                returnas='blended',
             ),
+            sep=sep,
             path=path,
             name=name,
             clsname=self.__class__.__name__,
