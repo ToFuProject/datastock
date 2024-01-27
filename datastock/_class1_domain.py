@@ -88,7 +88,7 @@ def _check(
     for k0, v0 in domain.items():
 
         # check ref vector
-        kwd = {'ref': k0} if k0 in lref else {'key': k0}
+        kwd = {'ref': k0} if k0 in lref else {'key0': k0}
         hasref, hasvect, ref, vect = coll.get_ref_vector(**kwd)[:4]
         if not (hasref and ref is not None):
             dfail[k0] = "No associated ref identified!"
