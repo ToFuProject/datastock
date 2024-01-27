@@ -31,7 +31,7 @@ def set_aspect3d(
     # ------------
     # check inputs
 
-    ax, margin =  _check(
+    ax, margin = _set_aspect3d_check(
         ax=ax,
         margin=margin,
     )
@@ -73,7 +73,7 @@ def set_aspect3d(
 # ################
 
 
-def _check(
+def _set_aspect3d_check(
     ax=None,
     margin=None,
 ):
@@ -101,3 +101,39 @@ def _check(
     )
 
     return ax, margin
+
+
+# ############################################################
+# ############################################################
+#                _get_str_datadlab
+# ############################################################
+
+
+def _get_str_datadlab(keyX=None, nx=None, islogX=None, coll=None):
+
+    keyX2 = keyX
+    xstr = keyX != 'index' and coll.ddata[keyX]['data'].dtype.type == np.str_
+    if keyX == 'index':
+        dataX = np.arange(0, nx)
+        labX = keyX
+        dX2 = 0.5
+    elif xstr:
+        dataX = np.arange(0, nx)
+        labX = ''
+        dX2 = 0.5
+    else:
+        if islogX is True:
+            keyX2 = f"{keyX}-log10"
+            coll.add_data(
+                key=keyX2,
+                data=np.log10(coll.ddata[keyX]['data']),
+                ref=coll.ddata[keyX]['ref'],
+            )
+            labX = r"$\log_{10}$" + f"({keyX} ({coll._ddata[keyX]['units']}))"
+            dataX = coll.ddata[keyX2]['data']
+        else:
+            labX = f"{keyX} ({coll._ddata[keyX]['units']})"
+            dataX = coll.ddata[keyX]['data']
+        dX2 = np.nanmean(np.diff(dataX)) / 2.
+
+    return keyX2, xstr, dataX, dX2, labX

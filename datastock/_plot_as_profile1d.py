@@ -12,7 +12,8 @@ import matplotlib.colors as mcolors
 from . import _generic_check
 from . import _plot_text
 from . import _class1_compute
-from ._plot_as_array import _check_keyXYZ, _get_str_datadlab
+from ._plot_as_array import _check_keyXYZ
+from ._generic_utils_plot import _get_str_datadlab
 
 
 __all__ = ['plot_as_profile1d']
