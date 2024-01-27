@@ -241,7 +241,7 @@ def _check_keys(
             if rr in lref:
                 kwd = {'ref': rr}
             else:
-                kwd = {'key': rr}
+                kwd = {'key0': rr}
             hasref, hasvect, ref, ref_key[ii] = coll.get_ref_vector(
                 **kwd,
             )[:4]
@@ -1550,7 +1550,7 @@ def _xunique(dout=None):
 
     # ----------
     # safety check
-    
+
     dind = {
         k0: [jj for jj, rr in enumerate(v0['ref']) if rr is None]
         for k0, v0 in dout.items()
@@ -1566,10 +1566,10 @@ def _xunique(dout=None):
             + "\n".join(lstr)
         )
         raise Exception(msg)
-    
+
     # --------------
     # ajusting dout
-    
+
     for k0, v0 in dout.items():
 
         i0 = dind[k0][0]
@@ -1609,12 +1609,12 @@ def _store(
 
     # -------------
     # store_keys
-    
+
     if store_keys is None:
         store_keys = [f"{k0}_interp" for k0 in dout.keys()]
     if isinstance(store_keys, str):
         store_keys = [store_keys]
-    
+
     lout = list(coll.ddata.keys())
     store_keys = _generic_check._check_var_iter(
         store_keys, 'store_keys',
@@ -1622,7 +1622,7 @@ def _store(
         types_iter=str,
         excluded=lout,
     )
-    
+
     assert len(store_keys) == len(dout)
 
     # ---------

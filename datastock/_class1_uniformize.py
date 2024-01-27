@@ -34,6 +34,8 @@ def get_ref_vector(
     # ressources
     ddata=None,
     dref=None,
+    # data to find vector for
+    key0=None,
     # inputs
     key=None,
     ref=None,
@@ -58,12 +60,20 @@ def get_ref_vector(
         default=True,
     )
 
-    # key
+    # key0
     lkok = list(ddata.keys()) + [None]
-    key = _generic_check._check_var(
-        key, 'key',
+    key0 = _generic_check._check_var(
+        key0, 'key0',
         allowed=lkok,
     )
+
+    # key
+    if key is not None:
+        lkok = list(ddata.keys()) + [None]
+        key = _generic_check._check_var(
+            key, 'key',
+            allowed=lkok,
+        )
 
     # ref
     lkok = list(dref.keys()) + [None]
@@ -72,8 +82,8 @@ def get_ref_vector(
         allowed=lkok,
     )
 
-    if key is None and ref is None:
-        msg = "Please provide key or ref at least!"
+    if key0 is None and ref is None:
+        msg = "Please provide key0 or ref at least!"
         raise Exception(msg)
 
     # warn
@@ -87,8 +97,8 @@ def get_ref_vector(
     # hasref, hasvect
 
     hasref = None
-    if ref is not None and key is not None:
-        hasref = ref in ddata[key]['ref']
+    if ref is not None and key0 is not None:
+        hasref = ref in ddata[key0]['ref']
         if not hasref:
             ref = None
     elif ref is not None:
@@ -96,8 +106,8 @@ def get_ref_vector(
 
     if hasref is True:
         refok = (ref,)
-    elif key is not None:
-        refok = ddata[key]['ref']
+    elif key0 is not None:
+        refok = ddata[key0]['ref']
 
     # identify possible vect
     if hasref is not False:
@@ -113,9 +123,13 @@ def get_ref_vector(
             ])
         ]
 
-        # particular case
+        # if key is provided
         if key is not None and key in lk_vect:
             lk_vect = [key]
+
+        # particular case
+        if key0 is not None and key0 in lk_vect:
+            lk_vect = [key0]
 
         # cases
         if len(lk_vect) == 0:
@@ -137,7 +151,7 @@ def get_ref_vector(
             if warn is True:
                 msg = (
                     f"Multiple possible vectors found:\n{lk_vect}\n"
-                    f"\t- key: {key}\n"
+                    f"\t- key0: {key0}\n"
                     f"\t- ref: {ref}\n"
                     f"\t- hasref: {hasref}\n"
                     f"\t- refok: {refok}\n"
@@ -397,7 +411,7 @@ def _get_ref_vector_find_identical(
         _, hasvecti, _, key_vecti = get_ref_vector(
             ddata=ddata,
             dref=dref,
-            key=k0,
+            key0=k0,
             ref=ref,
             dim=dim,
             quant=quant,
@@ -437,6 +451,7 @@ def get_ref_vector_common(
     # inputs
     keys=None,
     # for selecting ref vector
+    key=None,
     ref=None,
     dim=None,
     quant=None,
@@ -499,7 +514,9 @@ def get_ref_vector_common(
         hasrefi, hasvecti, refi, key_vecti, vali, dindi = get_ref_vector(
             ddata=ddata,
             dref=dref,
-            key=k0,
+            key0=k0,
+            # select vector
+            key=key,
             ref=ref,
             dim=dim,
             quant=quant,
@@ -732,7 +749,7 @@ def _get_ref_vector_common_values(
             hasrefi, hasvecti, refi, key_vecti, vali, dindi = get_ref_vector(
                 ddata=ddata,
                 dref=dref,
-                key=k0,
+                key0=k0,
                 ref=ref,
                 dim=dim,
                 quant=quant,
@@ -847,7 +864,7 @@ def _uniformize_check(
     param = _generic_check._check_var(
         param, 'param',
         types=str,
-        allowed=['dim', 'quant', 'name', 'units'],
+        allowed=['key', 'dim', 'quant', 'name', 'units'],
         default='dim',
     )
 
@@ -855,10 +872,11 @@ def _uniformize_check(
     # list availabe values for param and associated refs
     dparref = {
         k0: [
-            v1[param] for k1, v1 in coll.ddata.items()
+            (k1 if param == 'key' else v1[param])
+            for k1, v1 in coll.ddata.items()
             if v1['monot'] == (True,)
             and v1['ref'][0] == k0
-            and (lparam is None or v1[param] in lparam)
+            and (lparam is None or (param != 'key' and v1[param] in lparam))
         ]
         for k0 in refs
     }
@@ -898,7 +916,7 @@ def _uniformize_check(
     for k0, v0 in dparam.items():
         lout = [
             k1 for k1 in v0['keys']
-            if coll.get_ref_vector(key=k1, **{param: k0})[3] is None
+            if coll.get_ref_vector(key0=k1, **{param: k0})[3] is None
         ]
         if len(lout) > 0:
             dfails[k0] = lout

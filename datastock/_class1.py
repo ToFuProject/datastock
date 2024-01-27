@@ -567,8 +567,9 @@ class DataStock1(DataStock0):
     def get_ref_vector(
         self,
         # key
-        key=None,
+        key0=None,
         # which ref / dimension
+        key=None,
         ref=None,
         dim=None,
         quant=None,
@@ -616,6 +617,7 @@ class DataStock1(DataStock0):
             ddata=self._ddata,
             dref=self._dref,
             # inputs
+            key0=key0,
             key=key,
             ref=ref,
             dim=dim,
@@ -633,6 +635,7 @@ class DataStock1(DataStock0):
         self,
         keys=None,
         # for selecting ref vector
+        key=None,
         ref=None,
         dim=None,
         quant=None,
@@ -665,6 +668,7 @@ class DataStock1(DataStock0):
             # inputs
             keys=keys,
             # for selecting ref vector
+            key=key,
             ref=ref,
             dim=dim,
             quant=quant,
@@ -742,41 +746,41 @@ class DataStock1(DataStock0):
         store_keys=None,
     ):
         """ Return the binned data
-        
+
         data:  the data on which to apply binning, can be
             - a list of np.ndarray to be binned
                 (any dimension as long as they all have the same)
             - a list of keys to ddata items sharing the same refs
-            
+
         data_units: str only necessary if data is a list of arrays
-        
+
         axis: int or array of int indices
             the axis of data along which to bin
             data will be flattened along all those axis priori to binning
-            If None, assumes bin_data is not variable and uses all its axis 
-        
+            If None, assumes bin_data is not variable and uses all its axis
+
         bins0: the bins (centers), can be
             - a 1d vector of monotonous bins
             - a int, used to compute a bins vector from max(data), min(data)
-        
+
         bin_data0: the data used to compute binning indices, can be:
             - a str, key to a ddata item
             - a np.ndarray
             _ a list of any of the above if each data has different size along axis
-            
+
         bin_units: str
             only used if integrate = True and bin_data is a np.ndarray
-            
+
         integrate: bool
             flag indicating whether binning is used for integration
             Implies that:
                 Only usable for 1d binning (axis has to be a single index)
                 data is multiplied by the underlying bin_data0 step prior to binning
-                
+
         statistic: str
             the statistic kwd feed to scipy.stats.binned_statistic()
             automatically set to 'sum' if integrate = True
-            
+
         store: bool
             If True, will sotre the result in ddata
             Only possible if all (data, bin_data and bin) are provided as keys
