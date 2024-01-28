@@ -418,27 +418,43 @@ class DataStock1(DataStock0):
     # extract
     ###########
 
-    def extract(self, keys=None, vectors=None):
+    def extract(
+        self,
+        keys=None,
+            # optional includes
+        inc_monot=None,
+        inc_vectors=None,
+        inc_allrefs=None,
+        # output
+        coll2=None,
+        return_keys=None,
+    ):
         """ Extract some selected data and return as new instance
 
-        Includes:
-              - all desired data keys
-              - all relevant ref
-              - all associated monotonous vectors (optional)
+        Automatically includes:
+            - all desired data keys
+            - all relevant ref
+
+        Optionally can also include:
+            - inc_monot: monotonous vectors matching any ref
+            - inc_vectors: all (1d) vectors matching any ref
+            - inc_allrefs: all (nd) array matching any full ref set
+
+        Optionally:
+            coll2: DataStock instance to be populated
+            return_keys: returns the value of keys
 
         """
-
-        # get ref and data
-        lref, ldata = _class1_compute._extract_dataref(
-            coll=self,
-            keys=keys,
-            vectors=vectors,
-        )
-
         return _class1_compute._extract_instance(
             self,
-            lref=lref,
-            ldata=ldata,
+            keys=keys,
+            # optional includes
+            inc_monot=inc_monot,
+            inc_vectors=inc_vectors,
+            inc_allrefs=inc_allrefs,
+            # output
+            coll2=coll2,
+            return_keys=retyurn_keys,
         )
 
     ###########

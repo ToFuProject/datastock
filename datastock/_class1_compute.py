@@ -705,16 +705,49 @@ def correlations(
 
 def _extract_instance(
     coll=None,
-    lref=None,
-    ldata=None,
+    keys=None,
+    # optional include
+    inc_monot=None,
+    inc_vectors=None,
+    inc_allrefs=None,
+    # output
     coll2=None,
+    return_keys=None,
 ):
+
+    # --------------------
+    # check inputs
+    # --------------------
+
+    (
+        keys,
+        inc_monot, inc_vectors, inc_allrefs,
+        return_keys,
+    ) = _extract_check(**locals())
+
+    # -----------------
+    # select
+    # -----------------
+
+    lref, ldata = _extract_select(
+        coll=self,
+        keys=keys,
+        # optional includes
+        inc_monot=inc_monot,
+        inc_vectors=inc_vectors,
+        inc_allrefs=inc_allrefs,
+    )
 
     # -------------------
     # Instanciate
+    # -------------------
 
     if coll2 is None:
         coll2 = coll.__class__()
+
+    # ------------------------
+    # Populate
+    # ------------------------
 
     # -------------------
     # Populate with ref
@@ -744,57 +777,166 @@ def _extract_instance(
                 **copy.deepcopy({pp: coll._ddata[k0][pp] for pp in lpar}),
             )
 
-    return coll2
+    # -------------
+    # return
+    # -------------
+
+    if return_keys is TRue:
+        return coll2, keys
+    else:
+        return coll2
 
 
-def _extract_dataref(coll=None, keys=None, vectors=None):
+def _extract_check(
+    coll=None,
+    keys=None,
+    # optional include
+    inc_monot=None,
+    inc_vectors=None,
+    inc_allrefs=None,
+    vectors=None,
+    # output
+    coll2=None,
+    return_keys=None,
+):
 
-    # ----------------
-    # check inputs
-
-    # vectors
-    vectors = ds._generic_check._check_var(
-        vectors, 'vectors',
-        types=bool,
-        default=True,
-    )
-
+    # --------------
     # keys
-    if keys is None:
-        return
+    # --------------
+
     if isinstance(keys, str):
         keys = [keys]
 
     lokd = list(coll._ddata.keys())
     lokr = list(coll._dref.keys())
-    keys = _generic_check._check_var_iter(
+    keys = list(set(_check_var_iter(
         keys, 'keys',
+        default=None,
         types=list,
-        allowed=lokr + lokd,
+        types_iter=str,
+        allowed=lokd+lokr,
+    )))
+
+    # -----------------
+    # optional includes
+    # -----------------
+
+    # monotonous vectors
+    inc_monot = _generic_check._chec_var(
+        inc_monot, 'inc_monot',
+        types=bool,
+        default=True,
     )
 
-    # -----------------------------
-    # Get corresponding list of ref
-
-    lref = set(
-        [k0 for k0 in keys if k0 in lokr]
-        + [
-            k0 for k0, v0 in coll._dref.items()
-            if any([ss in keys for ss in v0['ldata']])
-        ]
+    # any vectors
+    inc_vectors = _generic_check._chec_var(
+        inc_vectors, 'inc_vectors',
+        types=bool,
+        default=False,
     )
 
-    # add vectors
-    if vectors is True:
-        keys = set(
-            [k0 for k0 in keys if k0 in lokd]
-            + list(itt.chain.from_iterable([
-                coll.dref[k0]['ldata_monot']
-                for k0 in lref
-            ]))
+    # any nd array
+    inc_allrefs = _generic_check._chec_var(
+        inc_allrefs, 'inc_allrefs',
+        types=bool,
+        default=False,
+    )
+
+    # -----------------
+    # output
+    # -----------------
+
+    # return_keys
+    return_keys = _generic_check._chec_var(
+        return_keys, 'return_keys',
+        types=bool,
+        default=False,
+    )
+
+    # coll2
+    if coll2 is not None:
+        c0 = (
+            issubclass(coll2.__class__, coll.__class__)
+            or issubclass(coll.__class__, coll2.__class__)
         )
+        if not c0:
+            msg = "Arg coll2 must be a DataStock subclass instance"
+            raise Exception(msg)
 
-    return lref, keys
+    return (
+        keys,
+        inc_monot, inc_vectors, inc_allrefs,
+        return_keys,
+    )
+
+
+def _extract_select(
+    coll=None,
+    keys=None,
+    # optional include
+    inc_monot=None,
+    inc_vectors=None,
+    inc_allrefs=None,
+):
+
+    # ----------------------
+    # get all relevant refs
+
+    ldata0 = [k0 for k0 in keys if k0 in coll.ddata.keys()]
+    lref = list(set([
+        [k0 for k0 in keys if k0 in coll.dref.keys()]
+        + [
+            rr for rr in coll.def.keys()
+            if any([rr in coll.ddata[k0]['ref'] for k0 in ldata0])
+        ]
+    ]))
+
+    # ------------------------
+    # loop on refs for vectors
+
+    any_inc = any([inc_monot, inc_vectors, inc_allrefs])
+    if any_inc:
+        ldata = []
+
+    if inc_monot is True or inc_vectors is True:
+
+        for rr in lref:
+            for k0, v0 in coll.ddata.items():
+
+                c0 = (
+                    v0['ref'] == (rr,)
+                    and (
+                        inc_vectors is True
+                        or (
+                            inc_monot is True
+                            and v0['monot'] == (True,)
+                        )
+                    )
+                )
+
+                if c0:
+                    ldata.append(k0)
+
+    # ------------------------
+    # loop on data0 for ndarrays
+
+    if inc_allrefs is True:
+
+        for dd in ldata0:
+            ref = coll.ddata[dd]['ref']
+
+            for k0, v0 in coll.ddata.items():
+                if v0['ref'] == ref:
+                    ldata.append(k0)
+
+    # ----------------------
+    # return
+
+    if any_inc:
+        ldata0 = list(set(ldata0 + ldata))
+
+
+    return ldata0, lref
 
 
 #############################################
