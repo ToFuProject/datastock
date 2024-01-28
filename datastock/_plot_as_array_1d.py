@@ -23,15 +23,11 @@ def main(
     # parameters
     coll=None,
     key=None,
-    keyX=None,
-    refX=None,
-    islogX=None,
+    dkeys=None,
     ind=None,
-    vmin=None,
-    vmax=None,
+    dvminmax=None,
+    dscale=None,
     cmap=None,
-    ymin=None,
-    ymax=None,
     aspect=None,
     nmax=None,
     color_dict=None,
@@ -58,6 +54,10 @@ def main(
         data = data.toarray()
     assert data.ndim == len(coll.ddata[key]['ref']) == 1
     n0, = data.shape
+
+    for k0, v0 in dkeys.items():
+        if v0['ref'] is not None:
+            dkeys[k0]
 
     keyX, xstr, dataX, dX2, labX = _uplot._get_str_datadlab(
         keyX=keyX, nx=n0, islogX=islogX, coll=coll,

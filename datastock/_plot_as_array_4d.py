@@ -10,7 +10,6 @@ from matplotlib import gridspec
 # library-specific
 from . import _generic_check
 from . import _class1_compute
-from . import _generic_utils_plot as _uplot
 from . import _plot_text
 
 
@@ -24,24 +23,11 @@ def main(
     # parameters
     coll=None,
     key=None,
-    keyX=None,
-    keyY=None,
-    keyZ=None,
-    keyU=None,
-    refX=None,
-    refY=None,
-    refZ=None,
-    refU=None,
-    islogX=None,
-    islogY=None,
-    islogZ=None,
-    islogU=None,
+    dkeys=None,
+    dscale=None,
+    dvminmax=None,
     ind=None,
-    vmin=None,
-    vmax=None,
     cmap=None,
-    ymin=None,
-    ymax=None,
     aspect=None,
     nmax=None,
     color_dict=None,
@@ -67,28 +53,27 @@ def main(
     # --------------
 
     data = coll.ddata[key]['data']
-    refs = coll.ddata[key]['ref']
     if hasattr(data, 'nnz'):
         data = data.toarray()
-    assert data.ndim == len(coll.ddata[key]['ref']) == 4
+    ndim = data.ndim
+    assert ndim == len(coll.ddata[key]['ref']) == 4
     n0, n1, n2, n3 = data.shape
 
-    # check if transpose is necessary
-    [axX, axY, axZ, axU] = [refs.index(rr) for rr in [refX, refY, refZ, refU]]
-    [nx, ny, nz, nu] = [data.shape[aa] for aa in [axX, axY, axZ, axU]]
+    # extract
+    dataX = coll.ddata[dkeys['keyX']['data']]['data']
 
     # -----------------
     #  prepare slicing
     # -----------------
 
     # here slice X => slice in dim Y and vice-versa
-    sliX = _class1_compute._get_slice(laxis=[axY, axZ, axU], ndim=4)
-    sliY = _class1_compute._get_slice(laxis=[axX, axZ, axU], ndim=4)
-    sliZ = _class1_compute._get_slice(laxis=[axX, axY, axU], ndim=4)
-    sliU = _class1_compute._get_slice(laxis=[axX, axY, axZ], ndim=4)
-    sliZ2 = _class1_compute._get_slice(laxis=[axZ, axU], ndim=4)
+    sliZ2 = _class1_compute._get_slice(
+        laxis=[dkeys['keyZ']['axis'], dkeys['keyU']['axis']],
+        ndim=4,
+    )
 
-    if axX < axY:
+    # check if transpose is necessary
+    if dkeys['keyX']['axis'] < dkeys['keyY']['axis']:
         datatype = 'data.T'
         dataplot = data[sliZ2(ind[2], ind[3])].T
     else:
@@ -99,22 +84,11 @@ def main(
     #  labels and data
     # ----------------------
 
-    keyX, xstr, dataX, dX2, labX = _uplot._get_str_datadlab(
-        keyX=keyX, nx=nx, islogX=islogX, coll=coll,
-    )
-    keyY, ystr, dataY, dY2, labY = _uplot._get_str_datadlab(
-        keyX=keyY, nx=ny, islogX=islogY, coll=coll,
-    )
-    keyZ, zstr, dataZ, dZ2, labZ = _uplot._get_str_datadlab(
-        keyX=keyZ, nx=nz, islogX=islogZ, coll=coll,
-    )
-    keyU, ustr, dataU, dU2, labU = _uplot._get_str_datadlab(
-        keyX=keyU, nx=nu, islogX=islogU, coll=coll,
-    )
-
     extent = (
-        dataX[0] - dX2, dataX[-1] + dX2,
-        dataY[0] - dY2, dataY[-1] + dY2,
+        coll.ddata[dkeys['keyX']['data']]['data'][0] - dX2,
+        coll.ddata[dkeys['keyX']['data']]['data'][-1] + dX2,
+        coll.ddata[dkeys['keyY']['data']]['data'][0] - dY2,
+        coll.ddata[dkeys['keyY']['data']]['data'][-1] + dY2,
     )
 
     # --------------
@@ -134,101 +108,58 @@ def main(
             coll=coll,
             dax=dax,
             key=key,
-            labX=labX,
-            labY=labY,
-            labZ=labZ,
-            labU=labU,
-            ymin=ymin,
-            ymax=ymax,
-            xstr=xstr,
-            ystr=ystr,
-            zstr=zstr,
-            ustr=ustr,
-            keyX=keyX,
-            keyY=keyY,
-            keyZ=keyZ,
-            keyU=keyU,
-            dataX=dataX,
-            dataY=dataY,
-            dataZ=dataZ,
-            dataU=dataU,
+            dkeys=dkeys,
+            dvminmax=dvminmax,
             inverty=inverty,
             rotation=rotation,
         )
 
-    # ---------------
-    # plot fixed part
-    # ---------------
+    # ----------------------------------
+    # plot fixed parts (traces envelops)
+    # ----------------------------------
 
-    # tracesZ
-    axtype = 'tracesZ'
-    lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
-    if len(lax) == 1:
-        kax = lax[0]
-        ax = dax[kax]['handle']
+    for ss in ['Z', 'U']:
 
-        if bck == 'lines':
-            shap = list(data.shape)
-            shap[axZ] = 1
-            bckl = np.concatenate((data, np.full(shap, np.nan)), axis=axZ)
-            bckl = np.swapaxes(bckl, axZ, -1).ravel()
-            zdat = np.tile(np.r_[dataZ, np.nan], nx*ny*nu)
-            ax.plot(
-                zdat,
-                bckl,
-                c=(0.8, 0.8, 0.8),
-                ls='-',
-                lw=1.,
-                marker='None',
-            )
-        else:
-            bckenv = [
-                np.nanmin(data, axis=(axX, axY, axU)),
-                np.nanmax(data, axis=(axX, axY, axU)),
-            ]
-            zdat = dataZ
-            ax.fill_between(
-                zdat,
-                bckenv[0],
-                bckenv[1],
-                facecolor=(0.8, 0.8, 0.8, 0.8),
-                edgecolor='None',
-            )
+        k0 = f"key{ss}"
+        axis = dkeys[k0]['axis']
 
-    # tracesU
-    axtype = 'tracesU'
-    lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
-    if len(lax) == 1:
-        kax = lax[0]
-        ax = dax[kax]['handle']
+        axtype = f'traces{ss}'
+        lax = [k1 for k1, v1 in dax.items() if axtype in v1['type']]
+        if len(lax) == 1:
+            kax = lax[0]
+            ax = dax[kax]['handle']
+            dat = coll.ddata[dkeys[k0]['data']]['data']
 
-        if bck == 'lines':
-            shap = list(data.shape)
-            shap[axU] = 1
-            bckl = np.concatenate((data, np.full(shap, np.nan)), axis=axU)
-            bckl = np.swapaxes(bckl, axU, -1).ravel()
-            udat = np.tile(np.r_[dataU, np.nan], nx*ny*nz)
-            ax.plot(
-                udat,
-                bckl,
-                c=(0.8, 0.8, 0.8),
-                ls='-',
-                lw=1.,
-                marker='None',
-            )
-        else:
-            bckenv = [
-                np.nanmin(data, axis=(axX, axY, axZ)),
-                np.nanmax(data, axis=(axX, axY, axZ)),
-            ]
-            udat = dataU
-            ax.fill_between(
-                udat,
-                bckenv[0],
-                bckenv[1],
-                facecolor=(0.8, 0.8, 0.8, 0.8),
-                edgecolor='None',
-            )
+            if bck == 'lines':
+                shap = list(data.shape)
+                shap[axis] = 1
+                nan = np.full(shap, np.nan)
+                bckl = np.concatenate((data, nan), axis=axis)
+                bckl = np.swapaxes(bckl, axis, -1).ravel()
+                dat = np.tile(np.r_[dat, np.nan], int(np.prod(shap)))
+                ax.plot(
+                    dat,
+                    bckl,
+                    c=(0.8, 0.8, 0.8),
+                    ls='-',
+                    lw=1.,
+                    marker='None',
+                )
+            else:
+                tax = tuple([
+                    v1['axis'] for k1, v1 in dkeys.items() if k1 != k0
+                ])
+                bckenv = [
+                    np.nanmin(data, axis=tax),
+                    np.nanmax(data, axis=tax),
+                ]
+                ax.fill_between(
+                    dat,
+                    bckenv[0],
+                    bckenv[1],
+                    facecolor=(0.8, 0.8, 0.8, 0.8),
+                    edgecolor='None',
+                )
 
     # ----------------
     # define and set dgroup
@@ -236,22 +167,22 @@ def main(
 
     dgroup = {
         'X': {
-            'ref': [refX],
+            'ref': [dkeys['keyX']['ref']],
             'data': ['index'],
             'nmax': nmax,
         },
         'Y': {
-            'ref': [refY],
+            'ref': [dkeys['keyY']['ref']],
             'data': ['index'],
             'nmax': nmax,
         },
         'Z': {
-            'ref': [refZ],
+            'ref': [dkeys['keyZ']['ref']],
             'data': ['index'],
             'nmax': 1,
         },
         'U': {
-            'ref': [refU],
+            'ref': [dkeys['keyU']['ref']],
             'data': ['index'],
             'nmax': 1,
         },
@@ -276,8 +207,8 @@ def main(
             origin='lower',
             aspect=aspect,
             cmap=cmap,
-            vmin=vmin,
-            vmax=vmax,
+            vmin=dvminmax['data']['min'],
+            vmax=dvminmax['data']['max'],
         )
 
         km = f'{key}_im'
@@ -445,181 +376,88 @@ def main(
 
         dax[kax].update(refx=[refX], datax=[keyX])
 
-    # tracesZ
-    axtype = 'tracesZ'
-    lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
-    if len(lax) == 1:
-        kax = lax[0]
-        ax = dax[kax]['handle']
+    # -----------------
+    # traces Z & U
+    # -----------------
 
-        for ii in range(nmax):
-            l1, = ax.plot(
-                dataZ,
-                data[sliZ(ind[0], ind[1], ind[3])],
-                ls='-',
-                marker='None',
-                color=color_dict['X'][ii],
+    for i0, ss in enumerate(['Z', 'U']):
+        k0 = f"key{ss}"
+        axtype = f'traces{ss}'
+        lax = [k1 for k1, v1 in dax.items() if axtype in v1['type']]
+        if len(lax) == 1:
+
+            kax = lax[0]
+            ax = dax[kax]['handle']
+            dat = coll.ddata[dkeys[k0]['data']]['data']
+            sli = dkeys[k0]['sli']
+            iind = i0 + 2
+            args = [ind[jj] for jj in range(ndim) if jj != iind]
+            refs = tuple([
+                dkeys[k1]['ref'] for k1 in ['X', 'Y', 'Z', 'U'] if k1 != k0
+            ])
+
+            for ii in range(nmax):
+                l1, = ax.plot(
+                    dat,
+                    data[sli(*args)],
+                    ls='-',
+                    marker='None',
+                    color=color_dict[ss][ii],
+                )
+
+                km = f'{key}_trace{ii:02.0f}'
+                coll.add_mobile(
+                    key=km,
+                    handle=l1,
+                    refs=(refs,),
+                    data=[key],
+                    dtype=['ydata'],
+                    axes=kax,
+                    ind=ii,
+                )
+
+            l0 = ax.axvline(
+                dat[ind[iind]],
+                c='k',
             )
-
-            km = f'{key}_trace{ii:02.0f}'
+            km = f'{key}_lv-z'
             coll.add_mobile(
                 key=km,
-                handle=l1,
-                refs=((refX, refY, refU),),
-                data=[key],
-                dtype=['ydata'],
+                handle=l0,
+                refs=(dkeys[k0]['ref'],),
+                data=dkeys[k0]['key'],
+                dtype='xdata',
                 axes=kax,
-                ind=ii,
+                ind=0,
             )
 
-        l0 = ax.axvline(
-            dataZ[ind[2]],
-            c='k',
-        )
-        km = f'{key}_lv-z'
-        coll.add_mobile(
-            key=km,
-            handle=l0,
-            refs=(refZ,),
-            data=keyZ,
-            dtype='xdata',
-            axes=kax,
-            ind=0,
-        )
-
-        dax[kax].update(refx=[refZ], datax=[keyZ])
-
-    # tracesU
-    axtype = 'tracesU'
-    lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
-    if len(lax) == 1:
-        kax = lax[0]
-        ax = dax[kax]['handle']
-
-        for ii in range(nmax):
-            l1, = ax.plot(
-                dataU,
-                data[sliU(ind[0], ind[1], ind[2])],
-                ls='-',
-                marker='None',
-                color=color_dict['U'][ii],
-            )
-
-            km = f'{key}_traceU{ii:02.0f}'
-            coll.add_mobile(
-                key=km,
-                handle=l1,
-                refs=((refX, refY, refZ),),
-                data=[key],
-                dtype=['ydata'],
-                axes=kax,
-                ind=ii,
-            )
-
-        l0 = ax.axvline(
-            dataU[ind[2]],
-            c='k',
-        )
-        km = f'{key}_lv-u'
-        coll.add_mobile(
-            key=km,
-            handle=l0,
-            refs=(refU,),
-            data=keyU,
-            dtype='xdata',
-            axes=kax,
-            ind=0,
-        )
-
-        dax[kax].update(refx=[refU], datax=[keyU])
+            dax[kax].update(refx=[dkeys[k0]['ref']], datax=[dkeys[k0]['key']])
 
     # ---------
     # add text
     # ---------
 
-    # textX
-    axtype = 'textX'
-    lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
-    if len(lax) == 1:
-        kax = lax[0]
-        ax = dax[kax]['handle']
+    for ii, ss in enumerate(['X', 'Y', 'Z', 'U']):
+        k0 = f"key{ss}"
+        axtype = f'text{ss}'
+        lax = [k1 for k1, v1 in dax.items() if axtype in v1['type']]
+        if len(lax) == 1:
+            kax = lax[0]
+            ax = dax[kax]['handle']
 
-        _plot_text.plot_text(
-            coll=coll,
-            kax=kax,
-            key=key,
-            ax=ax,
-            ref=refX,
-            group='X',
-            ind=ind[0],
-            lkeys=lkeys,
-            nmax=nmax,
-            color_dict=color_dict,
-            bstr_dict=bstr_dict,
-        )
-
-    # textY
-    axtype = 'textY'
-    lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
-    if len(lax) == 1:
-        kax = lax[0]
-        ax = dax[kax]['handle']
-
-        _plot_text.plot_text(
-            coll=coll,
-            kax=kax,
-            key=key,
-            ax=ax,
-            ref=refY,
-            group='Y',
-            ind=ind[1],
-            lkeys=lkeys,
-            nmax=nmax,
-            color_dict=color_dict,
-            bstr_dict=bstr_dict,
-        )
-
-    # textZ
-    axtype = 'textZ'
-    lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
-    if len(lax) == 1:
-        kax = lax[0]
-        ax = dax[kax]['handle']
-
-        _plot_text.plot_text(
-            coll=coll,
-            kax=kax,
-            key=key,
-            ax=ax,
-            ref=refZ,
-            group='Z',
-            ind=ind[2],
-            lkeys=lkeys,
-            nmax=nmax,
-            color_dict=color_dict,
-            bstr_dict=bstr_dict,
-        )
-
-    # textU
-    axtype = 'textU'
-    lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
-    if len(lax) == 1:
-        kax = lax[0]
-        ax = dax[kax]['handle']
-
-        _plot_text.plot_text(
-            coll=coll,
-            kax=kax,
-            key=key,
-            ax=ax,
-            ref=refU,
-            group='U',
-            ind=ind[3],
-            lkeys=lkeys,
-            nmax=nmax,
-            color_dict=color_dict,
-            bstr_dict=bstr_dict,
-        )
+            _plot_text.plot_text(
+                coll=coll,
+                kax=kax,
+                key=key,
+                ax=ax,
+                ref=dkeys[k0]['ref'],
+                group=ss,
+                ind=ind[ii],
+                lkeys=lkeys,
+                nmax=nmax,
+                color_dict=color_dict,
+                bstr_dict=bstr_dict,
+            )
 
     return coll, dax, dgroup
 
@@ -708,33 +546,23 @@ def _label_axes(
     coll=None,
     dax=None,
     key=None,
-    labX=None,
-    labY=None,
-    labZ=None,
-    labU=None,
-    ymin=None,
-    ymax=None,
-    xstr=None,
-    ystr=None,
-    zstr=None,
-    ustr=None,
-    keyX=None,
-    keyY=None,
-    keyZ=None,
-    keyU=None,
-    dataX=None,
-    dataY=None,
-    dataZ=None,
-    dataU=None,
+    dkeys=None,
+    dvminmax=None,
     inverty=None,
     rotation=None,
 ):
 
-    # fig
+    # ------------
+    # labels: fig
+    # ------------
+
     fig = list(dax.values())[0]['handle'].figure
     fig.suptitle(key, size=14, fontweight='bold')
 
-    # axes for image
+    # ---------------
+    # labels: image
+    # ---------------
+
     axtype = 'matrix'
     lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
     if len(lax) == 1:
@@ -748,39 +576,46 @@ def _label_axes(
         ax.xaxis.set_label_position('top')
 
         # x text ticks
-        if xstr:
-            ax.set_xticks(dataX)
+        k0 = 'keyX'
+        if dkeys[k0]['str'] is not False:
+            ax.set_xticks(coll.ddata[dkeys[k0]['data']]['data'])
             ax.set_xticklabels(
-                coll.ddata[keyX]['data'],
+                dkeys[k0]['str'],
                 rotation=rotation,
                 horizontalalignment='left',
                 verticalalignment='bottom',
             )
         else:
-            ax.set_xlabel(labX)
+            ax.set_xlabel(dkeys[k0]['lab'])
 
         # y text ticks
-        if ystr:
-            ax.set_yticks(dataY)
+        k0 = 'keyY'
+        if dkeys[k0]['str'] is not False:
+            ax.set_yticks(coll.ddata[dkeys[k0]['data']]['data'])
             ax.set_yticklabels(
-                coll.ddata[keyY]['data'],
+                dkeys[k0]['str'],
                 rotation=rotation,
-                horizontalalignment='right',
-                verticalalignment='top',
+                horizontalalignment='left',
+                verticalalignment='bottom',
             )
         else:
-            ax.set_ylabel(labY)
-
+            ax.set_ylabel(dkeys[k0]['lab'])
         dax[kax]['inverty'] = inverty
+
+    # --------------------------------
+    # labels: horizontal and vertical
+    # --------------------------------
 
     # axes for vertical profile
     axtype = 'vertical'
     lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
     if len(lax) == 1:
+        ss = 'Y'
+        k0 = f"key{ss}"
         kax = lax[0]
         ax = dax[kax]['handle']
         ax.set_xlabel('data')
-        ax.set_ylabel(labY)
+        ax.set_ylabel(dkeys[k0]['lab'])
         ax.tick_params(
             axis="y",
             left=False, right=True,
@@ -794,125 +629,88 @@ def _label_axes(
         ax.yaxis.set_label_position('right')
         ax.xaxis.set_label_position('top')
 
-        if np.isfinite(ymin):
-            ax.set_xlim(left=ymin)
-        if np.isfinite(ymax):
-            ax.set_xlim(right=ymax)
+        if np.isfinite(dvminmax[ss]['min']):
+            ax.set_ylim(left=dvminmax[ss]['min'])
+        if np.isfinite(dvminmax[ss]['max']):
+            ax.set_ylim(right=dvminmax[ss]['max'])
 
         # y text ticks
-        if ystr:
-            ax.set_yticks(dataY)
+        if dkeys[k0]['str'] is not False:
+            ax.set_yticks(coll.ddata[dkeys[k0]['data']]['data'])
             ax.set_yticklabels(
-                coll.ddata[keyY]['data'],
+                dkeys[k0]['str'],
                 rotation=rotation,
                 horizontalalignment='left',
                 verticalalignment='bottom',
             )
-        else:
-            ax.set_ylabel(labY)
-
         dax[kax]['inverty'] = inverty
 
     # axes for horizontal profile
     axtype = 'horizontal'
     lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
     if len(lax) == 1:
+        ss = 'X'
+        k0 = f"key{ss}"
         kax = lax[0]
         ax = dax[kax]['handle']
         ax.set_ylabel('data')
-        ax.set_xlabel(labX)
+        ax.set_xlabel(dkeys[k0]['lab'])
 
-        ax.set_ylim(ymin, ymax)
+        if np.isfinite(dvminmax[ss]['min']):
+            ax.set_xlim(left=dvminmax[ss]['min'])
+        if np.isfinite(dvminmax[ss]['max']):
+            ax.set_xlim(right=dvminmax[ss]['max'])
 
         # x text ticks
-        if xstr:
-            ax.set_xticks(dataX)
+        if dkeys[k0]['str'] is not False:
+            ax.set_yticks(coll.ddata[dkeys[k0]['data']]['data'])
             ax.set_xticklabels(
-                coll.ddata[keyX]['data'],
+                dkeys[k0]['str'],
                 rotation=rotation,
                 horizontalalignment='right',
                 verticalalignment='top',
             )
-        else:
-            ax.set_xlabel(labX)
 
-    # axes for tracesZ
-    axtype = 'tracesZ'
-    lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
-    if len(lax) == 1:
-        kax = lax[0]
-        ax = dax[kax]['handle']
-        ax.set_ylabel('data')
-        ax.set_xlabel(labZ)
+    # --------------
+    # labels: traces
+    # --------------
 
-        ax.set_ylim(ymin, ymax)
+    for ss in ['Z', 'U']:
+        axtype = f'traces{ss}'
+        lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
+        if len(lax) == 1:
+            k0 = f"key{ss}"
+            kax = lax[0]
+            ax = dax[kax]['handle']
+            ax.set_ylabel('data')
+            ax.set_xlabel(dkeys[k0]['lab'])
 
-        # z text ticks
-        if zstr:
-            ax.set_yticks(dataZ)
-            ax.set_yticklabels(
-                coll.ddata[keyZ]['data'],
-                rotation=rotation,
-                horizontalalignment='right',
-                verticalalignment='top',
-            )
-        else:
-            ax.set_ylabel(labZ)
+            if np.isfinite(dvminmax[ss]['min']):
+                ax.set_xlim(left=dvminmax[ss]['min'])
+            if np.isfinite(dvminmax[ss]['max']):
+                ax.set_xlim(right=dvminmax[ss]['max'])
 
-    # axes for tracesU
-    axtype = 'tracesU'
-    lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
-    if len(lax) == 1:
-        kax = lax[0]
-        ax = dax[kax]['handle']
-        ax.set_ylabel('data')
-        ax.set_xlabel(labU)
+            # z text ticks
+            if dkeys[k0]['str'] is not False:
+                ax.set_yticks(coll.ddata[dkeys[k0]['data']]['data'])
+                ax.set_yticklabels(
+                    dkeys[k0]['str'],
+                    rotation=rotation,
+                    horizontalalignment='right',
+                    verticalalignment='top',
+                )
 
-        ax.set_ylim(ymin, ymax)
+    # -------------
+    # labels: text
+    # -------------
 
-        # z text ticks
-        if zstr:
-            ax.set_yticks(dataU)
-            ax.set_yticklabels(
-                coll.ddata[keyU]['data'],
-                rotation=rotation,
-                horizontalalignment='right',
-                verticalalignment='top',
-            )
-        else:
-            ax.set_ylabel(labU)
-
-    # axes for text
-    axtype = 'textX'
-    lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
-    if len(lax) == 1:
-        kax = lax[0]
-        ax = dax[kax]['handle']
-        ax.set_xticks([])
-        ax.set_yticks([])
-
-    axtype = 'textY'
-    lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
-    if len(lax) == 1:
-        kax = lax[0]
-        ax = dax[kax]['handle']
-        ax.set_xticks([])
-        ax.set_yticks([])
-
-    axtype = 'textZ'
-    lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
-    if len(lax) == 1:
-        kax = lax[0]
-        ax = dax[kax]['handle']
-        ax.set_xticks([])
-        ax.set_yticks([])
-
-    axtype = 'textU'
-    lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
-    if len(lax) == 1:
-        kax = lax[0]
-        ax = dax[kax]['handle']
-        ax.set_xticks([])
-        ax.set_yticks([])
+    for ss in ['X', 'Y', 'Z', 'U']:
+        axtype = f'text{ss}'
+        lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
+        if len(lax) == 1:
+            kax = lax[0]
+            ax = dax[kax]['handle']
+            ax.set_xticks([])
+            ax.set_yticks([])
 
     return dax

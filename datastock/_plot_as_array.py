@@ -8,6 +8,8 @@ import matplotlib.colors as mcolors
 
 # library-specific
 from . import _generic_check
+from . import _class1_compute
+from . import _generic_utils_plot as _uplot
 from . import _plot_as_array_1d
 from . import _plot_as_array_2d
 from . import _plot_as_array_3d
@@ -54,11 +56,9 @@ def plot_as_array(
     # index
     ind=None,
     # scales
-    vmin=None,
-    vmax=None,
+    dvminmax=None,
+    dscale=None,
     cmap=None,
-    ymin=None,
-    ymax=None,
     aspect=None,
     # interactivity
     nmax=None,
@@ -90,13 +90,16 @@ def plot_as_array(
     # --------------
 
     # check key, inplace flag and extract sub-collection
-    key, inplace, coll2 = _generic_check._check_inplace(
-        coll=coll,
-        keys=None if key is None else [key],
-        inplace=inplace,
+    lk = [kk for kk in [keyX, keyY, keyZ, keyU] if kk is not None]
+    coll2, key = coll.extract(
+        key + lk,
+        inc_monot=False,
+        inc_vectors=False,
+        inc_allrefs=False,
+        return_key=True,
     )
-    key = key[0]
-    ndim = coll2._ddata[key]['data'].ndim
+    key = [kk for kk in key if kk not in lk][0]
+    ndim = coll2.ddata[key]['data'].ndim
 
     # --------------
     # check input
@@ -104,14 +107,10 @@ def plot_as_array(
 
     (
         key,
-        keyX, refX, islogX,
-        keyY, refY, islogY,
-        keyZ, refZ, islogZ,
-        keyU, refU, islogU,
+        dkeys,
         sameref, ind,
-        cmap, vmin, vmax,
-        ymin, ymax,
-        aspect, nmax,
+        dscale, dvminmax,
+        cmap, aspect, nmax,
         color_dict,
         rotation,
         inverty,
@@ -128,11 +127,14 @@ def plot_as_array(
     if sameref:
         from ._class import DataStock
         cc = DataStock()
-        lr = [('refX', refX), ('refY', refY), ('refZ', refZ), ('refU', refU)]
-        lr = [tt for tt in lr if tt[1] is not None]
-        for ii, (ss, rr) in enumerate(lr):
-            cc.add_ref(key=f'{rr}-{ii}', size=coll.dref[rr]['size'])
-        ref = tuple([f'{rr}-{ii}' for ii, (ss, rr) in enumerate(lr)])
+        lk = ['keyX', 'keyY', 'keyZ', 'keyU']
+        lk = [k0 for k0 in lk if dkeys[k0]['ref'] is not None]
+        for ii, k0 in enumerate(lk):
+            cc.add_ref(
+                key=f"{dkeys[k0]['ref']}_{ii}",
+                size=coll.dref[dkeys[k0]['ref']]['size'],
+            )
+        ref = tuple([f"{dkeys[k0]['ref']}_{ii}" for ii, k0 in enumerate(lk)])
         cc.add_data(key=key, data=coll2.ddata[key]['data'], ref=ref)
         return cc.plot_as_array()
 
@@ -160,24 +162,11 @@ def plot_as_array(
         # parameters
         coll=coll2,
         key=key,
-        keyX=keyX,
-        keyY=keyY,
-        keyZ=keyZ,
-        keyU=keyU,
-        refX=refX,
-        refY=refY,
-        refZ=refZ,
-        refU=refU,
-        islogX=islogX,
-        islogY=islogY,
-        islogZ=islogZ,
-        islogU=islogU,
+        dkeys=dkeys,
         ind=ind,
-        vmin=vmin,
-        vmax=vmax,
+        dvminmax=dvminmax,
+        dscale=dscale,
         cmap=cmap,
-        ymin=ymin,
-        ymax=ymax,
         aspect=aspect,
         nmax=nmax,
         color_dict=color_dict,
@@ -386,18 +375,19 @@ def _check_keyXYZ(
 def _check(
     ndim=None,
     coll=None,
+    coll2=None,
     key=None,
     keyX=None,
     keyY=None,
     keyZ=None,
     keyU=None,
     ind=None,
+    # scales
+    dvminmax=None,
+    dscale=None,
     cmap=None,
-    vmin=None,
-    vmax=None,
-    ymin=None,
-    ymax=None,
     aspect=None,
+    # interactivity
     nmax=None,
     uniform=None,
     color_dict=None,
@@ -438,15 +428,8 @@ def _check(
     # ----------------------
 
     refs = coll._ddata[key]['ref']
-
-    (
-        keyX, refX, islogX,
-        keyY, refY, islogY,
-        keyZ, refZ, islogZ,
-        keyU, refU, islogU,
-        sameref,
-    ) = get_keyrefs(
-        coll=coll,
+    dkeys, sameref = get_keyrefs(
+        coll2=coll2,
         refs=refs,
         keyX=keyX,
         keyY=keyY,
@@ -479,55 +462,104 @@ def _check(
         )
         raise Exception(msg)
 
-    # ---------
-    # cmap
-    # ---------
+    # ---------------
+    # dvminmax & cmap
+    # ---------------
 
-    if cmap is None or vmin is None or vmax is None:
-        if isinstance(coll.ddata[key]['data'], np.ndarray):
-            nanmax = np.nanmax(coll.ddata[key]['data'])
-            nanmin = np.nanmin(coll.ddata[key]['data'])
-        else:
-            nanmax = coll.ddata[key]['data'].max()
-            nanmin = coll.ddata[key]['data'].min()
+    lk = [(key, 'data'), (keyX, 'X'), (keyY, 'Y'), (keyZ, 'Z'), (keyU, 'U')]
+    lk = [kk for ii, kk in enumerate(lk) if ii <= ndim+1]
+
+    if dvminmax is None:
+        dvminmax = {}
+
+    # safety check
+    c0 = (
+        isinstance(dvminmax, dict)
+        and all([
+            k0 in [kk[1] for kk in lk]
+            and isinstance(v0, dict)
+            and all([k1 in ['min', 'max'] for k1 in v0.keys()])
+            for k0, v0 in dvminmax.items()
+        ])
+    )
+    if not c0:
+        msg = (
+            "Arg dvminmax must be a dict of the form:\n"
+            "\t- 'data': {'min': float, 'max': float}\n"
+            "\t- 'keyX': {'min': float, 'max': float}\n"
+            "\t- ...etc\n"
+            "Provided:\n{dvminmax}"
+        )
+        raise Exception(msg)
+
+    for ii, (k0, k1) in enumerate(lk):
+
+        if dvminmax.get(k1) is None:
+            dvminmax[k1] = {'min': None, 'max': None}
+
+        # data
+        nanmin = np.nanmin(coll.ddata[k0]['data'])
+        nanmax = np.nanmax(coll.ddata[k0]['data'])
+        delta = nanmax - nanmin
 
         # diverging
-        delta = nanmax - nanmin
-        diverging = (
-            nanmin * nanmax < 0
-            and min(abs(nanmin), abs(nanmax)) > 0.1*delta
-        )
+        if k1 == 'data':
+            diverging = (
+                nanmin * nanmax < 0
+                and min(abs(nanmin), abs(nanmax)) > 0.1*delta
+            )
 
+            if diverging and ndim >= 2:
+                vv = max(abs(nanmin), abs(nanmax))
+                nanmin = -vv
+                nanmax = vv
+
+        # vmin, vmax
+        if dvminmax[k1].get('min') is None:
+            dvminmax[k1]['min'] = nanmin - 0.02*delta
+
+        if dvminmax[k1].get('max') is None:
+            dvminmax[k1]['max'] = nanmax + 0.02*delta
+
+    # cmap
     if cmap is None:
         if diverging:
             cmap = 'seismic'
         else:
             cmap = 'viridis'
 
-    # -----------
-    # vmin, vmax
-    # -----------
+    # ------------------
+    # dscale
+    # ------------------
 
-    if vmin is None:
-        if diverging:
-            if isinstance(nanmin, np.bool_):
-                vmin = 0
+    if dscale is None:
+        dscale = {}
+
+    # safety check
+    c0 = (
+        isinstance(dscale, dict)
+        and all([
+            k0 in [kk[1] for kk in lk]
+            and (isinstance(v0, str) and v0 in ['linear', 'log'])
+            for k0, v0 in dscale.items()])
+    )
+    if not c0:
+        msg = (
+            "Arg dscale must be a dict of the form:\n"
+            "\t- 'data': 'log' or 'linear'\n"
+            "\t- 'keyX': 'log' or 'linear'\n"
+            "\t- ...etc\n"
+            "Provided:\n{dscale}"
+        )
+        raise Exception(msg)
+
+    # set default if any missing
+    for ii, (k0, k1) in enumerate(lk):
+        if dscale.get(k1) is None:
+            if k0 == 'data':
+                dvminmax[k1] = 'linear'
             else:
-                vmin = -max(abs(nanmin), nanmax)
-        else:
-            vmin = nanmin
-
-    if vmax is None:
-        if diverging:
-            vmax = max(abs(nanmin), nanmax)
-        else:
-            vmax = nanmax
-
-    # ymin, ymax
-    if ymin is None:
-        ymin = vmin
-    if ymax is None:
-        ymax = vmax
+                dvminmax[k1] = 'log' if dkeys[k1]['islog'] else 'linear'
 
     # -------
     # aspect
@@ -677,14 +709,10 @@ def _check(
 
     return (
         key,
-        keyX, refX, islogX,
-        keyY, refY, islogY,
-        keyZ, refZ, islogZ,
-        keyU, refU, islogU,
+        dkeys,
         sameref, ind,
-        cmap, vmin, vmax,
-        ymin, ymax,
-        aspect, nmax,
+        dscale, dvminmax,
+        cmap, aspect, nmax,
         color_dict,
         rotation,
         inverty,
@@ -696,8 +724,9 @@ def _check(
 
 
 def get_keyrefs(
-    coll=None,
+    coll2=None,
     refs=None,
+    key=None,
     keyX=None,
     keyY=None,
     keyZ=None,
@@ -707,7 +736,8 @@ def get_keyrefs(
 ):
 
     # -----------
-    # find order
+    # initialize
+    # -----------
 
     dk = {
         'keyX': {'key': keyX, 'ref': None, 'islog': None, 'dim_min': 1},
@@ -722,12 +752,13 @@ def get_keyrefs(
 
     # -----------
     # find order
+    # -----------
 
     already = []
     for k0 in lk_in + lk_out:
 
         dk[k0]['key'], dk[k0]['ref'], dk[k0]['islog'] = _check_keyXYZ(
-            coll=coll,
+            coll=coll2,
             refs=refs,
             keyX=dk[k0]['key'],
             keyXstr=k0,
@@ -743,10 +774,41 @@ def get_keyrefs(
     lk_done = [v0['ref'] for k0, v0 in dk.items() if v0['key'] is not None]
     sameref = len(set(lk_done)) < ndim
 
-    return (
-        dk['keyX']['key'], dk['keyX']['ref'], dk['keyX']['islog'],
-        dk['keyY']['key'], dk['keyY']['ref'], dk['keyY']['islog'],
-        dk['keyZ']['key'], dk['keyZ']['ref'], dk['keyZ']['islog'],
-        dk['keyU']['key'], dk['keyU']['ref'], dk['keyU']['islog'],
-        sameref,
-    )
+    # ---------------------------
+    # add info about axis & slicing
+    # ---------------------------
+
+    refs = coll2.ddata[key]['ref']
+    for k0, v0 in dk.items():
+
+        if v0['key'] is None:
+            continue
+
+        # axis and size
+        dk[k0]['axis'] = refs.index(v0['ref'])
+        dk[k0]['nn'] = coll2.ddata[key]['data'].shape(dk[k0]['axis'])
+
+        # slicing
+        laxis = [
+            v1['axis'] for k1, v1 in dk.items()
+            if k1 != k0 and v1['key'] is not None
+        ]
+        dk[k0]['sli'] = _class1_compute._get_slice(
+            laxis=laxis,
+            ndim=ndim,
+        )
+
+        # labels
+        (
+            dk[k0]['data'],
+            dk[k0]['str'],
+            dk[k0]['dX2'],
+            dk[k0]['lab'],
+        )
+        = _uplot._get_str_datadlab(
+            keyX=dk[k0]['key'],
+            nx=dk[k0]['nn'],
+            islogX=dk[k0]['islogX'],
+            coll=coll2,
+        )
+    return dk, sameref
