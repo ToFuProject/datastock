@@ -83,6 +83,8 @@ def plot_as_array(
     label=None,
     connect=None,
     inplace=None,
+    # unused
+    **kwdargs,
 ):
 
     # --------------
@@ -92,11 +94,11 @@ def plot_as_array(
     # check key, inplace flag and extract sub-collection
     lk = [kk for kk in [keyX, keyY, keyZ, keyU] if kk is not None]
     coll2, key = coll.extract(
-        key + lk,
+        [key] + lk,
         inc_monot=False,
         inc_vectors=False,
         inc_allrefs=False,
-        return_key=True,
+        return_keys=True,
     )
     key = [kk for kk in key if kk not in lk][0]
     ndim = coll2.ddata[key]['data'].ndim
@@ -366,6 +368,21 @@ def _check_keyXYZ(
                 raise Exception(msg)
             else:
                 refX = [kk for kk in refs if kk not in already][0]
+
+        # safety check
+        if refX is None or keyX is None:
+            msg = (
+                "Something wrong with ref or key\n"
+                f"\t- refX: {refX}\n"
+                f"\t- keyX: {keyfX}\n"
+                f"\t- refs: {refs}\n"
+                f"\t- already: {already}\n"
+                f"\t- ndim: {ndim}\n"
+                f"\t- dim_min: {dim_min}\n"
+                f"\t- keyXstr: {keyXstr}\n"
+            )
+            raise Exception(msg)
+
     else:
         keyX, refX, islog = None, None, None
 
@@ -430,6 +447,7 @@ def _check(
     refs = coll._ddata[key]['ref']
     dkeys, sameref = get_keyrefs(
         coll2=coll2,
+        key=key,
         refs=refs,
         keyX=keyX,
         keyY=keyY,
@@ -439,9 +457,9 @@ def _check(
         uniform=uniform,
     )
 
-    # -----
+    # -------------
     # ind
-    # -----
+    # -------------
 
     ind = _generic_check._check_var(
         ind, 'ind',
@@ -466,8 +484,11 @@ def _check(
     # dvminmax & cmap
     # ---------------
 
-    lk = [(key, 'data'), (keyX, 'X'), (keyY, 'Y'), (keyZ, 'Z'), (keyU, 'U')]
-    lk = [kk for ii, kk in enumerate(lk) if ii <= ndim+1]
+    lk = [
+        (key, 'data'),
+        ('keyX', 'X'), ('keyY', 'Y'), ('keyZ', 'Z'), ('keyU', 'U'),
+    ]
+    lk = [kk for ii, kk in enumerate(lk) if ii <= ndim]
 
     if dvminmax is None:
         dvminmax = {}
@@ -498,8 +519,9 @@ def _check(
             dvminmax[k1] = {'min': None, 'max': None}
 
         # data
-        nanmin = np.nanmin(coll.ddata[k0]['data'])
-        nanmax = np.nanmax(coll.ddata[k0]['data'])
+        kdata = key if ii == 0 else dkeys[k0]['data']
+        nanmin = np.nanmin(coll2.ddata[kdata]['data'])
+        nanmax = np.nanmax(coll2.ddata[kdata]['data'])
         delta = nanmax - nanmin
 
         # diverging
@@ -556,10 +578,10 @@ def _check(
     # set default if any missing
     for ii, (k0, k1) in enumerate(lk):
         if dscale.get(k1) is None:
-            if k0 == 'data':
-                dvminmax[k1] = 'linear'
+            if k1 == 'data':
+                dscale[k1] = 'linear'
             else:
-                dvminmax[k1] = 'log' if dkeys[k1]['islog'] else 'linear'
+                dscale[k1] = 'log' if dkeys[k0]['islog'] else 'linear'
 
     # -------
     # aspect
@@ -778,6 +800,7 @@ def get_keyrefs(
     # add info about axis & slicing
     # ---------------------------
 
+    lorder = ['keyX', 'keyY', 'keyZ', 'keyU']
     refs = coll2.ddata[key]['ref']
     for k0, v0 in dk.items():
 
@@ -786,12 +809,17 @@ def get_keyrefs(
 
         # axis and size
         dk[k0]['axis'] = refs.index(v0['ref'])
-        dk[k0]['nn'] = coll2.ddata[key]['data'].shape(dk[k0]['axis'])
+        dk[k0]['nn'] = coll2.ddata[key]['data'].shape[dk[k0]['axis']]
 
-        # slicing
+    # slicing and labels
+    for k0, v0 in dk.items():
+
+        if v0['key'] is None:
+            continue
+
         laxis = [
-            v1['axis'] for k1, v1 in dk.items()
-            if k1 != k0 and v1['key'] is not None
+            dk[k1]['axis'] for k1 in lorder
+            if k1 != k0 and dk[k1]['key'] is not None
         ]
         dk[k0]['sli'] = _class1_compute._get_slice(
             laxis=laxis,
@@ -802,13 +830,14 @@ def get_keyrefs(
         (
             dk[k0]['data'],
             dk[k0]['str'],
-            dk[k0]['dX2'],
+            dk[k0]['d2'],
             dk[k0]['lab'],
-        )
-        = _uplot._get_str_datadlab(
+        ) = _uplot._get_str_datadlab(
             keyX=dk[k0]['key'],
             nx=dk[k0]['nn'],
-            islogX=dk[k0]['islogX'],
+            refX=dk[k0]['ref'],
+            islogX=dk[k0]['islog'],
             coll=coll2,
         )
+
     return dk, sameref

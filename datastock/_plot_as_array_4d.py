@@ -59,9 +59,6 @@ def main(
     assert ndim == len(coll.ddata[key]['ref']) == 4
     n0, n1, n2, n3 = data.shape
 
-    # extract
-    dataX = coll.ddata[dkeys['keyX']['data']]['data']
-
     # -----------------
     #  prepare slicing
     # -----------------
@@ -85,10 +82,10 @@ def main(
     # ----------------------
 
     extent = (
-        coll.ddata[dkeys['keyX']['data']]['data'][0] - dX2,
-        coll.ddata[dkeys['keyX']['data']]['data'][-1] + dX2,
-        coll.ddata[dkeys['keyY']['data']]['data'][0] - dY2,
-        coll.ddata[dkeys['keyY']['data']]['data'][-1] + dY2,
+        coll.ddata[dkeys['keyX']['data']]['data'][0] - dkeys['keyX']['d2'],
+        coll.ddata[dkeys['keyX']['data']]['data'][-1] + dkeys['keyX']['d2'],
+        coll.ddata[dkeys['keyY']['data']]['data'][0] - dkeys['keyY']['d2'],
+        coll.ddata[dkeys['keyY']['data']]['data'][-1] + dkeys['keyY']['d2'],
     )
 
     # --------------
@@ -215,7 +212,7 @@ def main(
         coll.add_mobile(
             key=km,
             handle=im,
-            refs=((refZ, refU),),
+            refs=((dkeys['keyZ']['ref'], dkeys['keyU']['ref']),),
             data=key,
             dtype=datatype,
             axes=kax,
@@ -227,15 +224,24 @@ def main(
 
         # ind0, ind1
         for ii in range(nmax):
+
             lh = ax.axhline(
-                dataY[ind[1]], c=color_dict['X'][ii], lw=1., ls='-',
+                coll.ddata[dkeys['keyY']['data']]['data'][ind[1]],
+                c=color_dict['X'][ii],
+                lw=1.,
+                ls='-',
             )
+
             lv = ax.axvline(
-                dataX[ind[0]], c=color_dict['Y'][ii], lw=1., ls='-',
+                coll.ddata[dkeys['keyX']['data']]['data'][ind[0]],
+                c=color_dict['Y'][ii],
+                lw=1.,
+                ls='-',
             )
+
             mi, = ax.plot(
-                dataX[ind[0]],
-                dataY[ind[1]],
+                coll.ddata[dkeys['keyX']['data']]['data'][ind[0]],
+                coll.ddata[dkeys['keyY']['data']]['data'][ind[1]],
                 marker='s',
                 ms=6,
                 markeredgecolor=color_dict['X'][ii],
@@ -248,8 +254,8 @@ def main(
             coll.add_mobile(
                 key=kh,
                 handle=lh,
-                refs=refY,
-                data=keyY,
+                refs=dkeys['keyY']['ref'],
+                data=dkeys['keyY']['key'],
                 dtype='ydata',
                 axes=kax,
                 ind=ii,
@@ -257,8 +263,8 @@ def main(
             coll.add_mobile(
                 key=kv,
                 handle=lv,
-                refs=refX,
-                data=keyX,
+                refs=dkeys['keyX']['ref'],
+                data=dkeys['keyX']['key'],
                 dtype='xdata',
                 axes=kax,
                 ind=ii,
@@ -267,114 +273,93 @@ def main(
             coll.add_mobile(
                 key=km,
                 handle=mi,
-                refs=[refX, refY],
-                data=[keyX, keyY],
+                refs=[dkeys['keyX']['ref'], dkeys['keyY']['ref']],
+                data=[dkeys['keyX']['key'], dkeys['keyY']['key']],
                 dtype=['xdata', 'ydata'],
                 axes=kax,
                 ind=ii,
             )
 
         dax[kax].update(
-            refx=[refX],
-            refy=[refY],
-            datax=[keyX],
-            datay=[keyY],
+            refx=[dkeys['keyX']['ref']],
+            refy=[dkeys['keyY']['ref']],
+            datax=[dkeys['keyX']['key']],
+            datay=[dkeys['keyY']['key']],
         )
 
-    # vertical
-    axtype = 'vertical'
-    lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
-    if len(lax) == 1:
-        kax = lax[0]
-        ax = dax[kax]['handle']
+    # --------------
+    # slices
+    # --------------
 
-        for ii in range(nmax):
-            l0, = ax.plot(
-                data[sliY(ind[0], ind[2], ind[3])],
-                dataY,
-                ls='-',
-                marker='.',
-                lw=1.,
-                color=color_dict['Y'][ii],
-                label=f'ind0 = {ind[0]}',
-            )
+    lslices = [('X', 'horizontal'), ('Y', 'vertical')]
+    for i0, (ss, axtype) in enumerate(lslices):
+        lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
+        if len(lax) == 1:
+            kax = lax[0]
+            ax = dax[kax]['handle']
+            k0 = f'key{ss}'
+            sli = dkeys[k0]['sli']
+            iind = 1
+            args = [ind[jj] for jj in range(ndim) if jj != iind]
+            refs = tuple([
+                dkeys[f"key{k1}"]['ref'] for k1 in ['X', 'Y', 'Z', 'U']
+                if k1 != ss
+            ])
+            dat = coll.ddata[dkeys[k0]['data']]['data']
 
-            km = f'{key}_vprof{ii:02.0f}'
-            coll.add_mobile(
-                key=km,
-                handle=l0,
-                refs=((refX, refZ, refU),),
-                data=[key],
-                dtype=['xdata'],
-                group_vis='X',
-                axes=kax,
-                ind=ii,
-            )
+            for ii in range(nmax):
+                l0, = ax.plot(
+                    data[sli(*args)],
+                    dat,
+                    ls='-',
+                    marker='.',
+                    lw=1.,
+                    color=color_dict[ss][ii],
+                    label=f'ind0 = {ind[iind]}',
+                )
 
-            l0 = ax.axhline(
-                dataY[ind[1]],
-                c=color_dict['X'][ii],
-            )
-            km = f'{key}_lh-v{ii:02.0f}'
-            coll.add_mobile(
-                key=km,
-                handle=l0,
-                refs=(refY,),
-                data=keyY,
-                dtype='ydata',
-                group_vis='Y',
-                axes=kax,
-                ind=ii,
-            )
+                if ss == 'Y':
+                    xydata = 'xdata'
+                    km = f'{key}_vprof{ii:02.0f}'
+                else:
+                    xydata = 'ydata'
+                    km = f'{key}_vhor{ii:02.0f}'
+                coll.add_mobile(
+                    key=km,
+                    handle=l0,
+                    refs=(refs,),
+                    data=[key],
+                    dtype=[xydata],
+                    group_vis=lslices[1-i0][0],  # 'X' <-> 'Y'
+                    axes=kax,
+                    ind=ii,
+                )
 
-        dax[kax].update(refy=[refY], datay=[keyY])
+                #
+                axline = ax.axhline if ss == 'Y' else ax.axvline
+                l0 = axline(
+                    dat[ind[iind]],
+                    c=color_dict[lslices[1-i0][0]][ii],  # 'X' <-> 'Y'
+                )
 
-    # horizontal
-    axtype = 'horizontal'
-    lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
-    if len(lax) == 1:
-        kax = lax[0]
-        ax = dax[kax]['handle']
+                if ss == 'Y':
+                    xydata = 'ydata'
+                    km = f'{key}_lh-v{ii:02.0f}'
+                else:
+                    xydata = 'xdata'
+                    km = f'{key}_lv-h{ii:02.0f}'
+                coll.add_mobile(
+                    key=km,
+                    handle=l0,
+                    refs=(dkeys[k0]['ref'],),
+                    data=dkeys[k0]['key'],
+                    dtype=xydata,
+                    group_vis=ss,
+                    axes=kax,
+                    ind=ii,
+                )
 
-        for ii in range(nmax):
-            l1, = ax.plot(
-                dataX,
-                data[sliX(ind[1], ind[2], ind[3])],
-                ls='-',
-                marker='.',
-                lw=1.,
-                color=color_dict['X'][ii],
-            )
-
-            km = f'{key}_hprof{ii:02.0f}'
-            coll.add_mobile(
-                key=km,
-                handle=l1,
-                refs=((refY, refZ, refU),),
-                data=[key],
-                dtype=['ydata'],
-                group_vis='Y',
-                axes=kax,
-                ind=ii,
-            )
-
-            l0 = ax.axvline(
-                dataX[ind[0]],
-                c=color_dict['Y'][ii],
-            )
-            km = f'{key}_lv-h{ii:02.0f}'
-            coll.add_mobile(
-                key=km,
-                handle=l0,
-                refs=(refX,),
-                data=keyX,
-                dtype='xdata',
-                group_vis='X',
-                axes=kax,
-                ind=ii,
-            )
-
-        dax[kax].update(refx=[refX], datax=[keyX])
+            dax[kax].update(refy=[dkeys[k0]['ref']], datay=[dkeys[k0]['key']])
 
     # -----------------
     # traces Z & U
@@ -393,7 +378,8 @@ def main(
             iind = i0 + 2
             args = [ind[jj] for jj in range(ndim) if jj != iind]
             refs = tuple([
-                dkeys[k1]['ref'] for k1 in ['X', 'Y', 'Z', 'U'] if k1 != k0
+                dkeys[f"key{k1}"]['ref'] for k1 in ['X', 'Y', 'Z', 'U']
+                if k1 != ss
             ])
 
             for ii in range(nmax):
@@ -405,7 +391,7 @@ def main(
                     color=color_dict[ss][ii],
                 )
 
-                km = f'{key}_trace{ii:02.0f}'
+                km = f'{key}_trace{ss}{ii:02.0f}'
                 coll.add_mobile(
                     key=km,
                     handle=l1,
@@ -420,7 +406,7 @@ def main(
                 dat[ind[iind]],
                 c='k',
             )
-            km = f'{key}_lv-z'
+            km = f'{key}_lv-{ss}'
             coll.add_mobile(
                 key=km,
                 handle=l0,
@@ -630,9 +616,9 @@ def _label_axes(
         ax.xaxis.set_label_position('top')
 
         if np.isfinite(dvminmax[ss]['min']):
-            ax.set_ylim(left=dvminmax[ss]['min'])
+            ax.set_ylim(bottom=dvminmax[ss]['min'])
         if np.isfinite(dvminmax[ss]['max']):
-            ax.set_ylim(right=dvminmax[ss]['max'])
+            ax.set_ylim(top=dvminmax[ss]['max'])
 
         # y text ticks
         if dkeys[k0]['str'] is not False:
