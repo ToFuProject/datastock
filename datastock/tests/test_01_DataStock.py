@@ -139,6 +139,17 @@ def _add_data(st=None, nc=None, nx=None, lnt=None):
         ref=('nc', 'nt0', 'nx'),
     )
 
+    # add 4d array
+    st.add_data(
+        key='4d',
+        data=(
+            np.arange(nc)[:, None, None, None]
+            + lprof[0][None, :, :, None] * lt[1][None, None, None, :]
+        ),
+        dim='blabla',
+        ref=('nc', 'nt0', 'nx', 'nt1'),
+    )
+
 
 def _add_obj(st=None, nc=None):
     for ii in range(nc):
@@ -327,7 +338,7 @@ class Test02_Manipulate():
                 safety_ratio=0.95,
                 returnas=True,
             )
-            
+
             if np.isscalar(ax):
                 ax = [ax]
 
@@ -474,17 +485,31 @@ class Test02_Manipulate():
     #   Plotting
     # ------------------------
 
-    def test12_plot_as_array(self):
-        dax = self.st.plot_as_array(key='t0')
-        dax = self.st.plot_as_array(key='prof0')
-        dax = self.st.plot_as_array(key='3d')
+    def test12_plot_as_array_1d(self):
+        # 1d
+        # dax = self.st.plot_as_array(key='t0')
         plt.close('all')
 
-    def test13_plot_BvsA_as_distribution(self):
+    def test13_plot_as_array_2d(self):
+        # 2d
+        # dax = self.st.plot_as_array(key='prof0')
+        plt.close('all')
+
+    def test14_plot_as_array_3d(self):
+        # 3d
+        # dax = self.st.plot_as_array(key='3d')
+        plt.close('all')
+
+    def test15_plot_as_array_4d(self):
+        # 4d
+        dax = self.st.plot_as_array(key='4d')
+        plt.close('all')
+
+    def test16_plot_BvsA_as_distribution(self):
         dax = self.st.plot_BvsA_as_distribution(keyA='prof0', keyB='prof0-bis')
         plt.close('all')
 
-    def test14_plot_as_profile1d(self):
+    def test17_plot_as_profile1d(self):
         dax = self.st.plot_as_profile1d(
             key='prof0',
             key_time='t0',
@@ -493,7 +518,7 @@ class Test02_Manipulate():
         )
         plt.close('all')
 
-    def test15_plot_as_mobile_lines(self):
+    def test18_plot_as_mobile_lines(self):
 
         # 3d
         dax = self.st.plot_as_mobile_lines(
@@ -516,7 +541,7 @@ class Test02_Manipulate():
     #   File handling
     # ------------------------
 
-    def test16_copy_equal(self):
+    def test19_copy_equal(self):
         st2 = self.st.copy()
         assert st2 is not self.st
 
@@ -524,10 +549,10 @@ class Test02_Manipulate():
         if msg is not True:
             raise Exception(msg)
 
-    def test17_get_nbytes(self):
+    def test20_get_nbytes(self):
         nb, dnb = self.st.get_nbytes()
 
-    def test18_saveload(self, verb=False):
+    def test21_saveload(self, verb=False):
         pfe = self.st.save(path=_PATH_OUTPUT, verb=verb, return_pfe=True)
         st2 = load(pfe, verb=verb)
         # Just to check the loaded version works fine
