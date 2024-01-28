@@ -127,22 +127,29 @@ def _get_str_datadlab(
     # add index vector
 
     if keyX == 'index' or xstr:
-        keyX2 = f"{keyX}_str"
-        coll.add_data(
-            key=keyX2,
-            data=np.arange(0, nx),
-            ref=coll.ddata[keyX]['ref'],
-            ref=refX,
-            units='',
+        keyX2 = f"{refX}_index"
+
+        c0 = (
+            keyX2 in coll.ddata.keys()
+            and coll.ddata[keyX2]['ref'] == (refX,)
+            and np.allclose(coll.ddata[keyX2]['data'], np.arange(nx))
         )
+
+        if not c0:
+            coll.add_data(
+                key=keyX2,
+                data=np.arange(0, nx),
+                ref=refX,
+                units='',
+            )
         dX2 = 0.5
         if keyX == 'index':
             labX = "index"
         else:
             labX = ''
 
-    if xstr is True:
-        xstr = coll.ddata[keyX]['data']
+        if xstr is True:
+            xstr = coll.ddata[keyX]['data']
 
     # -------------------------------------
     # keyX refers to exising numerical data

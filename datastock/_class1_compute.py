@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # Builtin
-import itertools as itt
 import copy
-import warnings
 
 
 # Common
@@ -13,7 +11,6 @@ import numpy as np
 # import scipy.linalg as scplin
 import scipy.stats as scpstats
 import scipy.spatial as scpspace
-import datastock as ds
 
 
 from . import _generic_check
@@ -31,7 +28,13 @@ _LCROSS_OK = ['spearman', 'pearson', 'distance']
 def _get_slice(laxis=None, ndim=None):
 
     nax = len(laxis)
-    assert nax in range(1, ndim + 1)
+    if not nax >= 1 and nax <= ndim:
+        msg = (
+            "Something wrong with the number of axis provided:\n"
+            f"\t- laxis: {laxis}\n"
+            f"\t- ndim:  {ndim}\n"
+        )
+        raise Exception(msg)
 
     if ndim == nax:
         def fslice(*args):
@@ -206,7 +209,7 @@ def propagate_indices_per_ref(
             ]
             msg = (
                 "Provided ldata are not suitable:\n"
-                 + "\n".join(lstr)
+                + "\n".join(lstr)
             )
             raise Exception(msg)
 
@@ -232,7 +235,6 @@ def propagate_indices_per_ref(
                 )
                 raise Exception(msg)
             ref_data = ref_data[0]
-
 
             # For each ref in lref, get list of matching data
             drdata = {
@@ -729,8 +731,8 @@ def _extract_instance(
     # select
     # -----------------
 
-    lref, ldata = _extract_select(
-        coll=self,
+    ldata, lref = _extract_select(
+        coll=coll,
         keys=keys,
         # optional includes
         inc_monot=inc_monot,
@@ -781,7 +783,7 @@ def _extract_instance(
     # return
     # -------------
 
-    if return_keys is TRue:
+    if return_keys is True:
         return coll2, keys
     else:
         return coll2
@@ -809,7 +811,7 @@ def _extract_check(
 
     lokd = list(coll._ddata.keys())
     lokr = list(coll._dref.keys())
-    keys = list(set(_check_var_iter(
+    keys = list(set(_generic_check._check_var_iter(
         keys, 'keys',
         default=None,
         types=list,
@@ -822,21 +824,21 @@ def _extract_check(
     # -----------------
 
     # monotonous vectors
-    inc_monot = _generic_check._chec_var(
+    inc_monot = _generic_check._check_var(
         inc_monot, 'inc_monot',
         types=bool,
         default=True,
     )
 
     # any vectors
-    inc_vectors = _generic_check._chec_var(
+    inc_vectors = _generic_check._check_var(
         inc_vectors, 'inc_vectors',
         types=bool,
         default=False,
     )
 
     # any nd array
-    inc_allrefs = _generic_check._chec_var(
+    inc_allrefs = _generic_check._check_var(
         inc_allrefs, 'inc_allrefs',
         types=bool,
         default=False,
@@ -847,7 +849,7 @@ def _extract_check(
     # -----------------
 
     # return_keys
-    return_keys = _generic_check._chec_var(
+    return_keys = _generic_check._check_var(
         return_keys, 'return_keys',
         types=bool,
         default=False,
@@ -883,13 +885,13 @@ def _extract_select(
     # get all relevant refs
 
     ldata0 = [k0 for k0 in keys if k0 in coll.ddata.keys()]
-    lref = list(set([
+    lref = list(set(
         [k0 for k0 in keys if k0 in coll.dref.keys()]
         + [
-            rr for rr in coll.def.keys()
+            rr for rr in coll.dref.keys()
             if any([rr in coll.ddata[k0]['ref'] for k0 in ldata0])
         ]
-    ]))
+    ))
 
     # ------------------------
     # loop on refs for vectors
@@ -934,7 +936,6 @@ def _extract_select(
 
     if any_inc:
         ldata0 = list(set(ldata0 + ldata))
-
 
     return ldata0, lref
 
