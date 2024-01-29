@@ -100,17 +100,6 @@ def main(
 
     dax = _generic_check._check_dax(dax=dax, main='matrix')
 
-    if label:
-        _label_axes(
-            coll=coll,
-            dax=dax,
-            key=key,
-            dkeys=dkeys,
-            dvminmax=dvminmax,
-            inverty=inverty,
-            rotation=rotation,
-        )
-
     # ----------------------------------
     # plot fixed parts (traces envelops)
     # ----------------------------------
@@ -299,7 +288,7 @@ def main(
             ax = dax[kax]['handle']
             k0 = f'key{ss}'
             sli = dkeys[k0]['sli']
-            iind = 1
+            iind = i0
             args = [ind[jj] for jj in range(ndim) if jj != iind]
             refs = tuple([
                 dkeys[f"key{k1}"]['ref'] for k1 in ['X', 'Y', 'Z', 'U']
@@ -307,23 +296,39 @@ def main(
             ])
             dat = coll.ddata[dkeys[k0]['data']]['data']
 
-            for ii in range(nmax):
-                l0, = ax.plot(
-                    data[sli(*args)],
-                    dat,
-                    ls='-',
-                    marker='.',
-                    lw=1.,
-                    color=color_dict[ss][ii],
-                    label=f'ind0 = {ind[iind]}',
-                )
+            # ---- DEBUG ----
+            print()
+            print(ss, k0)
+            print(iind)
+            print(dkeys[k0])
+            # ---------------
 
+            for ii in range(nmax):
                 if ss == 'Y':
+                    l0, = ax.plot(
+                        data[sli(*args)],
+                        dat,
+                        ls='-',
+                        marker='.',
+                        lw=1.,
+                        color=color_dict[ss][ii],
+                        label=f'ind0 = {ind[iind]}',
+                    )
                     xydata = 'xdata'
                     km = f'{key}_vprof{ii:02.0f}'
                 else:
+                    l0, = ax.plot(
+                        dat,
+                        data[sli(*args)],
+                        ls='-',
+                        marker='.',
+                        lw=1.,
+                        color=color_dict[ss][ii],
+                        label=f'ind0 = {ind[iind]}',
+                    )
                     xydata = 'ydata'
                     km = f'{key}_vhor{ii:02.0f}'
+
                 coll.add_mobile(
                     key=km,
                     handle=l0,
@@ -359,7 +364,16 @@ def main(
                     ind=ii,
                 )
 
-            dax[kax].update(refy=[dkeys[k0]['ref']], datay=[dkeys[k0]['key']])
+            if ss == 'Y':
+                dax[kax].update(
+                    refy=[dkeys[k0]['ref']],
+                    datay=[dkeys[k0]['key']],
+                )
+            else:
+                dax[kax].update(
+                    refx=[dkeys[k0]['ref']],
+                    datax=[dkeys[k0]['key']],
+                )
 
     # -----------------
     # traces Z & U
@@ -382,6 +396,7 @@ def main(
                 if k1 != ss
             ])
 
+            # individual time traces
             for ii in range(nmax):
                 l1, = ax.plot(
                     dat,
@@ -398,15 +413,17 @@ def main(
                     refs=(refs,),
                     data=[key],
                     dtype=['ydata'],
+                    group_vis=('X', 'Y'),  # 'X' <-> 'Y'
                     axes=kax,
                     ind=ii,
                 )
 
+            # vlines for single index selection
             l0 = ax.axvline(
                 dat[ind[iind]],
                 c='k',
             )
-            km = f'{key}_lv-{ss}'
+            km = f'{key}_lv_{ss}'
             coll.add_mobile(
                 key=km,
                 handle=l0,
@@ -444,6 +461,21 @@ def main(
                 color_dict=color_dict,
                 bstr_dict=bstr_dict,
             )
+
+    # -------------------
+    # labeling and limits
+    # -------------------
+
+    if label:
+        _label_axes(
+            coll=coll,
+            dax=dax,
+            key=key,
+            dkeys=dkeys,
+            dvminmax=dvminmax,
+            inverty=inverty,
+            rotation=rotation,
+        )
 
     return coll, dax, dgroup
 
@@ -620,6 +652,11 @@ def _label_axes(
         if np.isfinite(dvminmax[ss]['max']):
             ax.set_ylim(top=dvminmax[ss]['max'])
 
+        if np.isfinite(dvminmax['data']['min']):
+            ax.set_xlim(left=dvminmax['data']['min'])
+        if np.isfinite(dvminmax['data']['max']):
+            ax.set_xlim(right=dvminmax['data']['max'])
+
         # y text ticks
         if dkeys[k0]['str'] is not False:
             ax.set_yticks(coll.ddata[dkeys[k0]['data']]['data'])
@@ -646,6 +683,11 @@ def _label_axes(
             ax.set_xlim(left=dvminmax[ss]['min'])
         if np.isfinite(dvminmax[ss]['max']):
             ax.set_xlim(right=dvminmax[ss]['max'])
+
+        if np.isfinite(dvminmax['data']['min']):
+            ax.set_ylim(bottom=dvminmax['data']['min'])
+        if np.isfinite(dvminmax['data']['max']):
+            ax.set_ylim(top=dvminmax['data']['max'])
 
         # x text ticks
         if dkeys[k0]['str'] is not False:
