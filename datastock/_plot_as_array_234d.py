@@ -48,6 +48,8 @@ def main(
     **kwdargs,
 ):
 
+    print(dkeys)
+
     # --------------
     #  Prepare data
     # --------------
@@ -65,6 +67,9 @@ def main(
             f"\t- coll.ddata['{key}']['ref']: {coll.ddata[key]['ref']}\n"
         )
         raise Exception(msg)
+
+    # data label
+    data_lab = f"{key} ({coll.ddata[key]['units']})"
 
     # -----------------
     #  prepare slicing
@@ -230,8 +235,8 @@ def main(
             vmax=dvminmax['data']['max'],
         )
 
-        if inverty is True:
-            ax.invert_yaxis()
+        # if inverty is True:
+        #     ax.invert_yaxis()
 
         if ndim >= 3:
             km = f'{key}_im'
@@ -503,6 +508,7 @@ def main(
     if label:
         _label_axes(
             coll=coll,
+            data_lab=data_lab,
             dax=dax,
             key=key,
             dkeys=dkeys,
@@ -604,6 +610,7 @@ def _create_axes(
 
 def _label_axes(
     coll=None,
+    data_lab=None,
     dax=None,
     key=None,
     dkeys=None,
@@ -628,12 +635,14 @@ def _label_axes(
     if len(lax) == 1:
         kax = lax[0]
         ax = dax[kax]['handle']
-        ax.tick_params(
-            axis="x",
-            bottom=False, top=True,
-            labelbottom=False, labeltop=True,
-        )
-        ax.xaxis.set_label_position('top')
+
+        if inverty is True:
+            ax.xaxis.set_label_position('top')
+            ax.tick_params(
+                axis="x",
+                bottom=False, top=True,
+                labelbottom=False, labeltop=True,
+            )
 
         # x text ticks
         k0 = 'keyX'
@@ -643,10 +652,10 @@ def _label_axes(
                 dkeys[k0]['str'],
                 rotation=rotation,
                 horizontalalignment='left',
-                verticalalignment='bottom',
+                verticalalignment='bottom' if inverty else 'top',
             )
         else:
-            ax.set_xlabel(dkeys[k0]['lab'])
+            ax.set_xlabel(dkeys[k0]['lab'], size=12, fontweight='bold')
 
         # y text ticks
         k0 = 'keyY'
@@ -659,7 +668,8 @@ def _label_axes(
                 verticalalignment='bottom',
             )
         else:
-            ax.set_ylabel(dkeys[k0]['lab'])
+            ax.set_ylabel(dkeys[k0]['lab'], size=12, fontweight='bold')
+
         dax[kax]['inverty'] = inverty
 
     # --------------------------------
@@ -674,20 +684,23 @@ def _label_axes(
         k0 = f"key{ss}"
         kax = lax[0]
         ax = dax[kax]['handle']
-        ax.set_xlabel('data')
-        ax.set_ylabel(dkeys[k0]['lab'])
+        ax.set_xlabel(data_lab, size=12, fontweight='bold')
+        ax.set_ylabel(dkeys[k0]['lab'], size=12, fontweight='bold')
+
+        ax.yaxis.set_label_position('right')
         ax.tick_params(
             axis="y",
             left=False, right=True,
             labelleft=False, labelright=True,
         )
-        ax.tick_params(
-            axis="x",
-            bottom=False, top=True,
-            labelbottom=False, labeltop=True,
-        )
-        ax.yaxis.set_label_position('right')
-        ax.xaxis.set_label_position('top')
+
+        if inverty is True:
+            ax.xaxis.set_label_position('top')
+            ax.tick_params(
+                axis="x",
+                bottom=False, top=True,
+                labelbottom=False, labeltop=True,
+            )
 
         if np.isfinite(dvminmax[ss]['min']):
             ax.set_ylim(bottom=dvminmax[ss]['min'])
@@ -708,6 +721,9 @@ def _label_axes(
                 horizontalalignment='left',
                 verticalalignment='bottom',
             )
+
+        if inverty is True:
+            ax.invert_yaxis()
         dax[kax]['inverty'] = inverty
 
     # axes for horizontal profile
@@ -718,8 +734,8 @@ def _label_axes(
         k0 = f"key{ss}"
         kax = lax[0]
         ax = dax[kax]['handle']
-        ax.set_ylabel('data')
-        ax.set_xlabel(dkeys[k0]['lab'])
+        ax.set_ylabel(data_lab, size=12, fontweight='bold')
+        ax.set_xlabel(dkeys[k0]['lab'], size=12, fontweight='bold')
 
         if np.isfinite(dvminmax[ss]['min']):
             ax.set_xlim(left=dvminmax[ss]['min'])
@@ -755,8 +771,8 @@ def _label_axes(
 
             kax = lax[0]
             ax = dax[kax]['handle']
-            ax.set_ylabel('data')
-            ax.set_xlabel(dkeys[k0]['lab'])
+            ax.set_ylabel(data_lab, size=12, fontweight='bold')
+            ax.set_xlabel(dkeys[k0]['lab'], size=12, fontweight='bold')
 
             if np.isfinite(dvminmax[ss]['min']):
                 ax.set_xlim(left=dvminmax[ss]['min'])
