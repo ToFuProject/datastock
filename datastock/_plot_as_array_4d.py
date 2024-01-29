@@ -56,26 +56,48 @@ def main(
     if hasattr(data, 'nnz'):
         data = data.toarray()
     ndim = data.ndim
-    assert ndim == len(coll.ddata[key]['ref']) == 4
-    n0, n1, n2, n3 = data.shape
+
+    # safety check
+    if (ndim != len(coll.ddata[key]['ref'])) or (ndim < 2 or ndim > 4):
+        msg = (
+            "Wrong ndim for plot_as_array()!\n"
+            f"\t- ndim: {ndim}\n"
+            f"\t- coll.ddata['{key}']['ref']: {coll.ddata[key]['ref']}\n"
+        )
+        raise Exception(msg)
 
     # -----------------
     #  prepare slicing
     # -----------------
 
-    # here slice X => slice in dim Y and vice-versa
-    sliZ2 = _class1_compute._get_slice(
-        laxis=[dkeys['keyZ']['axis'], dkeys['keyU']['axis']],
-        ndim=4,
-    )
+    if ndim == 2:
+        def sliZ2(*args):
+            return (slice(None), slice(None))
+        inds = (None,)
+
+    elif ndim == 3:
+        # here slice X => slice in dim Y and vice-versa
+        sliZ2 = _class1_compute._get_slice(
+            laxis=[dkeys['keyZ']['axis']],
+            ndim=ndim,
+        )
+        inds = [ind[2]]
+
+    else:
+        # here slice X => slice in dim Y and vice-versa
+        sliZ2 = _class1_compute._get_slice(
+            laxis=[dkeys['keyZ']['axis'], dkeys['keyU']['axis']],
+            ndim=ndim,
+        )
+        inds = [ind[2], ind[3]]
 
     # check if transpose is necessary
     if dkeys['keyX']['axis'] < dkeys['keyY']['axis']:
         datatype = 'data.T'
-        dataplot = data[sliZ2(ind[2], ind[3])].T
+        dataplot = data[sliZ2(*inds)].T
     else:
         datatype = 'data'
-        dataplot = data[sliZ2(ind[2], ind[3])]
+        dataplot = data[sliZ2(*inds)]
 
     # ----------------------
     #  labels and data
@@ -96,6 +118,7 @@ def main(
         dax = _create_axes(
             fs=fs,
             dmargin=dmargin,
+            ndim=ndim,
         )
 
     dax = _generic_check._check_dax(dax=dax, main='matrix')
@@ -107,8 +130,10 @@ def main(
     for ss in ['Z', 'U']:
 
         k0 = f"key{ss}"
-        axis = dkeys[k0]['axis']
+        if dkeys[k0]['key'] is None:
+            continue
 
+        axis = dkeys[k0]['axis']
         axtype = f'traces{ss}'
         lax = [k1 for k1, v1 in dax.items() if axtype in v1['type']]
         if len(lax) == 1:
@@ -133,7 +158,8 @@ def main(
                 )
             else:
                 tax = tuple([
-                    v1['axis'] for k1, v1 in dkeys.items() if k1 != k0
+                    v1['axis'] for k1, v1 in dkeys.items()
+                    if k1 != k0 and v1['key'] is not None
                 ])
                 bckenv = [
                     np.nanmin(data, axis=tax),
@@ -162,17 +188,20 @@ def main(
             'data': ['index'],
             'nmax': nmax,
         },
-        'Z': {
+    }
+
+    if dkeys['keyZ']['key'] is not None:
+        dgroup['Z'] = {
             'ref': [dkeys['keyZ']['ref']],
             'data': ['index'],
             'nmax': 1,
-        },
-        'U': {
+        }
+    if dkeys['keyU']['key'] is not None:
+        dgroup['U'] = {
             'ref': [dkeys['keyU']['ref']],
             'data': ['index'],
             'nmax': 1,
-        },
-    }
+        }
 
     # -----------------
     # plot mobile parts
@@ -184,6 +213,10 @@ def main(
     if len(lax) == 1:
         kax = lax[0]
         ax = dax[kax]['handle']
+        refs = tuple([
+            dkeys[k1]['ref'] for k1 in ['keyZ', 'keyU']
+            if dkeys[k1]['key'] is not None
+        ])
 
         # image
         im = ax.imshow(
@@ -197,19 +230,20 @@ def main(
             vmax=dvminmax['data']['max'],
         )
 
-        km = f'{key}_im'
-        coll.add_mobile(
-            key=km,
-            handle=im,
-            refs=((dkeys['keyZ']['ref'], dkeys['keyU']['ref']),),
-            data=key,
-            dtype=datatype,
-            axes=kax,
-            ind=0,
-        )
-
         if inverty is True:
             ax.invert_yaxis()
+
+        if ndim >= 3:
+            km = f'{key}_im'
+            coll.add_mobile(
+                key=km,
+                handle=im,
+                refs=(refs,),
+                data=key,
+                dtype=datatype,
+                axes=kax,
+                ind=0,
+            )
 
         # ind0, ind1
         for ii in range(nmax):
@@ -292,16 +326,9 @@ def main(
             args = [ind[jj] for jj in range(ndim) if jj != iind]
             refs = tuple([
                 dkeys[f"key{k1}"]['ref'] for k1 in ['X', 'Y', 'Z', 'U']
-                if k1 != ss
+                if k1 != ss and dkeys[f"key{k1}"]['key'] is not None
             ])
             dat = coll.ddata[dkeys[k0]['data']]['data']
-
-            # ---- DEBUG ----
-            print()
-            print(ss, k0)
-            print(iind)
-            print(dkeys[k0])
-            # ---------------
 
             for ii in range(nmax):
                 if ss == 'Y':
@@ -380,7 +407,11 @@ def main(
     # -----------------
 
     for i0, ss in enumerate(['Z', 'U']):
+
         k0 = f"key{ss}"
+        if dkeys[k0]['key'] is None:
+            continue
+
         axtype = f'traces{ss}'
         lax = [k1 for k1, v1 in dax.items() if axtype in v1['type']]
         if len(lax) == 1:
@@ -393,7 +424,7 @@ def main(
             args = [ind[jj] for jj in range(ndim) if jj != iind]
             refs = tuple([
                 dkeys[f"key{k1}"]['ref'] for k1 in ['X', 'Y', 'Z', 'U']
-                if k1 != ss
+                if k1 != ss and dkeys[f"key{k1}"]['key'] is not None
             ])
 
             # individual time traces
@@ -442,6 +473,9 @@ def main(
 
     for ii, ss in enumerate(['X', 'Y', 'Z', 'U']):
         k0 = f"key{ss}"
+        if dkeys[k0]['key'] is None:
+            continue
+
         axtype = f'text{ss}'
         lax = [k1 for k1, v1 in dax.items() if axtype in v1['type']]
         if len(lax) == 1:
@@ -489,6 +523,7 @@ def main(
 def _create_axes(
     fs=None,
     dmargin=None,
+    ndim=None,
 ):
 
     # ---------------
@@ -505,52 +540,59 @@ def _create_axes(
             'hspace': 0.5, 'wspace': 0.4,
         }
 
+    dax = {}
+
     # ---------------
     # create
     # ---------------
 
     fig = plt.figure(figsize=fs)
     gs = gridspec.GridSpec(ncols=7, nrows=6, **dmargin)
+    j0 = 0 if ndim == 2 else 2
 
     # axes for image
-    ax0 = fig.add_subplot(gs[:4, 2:4], aspect='auto')
+    ax0 = fig.add_subplot(gs[:4, j0:4], aspect='auto')
+    dax['matrix'] = ax0
 
     # axes for vertical profile
     ax1 = fig.add_subplot(gs[:4, 4], sharey=ax0)
+    dax['vertical'] = ax1
 
     # axes for horizontal profile
-    ax2 = fig.add_subplot(gs[4:, 2:4], sharex=ax0)
+    ax2 = fig.add_subplot(gs[4:, j0:4], sharex=ax0)
+    dax['horizontal'] = ax2
 
     # axes for tracesZ
-    ax3 = fig.add_subplot(gs[:3, :2])
+    if ndim >= 3:
+        ax3 = fig.add_subplot(gs[:3, :2])
+        dax['tracesZ'] = ax3
 
     # axes for tracesU
-    ax4 = fig.add_subplot(gs[3:, :2])
+    if ndim >= 4:
+        ax4 = fig.add_subplot(gs[3:, :2])
+        dax['tracesU'] = ax4
 
+    # --------------
     # axes for text
-    ax5 = fig.add_subplot(gs[:3, 5], frameon=False)
-    ax6 = fig.add_subplot(gs[3:, 5], frameon=False)
-    ax7 = fig.add_subplot(gs[:3, 6], frameon=False)
-    ax8 = fig.add_subplot(gs[3:, 6], frameon=False)
-
-    # --------------
-    # assemble dax
     # --------------
 
-    # dax
-    dax = {
-        # data
-        'matrix': {'handle': ax0},
-        'vertical': {'handle': ax1},
-        'horizontal': {'handle': ax2},
-        'tracesZ': {'handle': ax3},
-        'tracesU': {'handle': ax4},
-        # text
-        'textX': {'handle': ax5},
-        'textY': {'handle': ax6},
-        'textZ': {'handle': ax7},
-        'textU': {'handle': ax8},
-    }
+    if ndim == 2:
+        ax5 = fig.add_subplot(gs[:, 5], frameon=False)
+        ax6 = fig.add_subplot(gs[:, 6], frameon=False)
+    else:
+        ax5 = fig.add_subplot(gs[:3, 5], frameon=False)
+        ax6 = fig.add_subplot(gs[3:, 5], frameon=False)
+    dax['textX'] = ax5
+    dax['textY'] = ax6
+
+    if ndim >= 3:
+        ax7 = fig.add_subplot(gs[:3, 6], frameon=False)
+        dax['textZ'] = ax7
+
+    if ndim >= 3:
+        ax8 = fig.add_subplot(gs[3:, 6], frameon=False)
+        dax['textU'] = ax8
+
     return dax
 
 
@@ -708,6 +750,9 @@ def _label_axes(
         lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
         if len(lax) == 1:
             k0 = f"key{ss}"
+            if dkeys[k0]['key'] is None:
+                continue
+
             kax = lax[0]
             ax = dax[kax]['handle']
             ax.set_ylabel('data')
@@ -736,6 +781,10 @@ def _label_axes(
         axtype = f'text{ss}'
         lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
         if len(lax) == 1:
+            k0 = f"key{ss}"
+            if dkeys[k0]['key'] is None:
+                continue
+
             kax = lax[0]
             ax = dax[kax]['handle']
             ax.set_xticks([])

@@ -491,17 +491,14 @@ class Test02_Manipulate():
         plt.close('all')
 
     def test13_plot_as_array_2d(self):
-        # 2d
-        # dax = self.st.plot_as_array(key='prof0')
+        dax = self.st.plot_as_array(key='prof0')
         plt.close('all')
 
     def test14_plot_as_array_3d(self):
-        # 3d
-        # dax = self.st.plot_as_array(key='3d')
+        dax = self.st.plot_as_array(key='3d')
         plt.close('all')
 
     def test15_plot_as_array_4d(self):
-        # 4d
         dax = self.st.plot_as_array(key='4d')
         plt.close('all')
 

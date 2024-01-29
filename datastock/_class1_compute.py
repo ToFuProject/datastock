@@ -28,7 +28,7 @@ _LCROSS_OK = ['spearman', 'pearson', 'distance']
 def _get_slice(laxis=None, ndim=None):
 
     nax = len(laxis)
-    if not nax >= 1 and nax <= ndim:
+    if not (nax >= 0 and nax <= ndim):
         msg = (
             "Something wrong with the number of axis provided:\n"
             f"\t- laxis: {laxis}\n"
@@ -36,7 +36,11 @@ def _get_slice(laxis=None, ndim=None):
         )
         raise Exception(msg)
 
-    if ndim == nax:
+    if nax == 0:
+        def fslice(*args):
+            return tuple([slice(None) for ii in laxis])
+
+    elif ndim == nax:
         def fslice(*args):
             return args
 

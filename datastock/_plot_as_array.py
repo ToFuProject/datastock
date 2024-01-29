@@ -148,10 +148,10 @@ def plot_as_array(
         func = _plot_as_array_1d.main
 
     elif ndim == 2:
-        func = _plot_as_array_2d.main
+        func = _plot_as_array_4d.main
 
     elif ndim == 3:
-        func = _plot_as_array_3d.main
+        func = _plot_as_array_4d.main
 
     elif ndim == 4:
         func = _plot_as_array_4d.main
