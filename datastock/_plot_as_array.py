@@ -366,7 +366,7 @@ def _check_keyXYZ(
             msg = (
                 "Something wrong with ref or key\n"
                 f"\t- refX: {refX}\n"
-                f"\t- keyX: {keyfX}\n"
+                f"\t- keyX: {keyX}\n"
                 f"\t- refs: {refs}\n"
                 f"\t- already: {already}\n"
                 f"\t- ndim: {ndim}\n"
