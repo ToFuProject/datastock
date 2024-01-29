@@ -78,13 +78,22 @@ def plot_as_profile1d(
     # ------------
     #  check inputs
 
-    # check key, inplace flag and extract sub-collection
-    key, inplace, coll2 = _generic_check._check_inplace(
-        coll=coll,
-        keys=None if key is None else [key],
-        inplace=inplace,
+    key = _generic_check._check_var(
+        key, 'key',
+        types=str,
+        allowed=list(coll.ddata.keys()),
     )
-    key = key[0]
+
+    # check key, inplace flag and extract sub-collection
+    lk = [kk for kk in [key, key_time, keyX] if kk is not None]
+    coll2, key = coll.extract(
+        lk,
+        inc_monot=False,
+        inc_vectors=False,
+        inc_allrefs=False,
+        return_keys=True,
+    )
+    key = [kk for kk in key if kk not in [key_time, keyX]][0]
     ndim = coll2._ddata[key]['data'].ndim
 
     # --------------
