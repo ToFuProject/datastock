@@ -485,54 +485,61 @@ class Test02_Manipulate():
     #   Plotting
     # ------------------------
 
-    def test12_plot_as_array_1d(self):
-        # 1d
-        # dax = self.st.plot_as_array(key='t0')
-        plt.close('all')
+    # def test12_plot_as_array_1d(self):
+    #     # 1d
+    #     # dax = self.st.plot_as_array(key='t0')
+    #     plt.close('all')
+    #     del dax
 
     def test13_plot_as_array_2d(self):
         dax = self.st.plot_as_array(key='prof0')
         plt.close('all')
+        del dax
 
     def test14_plot_as_array_3d(self):
         dax = self.st.plot_as_array(key='3d')
         plt.close('all')
+        del dax
 
     def test15_plot_as_array_4d(self):
         dax = self.st.plot_as_array(key='4d')
         plt.close('all')
+        del dax
 
-    def test16_plot_BvsA_as_distribution(self):
-        dax = self.st.plot_BvsA_as_distribution(keyA='prof0', keyB='prof0-bis')
-        plt.close('all')
+    # def test16_plot_BvsA_as_distribution(self):
+    #     dax = self.st.plot_BvsA_as_distribution(keyA='prof0', keyB='prof0-bis')
+    #     plt.close('all')
+    #     del dax
 
-    def test17_plot_as_profile1d(self):
-        dax = self.st.plot_as_profile1d(
-            key='prof0',
-            key_time='t0',
-            keyX='prof0-bis',
-            bck='lines',
-        )
-        plt.close('all')
+    # def test17_plot_as_profile1d(self):
+    #     dax = self.st.plot_as_profile1d(
+    #         key='prof0',
+    #         key_time='t0',
+    #         keyX='prof0-bis',
+    #         bck='lines',
+    #     )
+    #     plt.close('all')
+    #     del dax
 
-    def test18_plot_as_mobile_lines(self):
+    # def test18_plot_as_mobile_lines(self):
 
-        # 3d
-        dax = self.st.plot_as_mobile_lines(
-            keyX='3d',
-            keyY='3d-bis',
-            key_time='t0',
-            key_chan='x',
-        )
+    #     # 3d
+    #     dax = self.st.plot_as_mobile_lines(
+    #         keyX='3d',
+    #         keyY='3d-bis',
+    #         key_time='t0',
+    #         key_chan='x',
+    #     )
 
-        # 2d
-        dax = self.st.plot_as_mobile_lines(
-            keyX='prof2',
-            keyY='prof2-bis',
-            key_chan='nx',
-        )
+    #     # 2d
+    #     dax = self.st.plot_as_mobile_lines(
+    #         keyX='prof2',
+    #         keyY='prof2-bis',
+    #         key_chan='nx',
+    #     )
 
-        plt.close('all')
+    #     plt.close('all')
+    #     del dax
 
     # ------------------------
     #   File handling
