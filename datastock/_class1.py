@@ -218,6 +218,28 @@ class DataStock1(DataStock0):
             max_ndim=self._max_ndim,
         )
 
+    def remove_all(self, excluded=None):
+
+        # check excluded
+        if isinstance(excluded, str):
+            excluded = [excluded]
+
+        # remove all obj
+        lw = list(self.dobj.keys())
+        for ww in lw:
+            if (excluded is not None) and ww in excluded:
+                continue
+            self.remove_obj(
+                list(self.dobj[ww].keys()),
+                which=ww,
+                propagate=True)
+
+        # remove all data
+        self.remove_data(list(self.ddata.keys()), propagate=True)
+
+        # remove all refs
+        self.remove_ref(list(self.dref.keys()), propagate=True)
+
     # ---------------------
     # Get / set / add / remove params
     # ---------------------
