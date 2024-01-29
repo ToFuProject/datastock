@@ -11,9 +11,7 @@ from . import _generic_check
 from . import _class1_compute
 from . import _generic_utils_plot as _uplot
 from . import _plot_as_array_1d
-from . import _plot_as_array_2d
-from . import _plot_as_array_3d
-from . import _plot_as_array_4d
+from . import _plot_as_array_234d
 
 
 __all__ = ['plot_as_array']
@@ -147,14 +145,8 @@ def plot_as_array(
     if ndim == 1:
         func = _plot_as_array_1d.main
 
-    elif ndim == 2:
-        func = _plot_as_array_4d.main
-
-    elif ndim == 3:
-        func = _plot_as_array_4d.main
-
-    elif ndim == 4:
-        func = _plot_as_array_4d.main
+    elif ndim >= 2:
+        func = _plot_as_array_234d.main
 
     # -------------------------
     # call appropriate function
