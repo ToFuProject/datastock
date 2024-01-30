@@ -47,13 +47,11 @@ def plot_as_profile1d(
     coll=None,
     key=None,
     key_time=None,
-    keyX=None,
+    dkeys=None,
     ind=None,
-    vmin=None,
-    vmax=None,
+    dscale=None,
+    dvminmax=None,
     cmap=None,
-    ymin=None,
-    ymax=None,
     aspect=None,
     nmax=None,
     color_dict=None,
@@ -72,6 +70,8 @@ def plot_as_profile1d(
     dleg=None,
     connect=None,
     inplace=None,
+    # unused
+    **kwdargs,
 ):
 
 
@@ -965,5 +965,3 @@ def _plot_as_profile1d(
         )
 
     return coll, dax, dgroup
-
-
