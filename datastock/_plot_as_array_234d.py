@@ -755,6 +755,11 @@ def _label_axes(
             if np.isfinite(dvminmax[ss]['max']):
                 ax.set_xlim(right=dvminmax[ss]['max'])
 
+            if np.isfinite(dvminmax['data']['min']):
+                ax.set_ylim(bottom=dvminmax['data']['min'])
+            if np.isfinite(dvminmax['data']['max']):
+                ax.set_ylim(top=dvminmax['data']['max'])
+
             # z text ticks
             if dkeys[ss]['str'] is not False:
                 ax.set_yticks(coll.ddata[dkeys[ss]['data']]['data'])

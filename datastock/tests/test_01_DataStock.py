@@ -520,11 +520,10 @@ class Test02_Manipulate():
     #   Plotting
     # ------------------------
 
-    # def test12_plot_as_array_1d(self):
-    #     # 1d
-    #     # dax = self.st.plot_as_array(key='t0')
-    #     plt.close('all')
-    #     del dax
+    def test12_plot_as_array_1d(self):
+        dax = self.st.plot_as_array(key='t0')
+        plt.close('all')
+        del dax
 
     def test13_plot_as_array_2d(self):
         dax = self.st.plot_as_array(key='prof0')

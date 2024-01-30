@@ -902,6 +902,6 @@ def get_data_str(dk=None, coll2=None, key=None, ndim=None, dscale=None):
         lab = r"$\log_{10}$" + f"({key} ({units}))"
         key = key2
     else:
-        lab = f"({key} ({units}))"
+        lab = f"{key} ({units})"
 
     return dk, key, lab

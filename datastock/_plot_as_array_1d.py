@@ -9,7 +9,6 @@ from matplotlib import gridspec
 
 # library-specific
 from . import _generic_check
-from . import _generic_utils_plot as _uplot
 from . import _plot_text
 
 
@@ -23,6 +22,7 @@ def main(
     # parameters
     coll=None,
     key=None,
+    lab=None,
     dkeys=None,
     ind=None,
     dvminmax=None,
@@ -59,10 +59,6 @@ def main(
         if v0['ref'] is not None:
             dkeys[k0]
 
-    keyX, xstr, dataX, dX2, labX = _uplot._get_str_datadlab(
-        keyX=keyX, nx=n0, islogX=islogX, coll=coll,
-    )
-
     # --------------
     # prepare figure
     # --------------
@@ -75,20 +71,6 @@ def main(
 
     dax = _generic_check._check_dax(dax=dax, main='matrix')
 
-    if label:
-        _label_axes(
-            coll=coll,
-            dax=dax,
-            key=key,
-            labX=labX,
-            ymin=ymin,
-            ymax=ymax,
-            xstr=xstr,
-            keyX=keyX,
-            dataX=dataX,
-            rotation=rotation,
-        )
-
     # ---------------
     # plot fixed part
     # ---------------
@@ -99,7 +81,7 @@ def main(
         ax = dax[kax]['handle']
 
         ax.plot(
-            dataX,
+            coll.ddata[dkeys['X']['data']]['data'],
             data,
             color='k',
             marker='.',
@@ -116,7 +98,7 @@ def main(
 
     dgroup = {
         'X': {
-            'ref': [refX],
+            'ref': [dkeys['X']['ref']],
             'data': ['index'],
             'nmax': nmax,
         },
@@ -140,14 +122,14 @@ def main(
             coll.add_mobile(
                 key=kv,
                 handle=lv,
-                refs=refX,
-                data=keyX,
+                refs=dkeys['X']['ref'],
+                data=dkeys['X']['data'],
                 dtype='xdata',
                 axes=kax,
                 ind=ii,
             )
 
-        dax[kax].update(refx=[refX], datax=[keyX])
+        dax[kax].update(refx=[dkeys['X']['ref']], datax=[dkeys['X']['data']])
 
     # ---------
     # add text
@@ -162,13 +144,28 @@ def main(
             kax=kax,
             key=key,
             ax=ax,
-            ref=refX,
+            ref=dkeys['X']['ref'],
             group='X',
             ind=ind[0],
             lkeys=lkeys,
             nmax=nmax,
             color_dict=color_dict,
             bstr_dict=bstr_dict,
+        )
+
+    # ---------------
+    # labels
+    # ---------------
+
+    if label:
+        _label_axes(
+            coll=coll,
+            data_lab=lab,
+            dax=dax,
+            key=key,
+            dkeys=dkeys,
+            dvminmax=dvminmax,
+            rotation=rotation,
         )
 
     return coll, dax, dgroup
@@ -237,20 +234,12 @@ def _create_axes(
 
 def _label_axes(
     coll=None,
+    data_lab=None,
     dax=None,
     tit=None,
     key=None,
-    labX=None,
-    labY=None,
-    ymin=None,
-    ymax=None,
-    xstr=None,
-    ystr=None,
-    zstr=None,
-    keyX=None,
-    keyY=None,
-    dataX=None,
-    dataY=None,
+    dkeys=None,
+    dvminmax=None,
     inverty=None,
     rotation=None,
 ):
@@ -271,25 +260,28 @@ def _label_axes(
     if len(lax) == 1:
         kax = lax[0]
         ax = dax[kax]['handle']
-        ax.set_xlabel(labX)
-        ax.set_ylabel('data')
+        ax.set_xlabel(dkeys['X']['lab'], size=12, fontweight='bold')
+        ax.set_ylabel(data_lab, size=12, fontweight='bold')
 
-        if np.isfinite(ymin):
-            ax.set_xlim(left=ymin)
-        if np.isfinite(ymax):
-            ax.set_xlim(right=ymax)
+        if np.isfinite(dvminmax['X']['min']):
+            ax.set_xlim(left=dvminmax['X']['min'])
+        if np.isfinite(dvminmax['X']['max']):
+            ax.set_xlim(right=dvminmax['X']['max'])
+
+        if np.isfinite(dvminmax['data']['min']):
+            ax.set_ylim(bottom=dvminmax['data']['min'])
+        if np.isfinite(dvminmax['data']['max']):
+            ax.set_ylim(top=dvminmax['data']['max'])
 
         # x text ticks
-        if xstr:
-            ax.set_xticks(dataX)
+        if dkeys['X']['str'] is not False:
+            ax.set_xticks(coll.ddata[dkeys['X']['data']]['data'])
             ax.set_xticklabels(
-                coll.ddata[keyX]['data'],
+                dkeys['X']['str'],
                 rotation=rotation,
                 horizontalalignment='right',
                 verticalalignment='top',
             )
-        else:
-            ax.set_xlabel(labX)
 
     # -------------
     # axes for text
