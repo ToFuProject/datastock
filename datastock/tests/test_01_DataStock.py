@@ -553,22 +553,22 @@ class Test02_Manipulate():
         plt.close('all')
         del dax
 
-    # def test16_plot_BvsA_as_distribution(self):
+    # def test18_plot_BvsA_as_distribution(self):
     #     dax = self.st.plot_BvsA_as_distribution(keyA='prof0', keyB='prof0-bis')
     #     plt.close('all')
     #     del dax
 
-    # def test17_plot_as_profile1d(self):
-    #     dax = self.st.plot_as_profile1d(
-    #         key='prof0',
-    #         key_time='t0',
-    #         keyX='prof0-bis',
-    #         bck='lines',
-    #     )
-    #     plt.close('all')
-    #     del dax
+    def test19_plot_as_profile1d(self):
+        dax = self.st.plot_as_profile1d(
+            key='prof0',
+            key_time='t0',
+            keyX='prof0-bis',
+            bck='lines',
+        )
+        plt.close('all')
+        del dax
 
-    # def test18_plot_as_mobile_lines(self):
+    # def test20_plot_as_mobile_lines(self):
 
     #     # 3d
     #     dax = self.st.plot_as_mobile_lines(
@@ -592,7 +592,7 @@ class Test02_Manipulate():
     #   File handling
     # ------------------------
 
-    def test19_copy_equal(self):
+    def test21_copy_equal(self):
         st2 = self.st.copy()
         assert st2 is not self.st
 
@@ -600,10 +600,10 @@ class Test02_Manipulate():
         if msg is not True:
             raise Exception(msg)
 
-    def test20_get_nbytes(self):
+    def test22_get_nbytes(self):
         nb, dnb = self.st.get_nbytes()
 
-    def test21_saveload(self, verb=False):
+    def test23_saveload(self, verb=False):
         pfe = self.st.save(path=_PATH_OUTPUT, verb=verb, return_pfe=True)
         st2 = load(pfe, verb=verb)
         # Just to check the loaded version works fine
