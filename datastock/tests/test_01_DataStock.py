@@ -56,6 +56,8 @@ def _add_ref(st=None, nc=None, nx=None, lnt=None):
     # add references (i.e.: store size of each dimension under a unique key)
     st.add_ref(key='nc', size=nc)
     st.add_ref(key='nx', size=nx)
+    st.add_ref(key='nne', size=11)
+    st.add_ref(key='nTe', size=21)
     for ii, nt in enumerate(lnt):
         st.add_ref(key=f'nt{ii}', size=nt)
 
@@ -63,8 +65,13 @@ def _add_ref(st=None, nc=None, nx=None, lnt=None):
 def _add_data(st=None, nc=None, nx=None, lnt=None):
 
     x = np.linspace(1, 2, nx)
-    y = np.exp((x - 0.5)**2)
+    y = np.exp(-(x - 1.5)**2//0.2**2)
     y[-5] = np.nan
+
+    ne = np.logspace(15, 21, 11)
+    Te = np.logspace(1, 5, 21)
+    pec = np.exp(-(ne[:, None] - 1e18)**2/1e5**2 - (Te[None, :] - 5e3)**2/3e3**2)
+
     lt = [np.linspace(1, 10, nt) for nt in lnt]
     lprof = [(1 + np.cos(t)[:, None]) * x[None, :] for t in lt]
     lprof[0][10, -5] = np.nan
@@ -86,6 +93,34 @@ def _add_data(st=None, nc=None, nx=None, lnt=None):
         quant='radius',
         units='m',
         ref='nx',
+    )
+
+    # ne, Te and pec
+    st.add_data(
+        key='ne',
+        data=ne,
+        dim='density',
+        quant='ne',
+        units='1/m3',
+        ref='nne',
+    )
+
+    st.add_data(
+        key='Te',
+        data=Te,
+        dim='temperature',
+        quant='Te',
+        units='eV',
+        ref='nTe',
+    )
+
+    st.add_data(
+        key='pec',
+        data=pec,
+        dim='pec',
+        quant='pec',
+        units='ph/s/sr',
+        ref=('nne', 'nTe'),
     )
 
     for ii, nt in enumerate(lnt):
@@ -496,13 +531,26 @@ class Test02_Manipulate():
         plt.close('all')
         del dax
 
-    def test14_plot_as_array_3d(self):
-        dax = self.st.plot_as_array(key='3d')
+    def test14_plot_as_array_2d_log(self):
+        dax = self.st.plot_as_array(
+            key='pec', keyX='ne', keyY='Te',
+            dscale={'data': 'log'},
+        )
         plt.close('all')
         del dax
 
-    def test15_plot_as_array_4d(self):
-        dax = self.st.plot_as_array(key='4d')
+    def test15_plot_as_array_3d(self):
+        dax = self.st.plot_as_array(key='3d', dvminmax={'keyX': {'min': 0}})
+        plt.close('all')
+        del dax
+
+    def test16_plot_as_array_3d_ZNonMonot(self):
+        dax = self.st.plot_as_array(key='3d', keyZ='y')
+        plt.close('all')
+        del dax
+
+    def test17_plot_as_array_4d(self):
+        dax = self.st.plot_as_array(key='4d', dscale={'keyU': 'linear'})
         plt.close('all')
         del dax
 
