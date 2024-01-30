@@ -80,8 +80,9 @@ def _check_var(
             var = allowed[0]
         elif var not in allowed:
             msg = (
-                f"Arg {varname} must be in {allowed}!\n"
-                f"Provided: {var}"
+                f"Arg {varname} not in allowed range!\n"
+                f"Provided: {var}\n"
+                f"Allowed: {allowed}\n"
             )
             raise Exception(_complete_extra_msg(msg, extra_msg))
 
@@ -98,8 +99,9 @@ def _check_var(
     if excluded is not None:
         if var in excluded:
             msg = (
-                f"Arg {varname} must not be in {excluded}!\n"
-                f"Provided: {var}"
+                f"Arg {varname} must not be in excluded range!\n"
+                f"Provided: {var}\n"
+                f"Excluded: {excluded}\n"
             )
             raise Exception(_complete_extra_msg(msg, extra_msg))
 
@@ -124,7 +126,7 @@ def _check_var(
 
         if err is True:
             msg = (
-                f"Arg {varname} must be {sign}\n"
+                f"Arg {varname} must be of sign {sign}\n"
                 f"Provided: {var}"
             )
             raise Exception(_complete_extra_msg(msg, extra_msg))
