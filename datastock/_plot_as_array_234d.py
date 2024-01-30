@@ -23,6 +23,7 @@ def main(
     # parameters
     coll=None,
     key=None,
+    lab=None,
     dkeys=None,
     dscale=None,
     dvminmax=None,
@@ -48,8 +49,6 @@ def main(
     **kwdargs,
 ):
 
-    print(dkeys)
-
     # --------------
     #  Prepare data
     # --------------
@@ -68,8 +67,9 @@ def main(
         )
         raise Exception(msg)
 
-    # data label
-    data_lab = f"{key} ({coll.ddata[key]['units']})"
+    # lorder
+    lorder = ['X', 'Y', 'Z', 'U']
+    lorder = [ss for ss in lorder if dkeys[ss]['key'] is not None]
 
     # -----------------
     #  prepare slicing
@@ -80,24 +80,16 @@ def main(
             return (slice(None), slice(None))
         inds = (None,)
 
-    elif ndim == 3:
+    elif ndim >= 3:
         # here slice X => slice in dim Y and vice-versa
         sliZ2 = _class1_compute._get_slice(
-            laxis=[dkeys['keyZ']['axis']],
+            laxis=[dkeys[ss]['axis'] for ss in lorder],
             ndim=ndim,
         )
-        inds = [ind[2]]
-
-    else:
-        # here slice X => slice in dim Y and vice-versa
-        sliZ2 = _class1_compute._get_slice(
-            laxis=[dkeys['keyZ']['axis'], dkeys['keyU']['axis']],
-            ndim=ndim,
-        )
-        inds = [ind[2], ind[3]]
+        inds = [ind[ii] for ii in range(2, ndim)]
 
     # check if transpose is necessary
-    if dkeys['keyX']['axis'] < dkeys['keyY']['axis']:
+    if dkeys['X']['axis'] < dkeys['Y']['axis']:
         datatype = 'data.T'
         dataplot = data[sliZ2(*inds)].T
     else:
@@ -109,10 +101,10 @@ def main(
     # ----------------------
 
     extent = (
-        coll.ddata[dkeys['keyX']['data']]['data'][0] - dkeys['keyX']['d2'],
-        coll.ddata[dkeys['keyX']['data']]['data'][-1] + dkeys['keyX']['d2'],
-        coll.ddata[dkeys['keyY']['data']]['data'][0] - dkeys['keyY']['d2'],
-        coll.ddata[dkeys['keyY']['data']]['data'][-1] + dkeys['keyY']['d2'],
+        coll.ddata[dkeys['X']['data']]['data'][0] - dkeys['X']['d2'],
+        coll.ddata[dkeys['X']['data']]['data'][-1] + dkeys['X']['d2'],
+        coll.ddata[dkeys['Y']['data']]['data'][0] - dkeys['Y']['d2'],
+        coll.ddata[dkeys['Y']['data']]['data'][-1] + dkeys['Y']['d2'],
     )
 
     # --------------
@@ -132,19 +124,18 @@ def main(
     # plot fixed parts (traces envelops)
     # ----------------------------------
 
-    for ss in ['Z', 'U']:
+    for ss in lorder[2:]:
 
-        k0 = f"key{ss}"
-        if dkeys[k0]['key'] is None:
+        if dkeys[ss]['key'] is None:
             continue
 
-        axis = dkeys[k0]['axis']
+        axis = dkeys[ss]['axis']
         axtype = f'traces{ss}'
         lax = [k1 for k1, v1 in dax.items() if axtype in v1['type']]
         if len(lax) == 1:
             kax = lax[0]
             ax = dax[kax]['handle']
-            dat = coll.ddata[dkeys[k0]['data']]['data']
+            dat = coll.ddata[dkeys[ss]['data']]['data']
 
             if bck == 'lines':
                 shap = list(data.shape)
@@ -164,7 +155,7 @@ def main(
             else:
                 tax = tuple([
                     v1['axis'] for k1, v1 in dkeys.items()
-                    if k1 != k0 and v1['key'] is not None
+                    if k1 != ss and v1['key'] is not None
                 ])
                 bckenv = [
                     np.nanmin(data, axis=tax),
@@ -184,26 +175,26 @@ def main(
 
     dgroup = {
         'X': {
-            'ref': [dkeys['keyX']['ref']],
+            'ref': [dkeys['X']['ref']],
             'data': ['index'],
             'nmax': nmax,
         },
         'Y': {
-            'ref': [dkeys['keyY']['ref']],
+            'ref': [dkeys['Y']['ref']],
             'data': ['index'],
             'nmax': nmax,
         },
     }
 
-    if dkeys['keyZ']['key'] is not None:
+    if dkeys['Z']['key'] is not None:
         dgroup['Z'] = {
-            'ref': [dkeys['keyZ']['ref']],
+            'ref': [dkeys['Z']['ref']],
             'data': ['index'],
             'nmax': 1,
         }
-    if dkeys['keyU']['key'] is not None:
+    if dkeys['U']['key'] is not None:
         dgroup['U'] = {
-            'ref': [dkeys['keyU']['ref']],
+            'ref': [dkeys['U']['ref']],
             'data': ['index'],
             'nmax': 1,
         }
@@ -219,7 +210,7 @@ def main(
         kax = lax[0]
         ax = dax[kax]['handle']
         refs = tuple([
-            dkeys[k1]['ref'] for k1 in ['keyZ', 'keyU']
+            dkeys[k1]['ref'] for k1 in ['Z', 'U']
             if dkeys[k1]['key'] is not None
         ])
 
@@ -254,22 +245,22 @@ def main(
         for ii in range(nmax):
 
             lh = ax.axhline(
-                coll.ddata[dkeys['keyY']['data']]['data'][ind[1]],
+                coll.ddata[dkeys['Y']['data']]['data'][ind[1]],
                 c=color_dict['X'][ii],
                 lw=1.,
                 ls='-',
             )
 
             lv = ax.axvline(
-                coll.ddata[dkeys['keyX']['data']]['data'][ind[0]],
+                coll.ddata[dkeys['X']['data']]['data'][ind[0]],
                 c=color_dict['Y'][ii],
                 lw=1.,
                 ls='-',
             )
 
             mi, = ax.plot(
-                coll.ddata[dkeys['keyX']['data']]['data'][ind[0]],
-                coll.ddata[dkeys['keyY']['data']]['data'][ind[1]],
+                coll.ddata[dkeys['X']['data']]['data'][ind[0]],
+                coll.ddata[dkeys['Y']['data']]['data'][ind[1]],
                 marker='s',
                 ms=6,
                 markeredgecolor=color_dict['X'][ii],
@@ -282,8 +273,8 @@ def main(
             coll.add_mobile(
                 key=kh,
                 handle=lh,
-                refs=dkeys['keyY']['ref'],
-                data=dkeys['keyY']['key'],
+                refs=dkeys['Y']['ref'],
+                data=dkeys['Y']['data'],
                 dtype='ydata',
                 axes=kax,
                 ind=ii,
@@ -291,8 +282,8 @@ def main(
             coll.add_mobile(
                 key=kv,
                 handle=lv,
-                refs=dkeys['keyX']['ref'],
-                data=dkeys['keyX']['key'],
+                refs=dkeys['X']['ref'],
+                data=dkeys['X']['data'],
                 dtype='xdata',
                 axes=kax,
                 ind=ii,
@@ -301,18 +292,18 @@ def main(
             coll.add_mobile(
                 key=km,
                 handle=mi,
-                refs=[dkeys['keyX']['ref'], dkeys['keyY']['ref']],
-                data=[dkeys['keyX']['key'], dkeys['keyY']['key']],
+                refs=[dkeys['X']['ref'], dkeys['Y']['ref']],
+                data=[dkeys['X']['data'], dkeys['Y']['data']],
                 dtype=['xdata', 'ydata'],
                 axes=kax,
                 ind=ii,
             )
 
         dax[kax].update(
-            refx=[dkeys['keyX']['ref']],
-            refy=[dkeys['keyY']['ref']],
-            datax=[dkeys['keyX']['key']],
-            datay=[dkeys['keyY']['key']],
+            refx=[dkeys['X']['ref']],
+            refy=[dkeys['Y']['ref']],
+            datax=[dkeys['X']['data']],
+            datay=[dkeys['Y']['data']],
         )
 
     # --------------
@@ -325,15 +316,11 @@ def main(
         if len(lax) == 1:
             kax = lax[0]
             ax = dax[kax]['handle']
-            k0 = f'key{ss}'
-            sli = dkeys[k0]['sli']
+            sli = dkeys[ss]['sli']
             iind = i0
             args = [ind[jj] for jj in range(ndim) if jj != iind]
-            refs = tuple([
-                dkeys[f"key{k1}"]['ref'] for k1 in ['X', 'Y', 'Z', 'U']
-                if k1 != ss and dkeys[f"key{k1}"]['key'] is not None
-            ])
-            dat = coll.ddata[dkeys[k0]['data']]['data']
+            refs = tuple([dkeys[k1]['ref'] for k1 in lorder if k1 != ss])
+            dat = coll.ddata[dkeys[ss]['data']]['data']
 
             for ii in range(nmax):
                 if ss == 'Y':
@@ -388,8 +375,8 @@ def main(
                 coll.add_mobile(
                     key=km,
                     handle=l0,
-                    refs=(dkeys[k0]['ref'],),
-                    data=dkeys[k0]['key'],
+                    refs=(dkeys[ss]['ref'],),
+                    data=dkeys[ss]['data'],
                     dtype=xydata,
                     group_vis=ss,
                     axes=kax,
@@ -398,23 +385,22 @@ def main(
 
             if ss == 'Y':
                 dax[kax].update(
-                    refy=[dkeys[k0]['ref']],
-                    datay=[dkeys[k0]['key']],
+                    refy=[dkeys[ss]['ref']],
+                    datay=[dkeys[ss]['data']],
                 )
             else:
                 dax[kax].update(
-                    refx=[dkeys[k0]['ref']],
-                    datax=[dkeys[k0]['key']],
+                    refx=[dkeys[ss]['ref']],
+                    datax=[dkeys[ss]['data']],
                 )
 
     # -----------------
     # traces Z & U
     # -----------------
 
-    for i0, ss in enumerate(['Z', 'U']):
+    for i0, ss in enumerate(lorder[2:]):
 
-        k0 = f"key{ss}"
-        if dkeys[k0]['key'] is None:
+        if dkeys[ss]['key'] is None:
             continue
 
         axtype = f'traces{ss}'
@@ -423,14 +409,11 @@ def main(
 
             kax = lax[0]
             ax = dax[kax]['handle']
-            dat = coll.ddata[dkeys[k0]['data']]['data']
-            sli = dkeys[k0]['sli']
+            dat = coll.ddata[dkeys[ss]['data']]['data']
+            sli = dkeys[ss]['sli']
             iind = i0 + 2
             args = [ind[jj] for jj in range(ndim) if jj != iind]
-            refs = tuple([
-                dkeys[f"key{k1}"]['ref'] for k1 in ['X', 'Y', 'Z', 'U']
-                if k1 != ss and dkeys[f"key{k1}"]['key'] is not None
-            ])
+            refs = tuple([dkeys[k1]['ref'] for k1 in lorder if k1 != ss])
 
             # individual time traces
             for ii in range(nmax):
@@ -463,23 +446,20 @@ def main(
             coll.add_mobile(
                 key=km,
                 handle=l0,
-                refs=(dkeys[k0]['ref'],),
-                data=dkeys[k0]['key'],
+                refs=(dkeys[ss]['ref'],),
+                data=dkeys[ss]['data'],
                 dtype='xdata',
                 axes=kax,
                 ind=0,
             )
 
-            dax[kax].update(refx=[dkeys[k0]['ref']], datax=[dkeys[k0]['key']])
+            dax[kax].update(refx=[dkeys[ss]['ref']], datax=[dkeys[ss]['data']])
 
     # ---------
     # add text
     # ---------
 
-    for ii, ss in enumerate(['X', 'Y', 'Z', 'U']):
-        k0 = f"key{ss}"
-        if dkeys[k0]['key'] is None:
-            continue
+    for ii, ss in enumerate(lorder):
 
         axtype = f'text{ss}'
         lax = [k1 for k1, v1 in dax.items() if axtype in v1['type']]
@@ -492,7 +472,7 @@ def main(
                 kax=kax,
                 key=key,
                 ax=ax,
-                ref=dkeys[k0]['ref'],
+                ref=dkeys[ss]['ref'],
                 group=ss,
                 ind=ind[ii],
                 lkeys=lkeys,
@@ -508,10 +488,11 @@ def main(
     if label:
         _label_axes(
             coll=coll,
-            data_lab=data_lab,
+            data_lab=lab,
             dax=dax,
             key=key,
             dkeys=dkeys,
+            lorder=lorder,
             dvminmax=dvminmax,
             inverty=inverty,
             rotation=rotation,
@@ -614,6 +595,7 @@ def _label_axes(
     dax=None,
     key=None,
     dkeys=None,
+    lorder=None,
     dvminmax=None,
     inverty=None,
     rotation=None,
@@ -645,7 +627,7 @@ def _label_axes(
             )
 
         # x text ticks
-        k0 = 'keyX'
+        k0 = 'X'
         if dkeys[k0]['str'] is not False:
             ax.set_xticks(coll.ddata[dkeys[k0]['data']]['data'])
             ax.set_xticklabels(
@@ -658,7 +640,7 @@ def _label_axes(
             ax.set_xlabel(dkeys[k0]['lab'], size=12, fontweight='bold')
 
         # y text ticks
-        k0 = 'keyY'
+        k0 = 'Y'
         if dkeys[k0]['str'] is not False:
             ax.set_yticks(coll.ddata[dkeys[k0]['data']]['data'])
             ax.set_yticklabels(
@@ -681,11 +663,10 @@ def _label_axes(
     lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
     if len(lax) == 1:
         ss = 'Y'
-        k0 = f"key{ss}"
         kax = lax[0]
         ax = dax[kax]['handle']
         ax.set_xlabel(data_lab, size=12, fontweight='bold')
-        ax.set_ylabel(dkeys[k0]['lab'], size=12, fontweight='bold')
+        ax.set_ylabel(dkeys[ss]['lab'], size=12, fontweight='bold')
 
         ax.yaxis.set_label_position('right')
         ax.tick_params(
@@ -713,10 +694,10 @@ def _label_axes(
             ax.set_xlim(right=dvminmax['data']['max'])
 
         # y text ticks
-        if dkeys[k0]['str'] is not False:
-            ax.set_yticks(coll.ddata[dkeys[k0]['data']]['data'])
+        if dkeys[ss]['str'] is not False:
+            ax.set_yticks(coll.ddata[dkeys[ss]['data']]['data'])
             ax.set_yticklabels(
-                dkeys[k0]['str'],
+                dkeys[ss]['str'],
                 rotation=rotation,
                 horizontalalignment='left',
                 verticalalignment='bottom',
@@ -731,11 +712,10 @@ def _label_axes(
     lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
     if len(lax) == 1:
         ss = 'X'
-        k0 = f"key{ss}"
         kax = lax[0]
         ax = dax[kax]['handle']
         ax.set_ylabel(data_lab, size=12, fontweight='bold')
-        ax.set_xlabel(dkeys[k0]['lab'], size=12, fontweight='bold')
+        ax.set_xlabel(dkeys[ss]['lab'], size=12, fontweight='bold')
 
         if np.isfinite(dvminmax[ss]['min']):
             ax.set_xlim(left=dvminmax[ss]['min'])
@@ -748,10 +728,10 @@ def _label_axes(
             ax.set_ylim(top=dvminmax['data']['max'])
 
         # x text ticks
-        if dkeys[k0]['str'] is not False:
-            ax.set_yticks(coll.ddata[dkeys[k0]['data']]['data'])
+        if dkeys[ss]['str'] is not False:
+            ax.set_yticks(coll.ddata[dkeys[ss]['data']]['data'])
             ax.set_xticklabels(
-                dkeys[k0]['str'],
+                dkeys[ss]['str'],
                 rotation=rotation,
                 horizontalalignment='right',
                 verticalalignment='top',
@@ -761,18 +741,14 @@ def _label_axes(
     # labels: traces
     # --------------
 
-    for ss in ['Z', 'U']:
+    for ss in lorder[2:]:
         axtype = f'traces{ss}'
         lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
         if len(lax) == 1:
-            k0 = f"key{ss}"
-            if dkeys[k0]['key'] is None:
-                continue
-
             kax = lax[0]
             ax = dax[kax]['handle']
             ax.set_ylabel(data_lab, size=12, fontweight='bold')
-            ax.set_xlabel(dkeys[k0]['lab'], size=12, fontweight='bold')
+            ax.set_xlabel(dkeys[ss]['lab'], size=12, fontweight='bold')
 
             if np.isfinite(dvminmax[ss]['min']):
                 ax.set_xlim(left=dvminmax[ss]['min'])
@@ -780,10 +756,10 @@ def _label_axes(
                 ax.set_xlim(right=dvminmax[ss]['max'])
 
             # z text ticks
-            if dkeys[k0]['str'] is not False:
-                ax.set_yticks(coll.ddata[dkeys[k0]['data']]['data'])
+            if dkeys[ss]['str'] is not False:
+                ax.set_yticks(coll.ddata[dkeys[ss]['data']]['data'])
                 ax.set_yticklabels(
-                    dkeys[k0]['str'],
+                    dkeys[ss]['str'],
                     rotation=rotation,
                     horizontalalignment='right',
                     verticalalignment='top',
@@ -793,14 +769,10 @@ def _label_axes(
     # labels: text
     # -------------
 
-    for ss in ['X', 'Y', 'Z', 'U']:
+    for ss in lorder:
         axtype = f'text{ss}'
         lax = [k0 for k0, v0 in dax.items() if axtype in v0['type']]
         if len(lax) == 1:
-            k0 = f"key{ss}"
-            if dkeys[k0]['key'] is None:
-                continue
-
             kax = lax[0]
             ax = dax[kax]['handle']
             ax.set_xticks([])
