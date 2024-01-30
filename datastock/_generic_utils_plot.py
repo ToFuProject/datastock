@@ -161,9 +161,12 @@ def _get_str_datadlab(
                 key=keyX2,
                 data=np.log10(coll.ddata[keyX]['data']),
                 ref=coll.ddata[keyX]['ref'],
+                units=coll.ddata[keyX]['units'],
             )
             labX = r"$\log_{10}$" + f"({keyX} ({coll._ddata[keyX]['units']}))"
             dataX = coll.ddata[keyX2]['data']
+            coll.remove_data(keyX, propagate=False)
+
         else:
             labX = f"{keyX} ({coll._ddata[keyX]['units']})"
             dataX = coll.ddata[keyX]['data']
