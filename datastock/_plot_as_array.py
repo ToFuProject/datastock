@@ -106,7 +106,7 @@ def plot_as_array(
     # --------------
 
     (
-        key,
+        key, lab,
         dkeys,
         sameref, ind,
         dscale, dvminmax,
@@ -156,6 +156,7 @@ def plot_as_array(
         # parameters
         coll=coll2,
         key=key,
+        lab=lab,
         dkeys=dkeys,
         ind=ind,
         dvminmax=dvminmax,
@@ -269,6 +270,7 @@ def _check_keyXYZ(
     ndim=None,
     dim_min=None,
     uniform=None,
+    monot=None,
     already=None,
 ):
     """ Ensure keyX refers to a monotonic and (optionally) uniform data
@@ -276,7 +278,7 @@ def _check_keyXYZ(
     """
 
     if uniform is None:
-        uniform = True
+        uniform = False
 
     refX = None
     islog = False
@@ -287,11 +289,15 @@ def _check_keyXYZ(
                     k0 for k0, v0 in coll._ddata.items()
                     if len(v0['ref']) == 1
                     and v0['ref'][0] in refs
-                    and (
-                        v0['data'].dtype.type == np.str_
-                        or v0['monot'] == (True,)
-                    )
                 ]
+
+                # optional monotonicity
+                if monot:
+                    lok = [
+                        k0 for k0 in lok
+                        if coll.ddata[k0]['data'].dtype.type == np.str_
+                        or coll.ddata[k0]['monot'] == (True,)
+                    ]
 
                 # optional uniformity
                 if uniform:
@@ -308,9 +314,18 @@ def _check_keyXYZ(
                     )
                 except Exception as err:
                     msg = (
-                        err.args[0]
-                        + f"\nContraint on uniformity: {uniform}"
+                        f"plot_as_array() requires '{keyXstr}' to be:\n"
+                        f"\t- 1d: {coll.ddata[keyX]['data'].ndim == 1}\n"
+                        f"\t- refs: {coll.ddata[keyX]['ref']} vs {refs}\n"
                     )
+                    if monot is True:
+                        msg += f"\t- monot: {coll.ddata[keyX]['monot']}\n"
+                    if uniform is True and coll.ddata[keyX]['data'].ndim == 1:
+                        islin = _check_uniform_lin(k0=keyX, ddata=coll._ddata)
+                        islog = _check_uniform_log(k0=keyX, ddata=coll._ddata)
+                        msg += f"\t- uniform linear: {islin}\n"
+                        msg += f"\t- uniform log:    {islog}\n"
+                    msg += f"Provided: '{keyX}'\nAllowed values: {lok}\n"
                     err.args = (msg,)
                     raise err
 
@@ -432,6 +447,12 @@ def _check(
         msg = "ndim must be in [1, 2, 3]"
         raise Exception(msg)
 
+    lk = [
+        (key, 'data'),
+        ('keyX', 'X'), ('keyY', 'Y'), ('keyZ', 'Z'), ('keyU', 'U'),
+    ]
+    lk = [kk for ii, kk in enumerate(lk) if ii <= ndim]
+
     # ----------------------
     # keyX, keyY, keyZ, keyU
     # ----------------------
@@ -447,6 +468,53 @@ def _check(
         keyU=keyU,
         ndim=ndim,
         uniform=uniform,
+    )
+
+    # ------------------
+    # dscale
+    # ------------------
+
+    # safety check
+    c0 = (
+        isinstance(dscale, dict)
+        and all([
+            k0 in ['data'] + [kk[0] for kk in lk]
+            and (isinstance(v0, str) and v0 in ['linear', 'log'])
+            for k0, v0 in dscale.items()])
+    )
+    if dscale is not None and not c0:
+        msg = (
+            "Arg dscale must be a dict of the form:\n"
+            "\t- 'data': 'log' or 'linear'\n"
+            "\t- 'keyX': 'log' or 'linear'\n"
+            "\t- ...etc\n"
+            f"Provided:\n{dscale}"
+        )
+        raise Exception(msg)
+
+    # set default if any missing
+    dscale2 = {}
+    for ii, (k0, k1) in enumerate(lk):
+        kk = 'data' if k1 == 'data' else k0
+        if dscale is None or dscale.get(kk) is None:
+            if k1 == 'data':
+                dscale2[k1] = 'linear'
+            else:
+                dscale2[k1] = 'log' if dkeys[k1]['islog'] else 'linear'
+        else:
+            dscale2[k1] = dscale[kk]
+    dscale = dscale2
+
+    # -------------------
+    # add data and labels
+    # -------------------
+
+    dkeys, key, lab = get_data_str(
+        dk=dkeys,
+        coll2=coll2,
+        key=key,
+        ndim=ndim,
+        dscale=dscale,
     )
 
     # -------------
@@ -476,26 +544,17 @@ def _check(
     # dvminmax & cmap
     # ---------------
 
-    lk = [
-        (key, 'data'),
-        ('keyX', 'X'), ('keyY', 'Y'), ('keyZ', 'Z'), ('keyU', 'U'),
-    ]
-    lk = [kk for ii, kk in enumerate(lk) if ii <= ndim]
-
-    if dvminmax is None:
-        dvminmax = {}
-
     # safety check
     c0 = (
         isinstance(dvminmax, dict)
         and all([
-            k0 in [kk[1] for kk in lk]
+            k0 in ['data'] + [kk[0] for kk in lk]
             and isinstance(v0, dict)
             and all([k1 in ['min', 'max'] for k1 in v0.keys()])
             for k0, v0 in dvminmax.items()
         ])
     )
-    if not c0:
+    if dvminmax is not None and not c0:
         msg = (
             "Arg dvminmax must be a dict of the form:\n"
             "\t- 'data': {'min': float, 'max': float}\n"
@@ -505,15 +564,17 @@ def _check(
         )
         raise Exception(msg)
 
+    dvminmax2 = {}
     for ii, (k0, k1) in enumerate(lk):
 
-        if dvminmax.get(k1) is None:
-            dvminmax[k1] = {'min': None, 'max': None}
+        kk = 'data' if k1 == 'data' else k0
+        dvminmax2[k1] = {'min': None, 'max': None}
 
         # data
-        kdata = key if ii == 0 else dkeys[k0]['data']
-        nanmin = np.nanmin(coll2.ddata[kdata]['data'])
-        nanmax = np.nanmax(coll2.ddata[kdata]['data'])
+        kdata = key if ii == 0 else dkeys[k1]['data']
+        iok = np.isfinite(coll2.ddata[kdata]['data'])
+        nanmin = np.min(coll2.ddata[kdata]['data'][iok])
+        nanmax = np.max(coll2.ddata[kdata]['data'][iok])
         delta = nanmax - nanmin
 
         # diverging
@@ -528,12 +589,25 @@ def _check(
                 nanmin = -vv
                 nanmax = vv
 
-        # vmin, vmax
-        if dvminmax[k1].get('min') is None:
-            dvminmax[k1]['min'] = nanmin - 0.02*delta
+        # margin on min max
+        if k1 in ['X', 'Y']:
+            margin = dkeys[k1]['d2']
+        else:
+            margin = 0.02*delta
 
-        if dvminmax[k1].get('max') is None:
-            dvminmax[k1]['max'] = nanmax + 0.02*delta
+        # vmin, vmax
+        if dvminmax is None or dvminmax.get(kk, {}).get('min') is None:
+            dvminmax2[k1]['min'] = nanmin - margin
+        else:
+            dvminmax2[k1]['min'] = dvminmax[kk]['min']
+
+
+        if dvminmax is None or dvminmax.get(kk, {}).get('max') is None:
+            dvminmax2[k1]['max'] = nanmax + margin
+        else:
+            dvminmax2[k1]['max'] = dvminmax[kk]['max']
+
+    dvminmax = dvminmax2
 
     # cmap
     if cmap is None:
@@ -541,39 +615,6 @@ def _check(
             cmap = 'seismic'
         else:
             cmap = 'viridis'
-
-    # ------------------
-    # dscale
-    # ------------------
-
-    if dscale is None:
-        dscale = {}
-
-    # safety check
-    c0 = (
-        isinstance(dscale, dict)
-        and all([
-            k0 in [kk[1] for kk in lk]
-            and (isinstance(v0, str) and v0 in ['linear', 'log'])
-            for k0, v0 in dscale.items()])
-    )
-    if not c0:
-        msg = (
-            "Arg dscale must be a dict of the form:\n"
-            "\t- 'data': 'log' or 'linear'\n"
-            "\t- 'keyX': 'log' or 'linear'\n"
-            "\t- ...etc\n"
-            "Provided:\n{dscale}"
-        )
-        raise Exception(msg)
-
-    # set default if any missing
-    for ii, (k0, k1) in enumerate(lk):
-        if dscale.get(k1) is None:
-            if k1 == 'data':
-                dscale[k1] = 'linear'
-            else:
-                dscale[k1] = 'log' if dkeys[k0]['islog'] else 'linear'
 
     # -------
     # aspect
@@ -647,7 +688,7 @@ def _check(
     )
 
     # bck
-    if coll.ddata[key]['data'].size > 10000:
+    if coll2.ddata[key]['data'].size > 10000:
         bckdef = 'envelop'
     else:
         bckdef = 'lines'
@@ -722,7 +763,7 @@ def _check(
     )
 
     return (
-        key,
+        key, lab,
         dkeys,
         sameref, ind,
         dscale, dvminmax,
@@ -754,10 +795,10 @@ def get_keyrefs(
     # -----------
 
     dk = {
-        'keyX': {'key': keyX, 'ref': None, 'islog': None, 'dim_min': 1},
-        'keyY': {'key': keyY, 'ref': None, 'islog': None, 'dim_min': 2},
-        'keyZ': {'key': keyZ, 'ref': None, 'islog': None, 'dim_min': 3},
-        'keyU': {'key': keyU, 'ref': None, 'islog': None, 'dim_min': 4},
+        'X': {'key': keyX, 'ref': None, 'islog': None, 'dim_min': 1},
+        'Y': {'key': keyY, 'ref': None, 'islog': None, 'dim_min': 2},
+        'Z': {'key': keyZ, 'ref': None, 'islog': None, 'dim_min': 3},
+        'U': {'key': keyU, 'ref': None, 'islog': None, 'dim_min': 4},
     }
 
     lk_in = sorted([k0 for k0, v0 in dk.items() if v0['key'] is not None])
@@ -771,14 +812,22 @@ def get_keyrefs(
     already = []
     for k0 in lk_in + lk_out:
 
+        if ndim >= 2 and k0 in ['X', 'Y']:
+            uniformi = True
+            monoti = True
+        else:
+            uniformi = uniform
+            monoti = False
+
         dk[k0]['key'], dk[k0]['ref'], dk[k0]['islog'] = _check_keyXYZ(
             coll=coll2,
             refs=refs,
             keyX=dk[k0]['key'],
-            keyXstr=k0,
+            keyXstr=f"key{k0}",
             ndim=ndim,
             dim_min=dk[k0]['dim_min'],
-            uniform=uniform,
+            uniform=uniformi,
+            monot=monoti,
             already=already,
         )
 
@@ -788,11 +837,16 @@ def get_keyrefs(
     lk_done = [v0['ref'] for k0, v0 in dk.items() if v0['key'] is not None]
     sameref = len(set(lk_done)) < ndim
 
+    return dk, sameref
+
+
+def get_data_str(dk=None, coll2=None, key=None, ndim=None, dscale=None):
+
     # ---------------------------
     # add info about axis & slicing
     # ---------------------------
 
-    lorder = ['keyX', 'keyY', 'keyZ', 'keyU']
+    lorder = ['X', 'Y', 'Z', 'U']
     refs = coll2.ddata[key]['ref']
     for k0, v0 in dk.items():
 
@@ -828,8 +882,26 @@ def get_keyrefs(
             keyX=dk[k0]['key'],
             nx=dk[k0]['nn'],
             refX=dk[k0]['ref'],
-            islogX=dk[k0]['islog'],
+            islogX=dscale[k0] == 'log',
             coll=coll2,
         )
 
-    return dk, sameref
+    # -----------
+    # check data
+
+    units = str(coll2.ddata[key]['units'])
+    if dscale['data'] == 'log':
+        key2 = f"{key}_log10"
+        coll2.add_data(
+            key=key2,
+            data=np.log10(coll2.ddata[key]['data']),
+            ref=coll2.ddata[key]['ref'],
+            units=units,
+        )
+        coll2.remove_data(key, propagate=False)
+        lab = r"$\log_{10}$" + f"({key} ({units}))"
+        key = key2
+    else:
+        lab = f"({key} ({units}))"
+
+    return dk, key, lab
