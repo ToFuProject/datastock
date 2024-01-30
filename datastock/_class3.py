@@ -24,8 +24,8 @@ class DataStock3(DataStock2):
         keyZ=None,
         keyU=None,
         ind=None,
-        vmin=None,
-        vmax=None,
+        dvminmax=None,
+        dscale=None,
         cmap=None,
         aspect=None,
         nmax=None,
@@ -43,13 +43,19 @@ class DataStock3(DataStock2):
         dax=None,
         dmargin=None,
         fs=None,
+        wintit=None,
+        tit=None,
         dcolorbar=None,
         dleg=None,
         label=None,
         connect=None,
         inplace=None,
     ):
-        """ Plot the desired 2d data array as a matrix """
+        """ Plot the desired 1d, 2, 3, or 4d data array as a matrix
+
+        other axes can be plotted using monotonous (optionally uniform) arrays
+
+        """
         return _plot_as_array.plot_as_array(
             # parameters
             coll=self,
@@ -59,8 +65,8 @@ class DataStock3(DataStock2):
             keyZ=keyZ,
             keyU=keyU,
             ind=ind,
-            vmin=vmin,
-            vmax=vmax,
+            dvminmax=dvminmax,
+            dscale=dscale,
             cmap=cmap,
             aspect=aspect,
             nmax=nmax,
@@ -78,6 +84,8 @@ class DataStock3(DataStock2):
             dax=dax,
             dmargin=dmargin,
             fs=fs,
+            wintit=wintit,
+            tit=tit,
             dcolorbar=dcolorbar,
             dleg=dleg,
             label=label,
