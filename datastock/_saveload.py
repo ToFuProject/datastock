@@ -185,6 +185,8 @@ def load(
             dout[k0] = list(dflat[k0])
         elif typ == 'str':
             dout[k0] = str(dflat[k0])
+        elif typ == 'chararray':
+            dout[k0] = dflat[k0]
         elif typ in ['int']:
             dout[k0] = int(dflat[k0])
         elif typ.startswith('int') and typ[3:].isnumeric():
