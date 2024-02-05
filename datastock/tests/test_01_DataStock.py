@@ -259,7 +259,6 @@ class Test02_Manipulate():
         self.st.show()
         self.st.show_data()
         self.st.show_obj()
-        self.st.show_interactive()
 
     # ------------------------
     #   Interpolate
@@ -327,7 +326,7 @@ class Test02_Manipulate():
                 safety_ratio=0.95,
                 returnas=True,
             )
-            
+
             if np.isscalar(ax):
                 ax = [ax]
 

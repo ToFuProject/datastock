@@ -31,7 +31,10 @@ def _pretty_print_check(
     returnas=None,
 ):
 
+    # -------------
     # headers
+    # -------------
+
     c0 = (
         isinstance(headers, list)
         and all([
@@ -65,7 +68,10 @@ def _pretty_print_check(
                 headers[ii] = [headers[ii]]
     nhead = [len(h0[0]) for h0 in headers]
 
+    # -------------
     # content
+    # -------------
+
     c0 = (
         isinstance(content, list)
         and all([
@@ -92,10 +98,14 @@ def _pretty_print_check(
         )
         raise Exception(msg)
 
+    # -------------
+    # options
+    # -------------
+
     # sep
     sep = _generic_check._check_var(
         sep, 'sep',
-        default=' ',
+        default='  ',
         types=str,
     )
 
