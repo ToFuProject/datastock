@@ -14,6 +14,7 @@ import astropy.units as asunits
 from . import _generic_check
 from . import _generic_utils
 from . import _class1_check
+from . import _class1_show
 from ._class0 import *
 from . import _class1_compute
 from . import _class1_domain
@@ -243,7 +244,7 @@ class DataStock1(DataStock0):
         which, dd = self.__check_which(which, return_dict=True)
         if which in ['ref', 'data']:
             for_show = False
-        return _class1_check._get_lparam(dd=dd, for_show=for_show)
+        return _class1_show._get_lparam(dd=dd, for_show=for_show)
 
     def get_param(
         self,
@@ -899,117 +900,32 @@ class DataStock1(DataStock0):
         self,
         show_which=None,
         show=None,
-        show_core=None,
-        sep='  ',
-        line='-',
-        just='l',
+        # pretty print options
+        sep=None,
+        line=None,
+        justify=None,
         table_sep=None,
+        # bool options
         verb=True,
         returnas=False,
     ):
         """ Summary description of the object content """
-
-        # ------------
-        # check inputs
-
-        if show_which is None:
-            show_which = ['ref', 'data', 'obj']
-        elif isinstance(show_which, tuple):
-            if 'obj' in show_which:
-                show_which = [
-                    k0 for k0 in ['ref', 'data'] if k0 not in show_which
-                ]
-            else:
-                show_which = [
-                    k0 for k0 in ['ref', 'data'] + list(self._dobj.keys())
-                    if k0 not in show_which
-                ]
-
-        lcol, lar = [], []
-
-        # -----------------------
-        # Build for dref
-
-        if 'ref' in show_which and len(self._dref) > 0:
-            lcol.append(['ref key', 'size', 'nb. data', 'nb. data monot.'])
-            lar.append([
-                [
-                    k0,
-                    str(self._dref[k0]['size']),
-                    str(len(self._dref[k0]['ldata'])),
-                    str(len(self._dref[k0]['ldata_monot'])),
-                ]
-                for k0 in self._dref.keys()
-            ])
-
-            lp = self.get_lparam(which='ref')
-            if 'indices' in lp:
-                lcol[0].append('indices')
-                for ii, (k0, v0) in enumerate(self._dref.items()):
-                    if self._dref[k0]['indices'] is None:
-                        lar[0][ii].append(str(v0['indices']))
-                    else:
-                        lar[0][ii].append(str(list(v0['indices'])))
-
-            if 'group' in lp:
-                lcol[0].append('group')
-                for ii, (k0, v0) in enumerate(self._dref.items()):
-                    lar[0][ii].append(str(self._dref[k0]['group']))
-
-            if 'inc' in lp:
-                lcol[0].append('increment')
-                for ii, (k0, v0) in enumerate(self._dref.items()):
-                    lar[0][ii].append(str(self._dref[k0]['inc']))
-
-        # -----------------------
-        # Build for ddata
-
-        if 'data' in show_which and len(self._ddata) > 0:
-
-            lk = _class1_check._show_get_fields(
-                which='data',
-                lparam=self.get_lparam(which='data', for_show=True),
-                dshow=self._dshow,
-            )
-            lcol.append(['data'] + [pp.split('.')[-1] for pp in lk])
-            lar.append([
-                [k1] + _class1_check._show_extract(dobj=v1, lk=lk)
-                for k1, v1 in self._ddata.items()
-            ])
-
-        # -----------------------
-        # Build for dobj
-
-        anyobj = (
-            len(self._dobj) > 0
-            and any([
-                ss in show_which
-                for ss in ['obj'] + list(self._dobj.keys())
-            ])
-        )
-        if anyobj:
-            for k0, v0 in self._dobj.items():
-                if 'obj' in show_which or k0 in show_which:
-                    lk = _class1_check._show_get_fields(
-                        which=k0,
-                        lparam=self.get_lparam(which=k0, for_show=True),
-                        dshow=self._dshow,
-                    )
-                    lcol.append([k0] + [pp.split('.')[-1] for pp in lk])
-                    lar.append([
-                        [k1] + _class1_check._show_extract(dobj=v1, lk=lk)
-                        for k1, v1 in v0.items()
-                    ])
-
-        return _generic_utils.pretty_print(
-            headers=lcol,
-            content=lar,
+        return _class1_show.main(
+            coll=self,
+            show_which=show_which,
+            show=show,
+            # pretty print options
             sep=sep,
             line=line,
+            justify=justify,
             table_sep=table_sep,
+            # bool options
             verb=verb,
             returnas=returnas,
         )
+
+    def _get_show_obj(self, which=None):
+        return _class1_show._show_obj_def
 
     def show_data(self):
         self.show(show_which=['ref', 'data'])
