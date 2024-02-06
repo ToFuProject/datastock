@@ -586,7 +586,7 @@ def _plot_as_profile1d(
     datat = coll.ddata[key_time]['data']
 
     # keyX can be 2d !!!
-    keyX, xstr, dataX, _, labX = _get_str_datadlab(
+    keyX, xstr, _, labX = _get_str_datadlab(
         keyX=keyX, nx=nx, islogX=None, coll=coll,
     )
     dataX = coll.ddata[keyX]['data']
