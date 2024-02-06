@@ -580,14 +580,16 @@ def _plot_as_profile1d(
     # ----------------------
     #  labels and data
 
-    key_time, tstr, datat, dt2, labt = _get_str_datadlab(
+    key_time, tstr, dt2, labt = _get_str_datadlab(
         keyX=key_time, nx=nt, islogX=islogtime, coll=coll,
     )
+    datat = coll.ddata[key_time]['data']
 
     # keyX can be 2d !!!
     keyX, xstr, dataX, _, labX = _get_str_datadlab(
         keyX=keyX, nx=nx, islogX=None, coll=coll,
     )
+    dataX = coll.ddata[keyX]['data']
 
     # -----------------
     #  prepare slicing
