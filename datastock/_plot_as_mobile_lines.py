@@ -12,7 +12,8 @@ import matplotlib.colors as mcolors
 from . import _generic_check
 from . import _plot_text
 from . import _class1_compute
-from ._plot_as_array import _check_keyXYZ, _get_str_datadlab
+from ._plot_as_array import _check_keyXYZ
+from ._generic_utils_plot import _get_str_datadlab
 
 
 __all__ = ['plot_as_mobile_lines']
@@ -68,19 +69,20 @@ def plot_as_mobile_lines(
     inplace=None,
 ):
 
-
     # ------------
     #  check inputs
 
-    if bck:
-        inplace = False
-
     # check key, inplace flag and extract sub-collection
-    [keyX, keyY], inplace, coll2 = _generic_check._check_inplace(
-        coll=coll,
-        keys=[keyX, keyY],
-        inplace=inplace,
+    lk = [kk for kk in [keyX, keyY, key_time, key_chan] if kk is not None]
+    coll2, key = coll.extract(
+        lk,
+        inc_monot=False,
+        inc_vectors=False,
+        inc_allrefs=False,
+        return_keys=True,
     )
+    keyX = [kk for kk in key if kk not in [keyY, key_time, key_chan]][0]
+    keyY = [kk for kk in key if kk not in [keyX, key_time, key_chan]][0]
     ndim = coll2._ddata[keyX]['data'].ndim
 
     # --------------
@@ -434,9 +436,10 @@ def _plot_as_mobile_lines2d(
     labx = f"{keyX} ({coll.ddata[keyX]['units']})"
     laby = f"{keyY} ({coll.ddata[keyY]['units']})"
 
-    keych, chstr, datach, dch2, labch = _get_str_datadlab(
+    keych, chstr, dch2, labch = _get_str_datadlab(
         keyX=keych, nx=nch, islogX=islogch, coll=coll,
     )
+    datach = coll.ddata[keych]['data']
 
     # -----------------
     #  prepare slicing
@@ -664,12 +667,14 @@ def _plot_as_mobile_lines3d(
     labx = f"{keyX} ({coll.ddata[keyX]['units']})"
     laby = f"{keyY} ({coll.ddata[keyY]['units']})"
 
-    keyt, tstr, datat, dt2, labt = _get_str_datadlab(
+    keyt, tstr, dt2, labt = _get_str_datadlab(
         keyX=keyt, nx=nt, islogX=islogt, coll=coll,
     )
-    keych, chstr, datach, dch2, labch = _get_str_datadlab(
+    datat = coll.ddata[keyt]['data']
+    keych, chstr, dch2, labch = _get_str_datadlab(
         keyX=keych, nx=nch, islogX=islogch, coll=coll,
     )
+    datach = coll.ddata[keych]['data']
 
     # -----------
     # background

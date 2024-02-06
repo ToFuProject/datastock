@@ -17,6 +17,7 @@ __all__ = [
     'set_aspect3d',
 ]
 
+
 # ###############################################################
 # ###############################################################
 #                   set_aspect3d
@@ -31,7 +32,7 @@ def set_aspect3d(
     # ------------
     # check inputs
 
-    ax, margin =  _check(
+    ax, margin = _set_aspect3d_check(
         ax=ax,
         margin=margin,
     )
@@ -73,7 +74,7 @@ def set_aspect3d(
 # ################
 
 
-def _check(
+def _set_aspect3d_check(
     ax=None,
     margin=None,
 ):
@@ -101,3 +102,75 @@ def _check(
     )
 
     return ax, margin
+
+
+# ############################################################
+# ############################################################
+#                _get_str_datadlab
+# ############################################################
+
+
+def _get_str_datadlab(
+    coll=None,
+    keyX=None,
+    refX=None,
+    nx=None,
+    islogX=None,
+):
+
+    keyX2 = keyX
+    xstr = (
+        (keyX != 'index')
+        and coll.ddata[keyX]['data'].dtype.type == np.str_
+    )
+
+    # --------------------
+    # add index vector
+
+    if keyX == 'index' or xstr:
+        keyX2 = f"{refX}_index"
+
+        c0 = (
+            keyX2 in coll.ddata.keys()
+            and coll.ddata[keyX2]['ref'] == (refX,)
+            and np.allclose(coll.ddata[keyX2]['data'], np.arange(nx))
+        )
+
+        if not c0:
+            coll.add_data(
+                key=keyX2,
+                data=np.arange(0, nx),
+                ref=refX,
+                units='',
+            )
+        dX2 = 0.5
+        if keyX == 'index':
+            labX = "index"
+        else:
+            labX = ''
+
+        if xstr is True:
+            xstr = coll.ddata[keyX]['data']
+
+    # -------------------------------------
+    # keyX refers to exising numerical data
+
+    else:
+        if islogX is True:
+            keyX2 = f"{keyX}_log10"
+            coll.add_data(
+                key=keyX2,
+                data=np.log10(coll.ddata[keyX]['data']),
+                ref=coll.ddata[keyX]['ref'],
+                units=coll.ddata[keyX]['units'],
+            )
+            labX = r"$\log_{10}$" + f"({keyX} ({coll._ddata[keyX]['units']}))"
+            dataX = coll.ddata[keyX2]['data']
+            coll.remove_data(keyX, propagate=False)
+
+        else:
+            labX = f"{keyX} ({coll._ddata[keyX]['units']})"
+            dataX = coll.ddata[keyX]['data']
+        dX2 = np.nanmean(np.diff(dataX)) / 2.
+
+    return keyX2, xstr, dX2, labX
