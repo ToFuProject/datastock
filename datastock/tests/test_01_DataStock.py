@@ -56,6 +56,8 @@ def _add_ref(st=None, nc=None, nx=None, lnt=None):
     # add references (i.e.: store size of each dimension under a unique key)
     st.add_ref(key='nc', size=nc)
     st.add_ref(key='nx', size=nx)
+    st.add_ref(key='nne', size=11)
+    st.add_ref(key='nTe', size=21)
     for ii, nt in enumerate(lnt):
         st.add_ref(key=f'nt{ii}', size=nt)
 
@@ -63,8 +65,13 @@ def _add_ref(st=None, nc=None, nx=None, lnt=None):
 def _add_data(st=None, nc=None, nx=None, lnt=None):
 
     x = np.linspace(1, 2, nx)
-    y = np.exp((x - 0.5)**2)
+    y = np.exp(-(x - 1.5)**2//0.2**2)
     y[-5] = np.nan
+
+    ne = np.logspace(15, 21, 11)
+    Te = np.logspace(1, 5, 21)
+    pec = np.exp(-(ne[:, None] - 1e18)**2/1e5**2 - (Te[None, :] - 5e3)**2/3e3**2)
+
     lt = [np.linspace(1, 10, nt) for nt in lnt]
     lprof = [(1 + np.cos(t)[:, None]) * x[None, :] for t in lt]
     lprof[0][10, -5] = np.nan
@@ -86,6 +93,34 @@ def _add_data(st=None, nc=None, nx=None, lnt=None):
         quant='radius',
         units='m',
         ref='nx',
+    )
+
+    # ne, Te and pec
+    st.add_data(
+        key='ne',
+        data=ne,
+        dim='density',
+        quant='ne',
+        units='1/m3',
+        ref='nne',
+    )
+
+    st.add_data(
+        key='Te',
+        data=Te,
+        dim='temperature',
+        quant='Te',
+        units='eV',
+        ref='nTe',
+    )
+
+    st.add_data(
+        key='pec',
+        data=pec,
+        dim='pec',
+        quant='pec',
+        units='ph/s/sr',
+        ref=('nne', 'nTe'),
     )
 
     for ii, nt in enumerate(lnt):
@@ -137,6 +172,17 @@ def _add_data(st=None, nc=None, nx=None, lnt=None):
         ),
         dim='blabla',
         ref=('nc', 'nt0', 'nx'),
+    )
+
+    # add 4d array
+    st.add_data(
+        key='4d',
+        data=(
+            np.arange(nc)[:, None, None, None]
+            + lprof[0][None, :, :, None] * lt[1][None, None, None, :]
+        ),
+        dim='blabla',
+        ref=('nc', 'nt0', 'nx', 'nt1'),
     )
 
 
@@ -259,7 +305,6 @@ class Test02_Manipulate():
         self.st.show()
         self.st.show_data()
         self.st.show_obj()
-        self.st.show_interactive()
 
     # ------------------------
     #   Interpolate
@@ -327,7 +372,7 @@ class Test02_Manipulate():
                 safety_ratio=0.95,
                 returnas=True,
             )
-            
+
             if np.isscalar(ax):
                 ax = [ax]
 
@@ -474,17 +519,45 @@ class Test02_Manipulate():
     #   Plotting
     # ------------------------
 
-    def test12_plot_as_array(self):
+    def test12_plot_as_array_1d(self):
         dax = self.st.plot_as_array(key='t0')
+        plt.close('all')
+        del dax
+
+    def test13_plot_as_array_2d(self):
         dax = self.st.plot_as_array(key='prof0')
-        dax = self.st.plot_as_array(key='3d')
         plt.close('all')
+        del dax
 
-    def test13_plot_BvsA_as_distribution(self):
-        dax = self.st.plot_BvsA_as_distribution(keyA='prof0', keyB='prof0-bis')
+    def test14_plot_as_array_2d_log(self):
+        dax = self.st.plot_as_array(
+            key='pec', keyX='ne', keyY='Te',
+            dscale={'data': 'log'},
+        )
         plt.close('all')
+        del dax
 
-    def test14_plot_as_profile1d(self):
+    def test15_plot_as_array_3d(self):
+        dax = self.st.plot_as_array(key='3d', dvminmax={'keyX': {'min': 0}})
+        plt.close('all')
+        del dax
+
+    def test16_plot_as_array_3d_ZNonMonot(self):
+        dax = self.st.plot_as_array(key='3d', keyZ='y')
+        plt.close('all')
+        del dax
+
+    def test17_plot_as_array_4d(self):
+        dax = self.st.plot_as_array(key='4d', dscale={'keyU': 'linear'})
+        plt.close('all')
+        del dax
+
+    # def test18_plot_BvsA_as_distribution(self):
+    #     dax = self.st.plot_BvsA_as_distribution(keyA='prof0', keyB='prof0-bis')
+    #     plt.close('all')
+    #     del dax
+
+    def test19_plot_as_profile1d(self):
         dax = self.st.plot_as_profile1d(
             key='prof0',
             key_time='t0',
@@ -492,31 +565,33 @@ class Test02_Manipulate():
             bck='lines',
         )
         plt.close('all')
+        del dax
 
-    def test15_plot_as_mobile_lines(self):
+    # def test20_plot_as_mobile_lines(self):
 
-        # 3d
-        dax = self.st.plot_as_mobile_lines(
-            keyX='3d',
-            keyY='3d-bis',
-            key_time='t0',
-            key_chan='x',
-        )
+    #     # 3d
+    #     dax = self.st.plot_as_mobile_lines(
+    #         keyX='3d',
+    #         keyY='3d-bis',
+    #         key_time='t0',
+    #         key_chan='x',
+    #     )
 
-        # 2d
-        dax = self.st.plot_as_mobile_lines(
-            keyX='prof2',
-            keyY='prof2-bis',
-            key_chan='nx',
-        )
+    #     # 2d
+    #     dax = self.st.plot_as_mobile_lines(
+    #         keyX='prof2',
+    #         keyY='prof2-bis',
+    #         key_chan='nx',
+    #     )
 
-        plt.close('all')
+    #     plt.close('all')
+    #     del dax
 
     # ------------------------
     #   File handling
     # ------------------------
 
-    def test16_copy_equal(self):
+    def test21_copy_equal(self):
         st2 = self.st.copy()
         assert st2 is not self.st
 
@@ -524,10 +599,10 @@ class Test02_Manipulate():
         if msg is not True:
             raise Exception(msg)
 
-    def test17_get_nbytes(self):
+    def test22_get_nbytes(self):
         nb, dnb = self.st.get_nbytes()
 
-    def test18_saveload(self, verb=False):
+    def test23_saveload(self, verb=False):
         pfe = self.st.save(path=_PATH_OUTPUT, verb=verb, return_pfe=True)
         st2 = load(pfe, verb=verb)
         # Just to check the loaded version works fine

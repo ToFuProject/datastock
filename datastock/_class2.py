@@ -1374,53 +1374,9 @@ class DataStock2(DataStock1):
     # -------------------
 
     def on_close(self, event):
-        kcan = [
-            k0 for k0, v0 in self._dobj['canvas'].items()
-            if v0['handle'] == event.canvas
-        ]
-        if len(kcan) > 1:
-            raise Exception('Several matching canvas')
-        elif len(kcan) == 1:
-
-            if len(self._dobj['canvas']) == 1:
-                self.close_all()
-
-            else:
-                lax = [
-                    k1 for k1, v1 in self._dobj['axes'].items()
-                    if v1['canvas'] == kcan[0]
-                ]
-                lmob = [
-                    k1 for k1, v1 in self._dobj['mobile'].items()
-                    if v1['axes'] in lax
-                ]
-                for k1 in lax:
-                    del self._dobj['axes'][k1]
-                for k1 in lmob:
-                    del self._dobj['mobile'][k1]
-                del self._dobj['canvas'][kcan[0]]
-
-    def close_all(self):
-
-        # close figures
-        if 'axes' in self._dobj.keys():
-            lfig = set([
-                v0['handle'].figure for v0 in self._dobj['axes'].values()
-            ])
-            for ff in lfig:
-                plt.close(ff)
-
-        # delete obj dict
-        lk = ['interactivity', 'mobile', 'key', 'canvas', 'group', 'axes']
-        for kk in lk:
-            if kk in self._dobj.keys():
-                del self._dobj[kk]
-
-        # remove interactivity-specific param in dref
-        lp = list(set(self.get_lparam(which='ref')).intersection(
-            ['indices', 'group', 'inc']
-        ))
-        self.remove_param(which='ref', param=lp)
+        self.remove_all(excluded=['canvas']) # to avoid crash
+        print("\n---- CLOSING interactive figure ----")
+        print(f"\tleft in dax: {self.get_nbytes()[0]/1000} Ko\n")
 
 
 # #############################################################################

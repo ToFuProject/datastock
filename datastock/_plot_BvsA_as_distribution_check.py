@@ -116,12 +116,16 @@ def _plot_BvsA_check(
         dataB = dataB.toarray()
 
     # check key, inplace flag and extract sub-collection
-    keys, inplace, coll2 = _generic_check._check_inplace(
-        coll=coll,
-        keys=[keyA, keyB],
-        inplace=inplace,
+    lk = [kk for kk in [keyA, keyB, keyX] if kk is not None]
+    coll2, key = coll.extract(
+        lk,
+        inc_monot=False,
+        inc_vectors=False,
+        inc_allrefs=False,
+        return_keys=True,
     )
-    keyA, keyB = keys
+    keyA, keyB = key[:2]
+
     dimA, dimB = dataA.ndim, dataB.ndim
     if dimA > dimB:
         ndim, refs, shape = dimA, refA, dataA.shape

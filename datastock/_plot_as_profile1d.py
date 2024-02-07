@@ -12,7 +12,8 @@ import matplotlib.colors as mcolors
 from . import _generic_check
 from . import _plot_text
 from . import _class1_compute
-from ._plot_as_array import _check_keyXYZ, _get_str_datadlab
+from ._plot_as_array import _check_keyXYZ
+from ._generic_utils_plot import _get_str_datadlab
 
 
 __all__ = ['plot_as_profile1d']
@@ -47,12 +48,15 @@ def plot_as_profile1d(
     key=None,
     key_time=None,
     keyX=None,
+    dkeys=None,
     ind=None,
+    dscale=None,
+    dvminmax=None,
     vmin=None,
     vmax=None,
-    cmap=None,
     ymin=None,
     ymax=None,
+    cmap=None,
     aspect=None,
     nmax=None,
     color_dict=None,
@@ -71,19 +75,30 @@ def plot_as_profile1d(
     dleg=None,
     connect=None,
     inplace=None,
+    # unused
+    **kwdargs,
 ):
 
 
     # ------------
     #  check inputs
 
-    # check key, inplace flag and extract sub-collection
-    key, inplace, coll2 = _generic_check._check_inplace(
-        coll=coll,
-        keys=None if key is None else [key],
-        inplace=inplace,
+    key = _generic_check._check_var(
+        key, 'key',
+        types=str,
+        allowed=list(coll.ddata.keys()),
     )
-    key = key[0]
+
+    # check key, inplace flag and extract sub-collection
+    lk = [kk for kk in [key, key_time, keyX] if kk is not None]
+    coll2, key = coll.extract(
+        lk,
+        inc_monot=False,
+        inc_vectors=False,
+        inc_allrefs=False,
+        return_keys=True,
+    )
+    key = [kk for kk in key if kk not in [key_time, keyX]][0]
     ndim = coll2._ddata[key]['data'].ndim
 
     # --------------
@@ -565,14 +580,16 @@ def _plot_as_profile1d(
     # ----------------------
     #  labels and data
 
-    key_time, tstr, datat, dt2, labt = _get_str_datadlab(
+    key_time, tstr, dt2, labt = _get_str_datadlab(
         keyX=key_time, nx=nt, islogX=islogtime, coll=coll,
     )
+    datat = coll.ddata[key_time]['data']
 
     # keyX can be 2d !!!
-    keyX, xstr, dataX, _, labX = _get_str_datadlab(
+    keyX, xstr, _, labX = _get_str_datadlab(
         keyX=keyX, nx=nx, islogX=None, coll=coll,
     )
+    dataX = coll.ddata[keyX]['data']
 
     # -----------------
     #  prepare slicing
@@ -955,5 +972,3 @@ def _plot_as_profile1d(
         )
 
     return coll, dax, dgroup
-
-

@@ -14,6 +14,7 @@ import astropy.units as asunits
 from . import _generic_check
 from . import _generic_utils
 from . import _class1_check
+from . import _class1_show
 from ._class0 import *
 from . import _class1_compute
 from . import _class1_domain
@@ -218,6 +219,28 @@ class DataStock1(DataStock0):
             max_ndim=self._max_ndim,
         )
 
+    def remove_all(self, excluded=None):
+
+        # check excluded
+        if isinstance(excluded, str):
+            excluded = [excluded]
+
+        # remove all obj
+        lw = list(self.dobj.keys())
+        for ww in lw:
+            if (excluded is not None) and ww in excluded:
+                continue
+            self.remove_obj(
+                list(self.dobj[ww].keys()),
+                which=ww,
+                propagate=True)
+
+        # remove all data
+        self.remove_data(list(self.ddata.keys()), propagate=True)
+
+        # remove all refs
+        self.remove_ref(list(self.dref.keys()), propagate=True)
+
     # ---------------------
     # Get / set / add / remove params
     # ---------------------
@@ -243,7 +266,7 @@ class DataStock1(DataStock0):
         which, dd = self.__check_which(which, return_dict=True)
         if which in ['ref', 'data']:
             for_show = False
-        return _class1_check._get_lparam(dd=dd, for_show=for_show)
+        return _class1_show._get_lparam(dd=dd, for_show=for_show)
 
     def get_param(
         self,
@@ -418,27 +441,44 @@ class DataStock1(DataStock0):
     # extract
     ###########
 
-    def extract(self, keys=None, vectors=None):
+    def extract(
+        self,
+        keys=None,
+        # optional includes
+        inc_monot=None,
+        inc_vectors=None,
+        inc_allrefs=None,
+        # output
+        coll2=None,
+        return_keys=None,
+    ):
         """ Extract some selected data and return as new instance
 
-        Includes:
-              - all desired data keys
-              - all relevant ref
-              - all associated monotonous vectors (optional)
+        Automatically includes:
+            - all desired data keys
+            - all relevant ref
+
+        Optionally can also include:
+            - inc_monot: monotonous vectors matching any ref
+            - inc_vectors: all (1d) vectors matching any ref
+            - inc_allrefs: all (nd) array matching any full ref set
+
+        Optionally:
+            coll2: DataStock instance to be populated
+            return_keys: returns the value of keys
 
         """
 
-        # get ref and data
-        lref, ldata = _class1_compute._extract_dataref(
-            coll=self,
-            keys=keys,
-            vectors=vectors,
-        )
-
         return _class1_compute._extract_instance(
             self,
-            lref=lref,
-            ldata=ldata,
+            keys=keys,
+            # optional includes
+            inc_monot=inc_monot,
+            inc_vectors=inc_vectors,
+            inc_allrefs=inc_allrefs,
+            # output
+            coll2=coll2,
+            return_keys=return_keys,
         )
 
     ###########
@@ -567,8 +607,9 @@ class DataStock1(DataStock0):
     def get_ref_vector(
         self,
         # key
-        key=None,
+        key0=None,
         # which ref / dimension
+        key=None,
         ref=None,
         dim=None,
         quant=None,
@@ -616,6 +657,7 @@ class DataStock1(DataStock0):
             ddata=self._ddata,
             dref=self._dref,
             # inputs
+            key0=key0,
             key=key,
             ref=ref,
             dim=dim,
@@ -633,6 +675,7 @@ class DataStock1(DataStock0):
         self,
         keys=None,
         # for selecting ref vector
+        key=None,
         ref=None,
         dim=None,
         quant=None,
@@ -665,6 +708,7 @@ class DataStock1(DataStock0):
             # inputs
             keys=keys,
             # for selecting ref vector
+            key=key,
             ref=ref,
             dim=dim,
             quant=quant,
@@ -742,41 +786,41 @@ class DataStock1(DataStock0):
         store_keys=None,
     ):
         """ Return the binned data
-        
+
         data:  the data on which to apply binning, can be
             - a list of np.ndarray to be binned
                 (any dimension as long as they all have the same)
             - a list of keys to ddata items sharing the same refs
-            
+
         data_units: str only necessary if data is a list of arrays
-        
+
         axis: int or array of int indices
             the axis of data along which to bin
             data will be flattened along all those axis priori to binning
-            If None, assumes bin_data is not variable and uses all its axis 
-        
+            If None, assumes bin_data is not variable and uses all its axis
+
         bins0: the bins (centers), can be
             - a 1d vector of monotonous bins
             - a int, used to compute a bins vector from max(data), min(data)
-        
+
         bin_data0: the data used to compute binning indices, can be:
             - a str, key to a ddata item
             - a np.ndarray
             _ a list of any of the above if each data has different size along axis
-            
+
         bin_units: str
             only used if integrate = True and bin_data is a np.ndarray
-            
+
         integrate: bool
             flag indicating whether binning is used for integration
             Implies that:
                 Only usable for 1d binning (axis has to be a single index)
                 data is multiplied by the underlying bin_data0 step prior to binning
-                
+
         statistic: str
             the statistic kwd feed to scipy.stats.binned_statistic()
             automatically set to 'sum' if integrate = True
-            
+
         store: bool
             If True, will sotre the result in ddata
             Only possible if all (data, bin_data and bin) are provided as keys
@@ -895,117 +939,32 @@ class DataStock1(DataStock0):
         self,
         show_which=None,
         show=None,
-        show_core=None,
-        sep='  ',
-        line='-',
-        just='l',
+        # pretty print options
+        sep=None,
+        line=None,
+        justify=None,
         table_sep=None,
+        # bool options
         verb=True,
         returnas=False,
     ):
         """ Summary description of the object content """
-
-        # ------------
-        # check inputs
-
-        if show_which is None:
-            show_which = ['ref', 'data', 'obj']
-        elif isinstance(show_which, tuple):
-            if 'obj' in show_which:
-                show_which = [
-                    k0 for k0 in ['ref', 'data'] if k0 not in show_which
-                ]
-            else:
-                show_which = [
-                    k0 for k0 in ['ref', 'data'] + list(self._dobj.keys())
-                    if k0 not in show_which
-                ]
-
-        lcol, lar = [], []
-
-        # -----------------------
-        # Build for dref
-
-        if 'ref' in show_which and len(self._dref) > 0:
-            lcol.append(['ref key', 'size', 'nb. data', 'nb. data monot.'])
-            lar.append([
-                [
-                    k0,
-                    str(self._dref[k0]['size']),
-                    str(len(self._dref[k0]['ldata'])),
-                    str(len(self._dref[k0]['ldata_monot'])),
-                ]
-                for k0 in self._dref.keys()
-            ])
-
-            lp = self.get_lparam(which='ref')
-            if 'indices' in lp:
-                lcol[0].append('indices')
-                for ii, (k0, v0) in enumerate(self._dref.items()):
-                    if self._dref[k0]['indices'] is None:
-                        lar[0][ii].append(str(v0['indices']))
-                    else:
-                        lar[0][ii].append(str(list(v0['indices'])))
-
-            if 'group' in lp:
-                lcol[0].append('group')
-                for ii, (k0, v0) in enumerate(self._dref.items()):
-                    lar[0][ii].append(str(self._dref[k0]['group']))
-
-            if 'inc' in lp:
-                lcol[0].append('increment')
-                for ii, (k0, v0) in enumerate(self._dref.items()):
-                    lar[0][ii].append(str(self._dref[k0]['inc']))
-
-        # -----------------------
-        # Build for ddata
-
-        if 'data' in show_which and len(self._ddata) > 0:
-
-            lk = _class1_check._show_get_fields(
-                which='data',
-                lparam=self.get_lparam(which='data', for_show=True),
-                dshow=self._dshow,
-            )
-            lcol.append(['data'] + [pp.split('.')[-1] for pp in lk])
-            lar.append([
-                [k1] + _class1_check._show_extract(dobj=v1, lk=lk)
-                for k1, v1 in self._ddata.items()
-            ])
-
-        # -----------------------
-        # Build for dobj
-
-        anyobj = (
-            len(self._dobj) > 0
-            and any([
-                ss in show_which
-                for ss in ['obj'] + list(self._dobj.keys())
-            ])
-        )
-        if anyobj:
-            for k0, v0 in self._dobj.items():
-                if 'obj' in show_which or k0 in show_which:
-                    lk = _class1_check._show_get_fields(
-                        which=k0,
-                        lparam=self.get_lparam(which=k0, for_show=True),
-                        dshow=self._dshow,
-                    )
-                    lcol.append([k0] + [pp.split('.')[-1] for pp in lk])
-                    lar.append([
-                        [k1] + _class1_check._show_extract(dobj=v1, lk=lk)
-                        for k1, v1 in v0.items()
-                    ])
-
-        return _generic_utils.pretty_print(
-            headers=lcol,
-            content=lar,
+        return _class1_show.main(
+            coll=self,
+            show_which=show_which,
+            show=show,
+            # pretty print options
             sep=sep,
             line=line,
+            justify=justify,
             table_sep=table_sep,
+            # bool options
             verb=verb,
             returnas=returnas,
         )
+
+    def _get_show_obj(self, which=None):
+        return _class1_show._show_obj_def
 
     def show_data(self):
         self.show(show_which=['ref', 'data'])

@@ -80,8 +80,9 @@ def _check_var(
             var = allowed[0]
         elif var not in allowed:
             msg = (
-                f"Arg {varname} must be in {allowed}!\n"
-                f"Provided: {var}"
+                f"Arg {varname} not in allowed range!\n"
+                f"Provided: {var}\n"
+                f"Allowed: {allowed}\n"
             )
             raise Exception(_complete_extra_msg(msg, extra_msg))
 
@@ -98,8 +99,9 @@ def _check_var(
     if excluded is not None:
         if var in excluded:
             msg = (
-                f"Arg {varname} must not be in {excluded}!\n"
-                f"Provided: {var}"
+                f"Arg {varname} must not be in excluded range!\n"
+                f"Provided: {var}\n"
+                f"Excluded: {excluded}\n"
             )
             raise Exception(_complete_extra_msg(msg, extra_msg))
 
@@ -124,7 +126,7 @@ def _check_var(
 
         if err is True:
             msg = (
-                f"Arg {varname} must be {sign}\n"
+                f"Arg {varname} must be of sign {sign}\n"
                 f"Provided: {var}"
             )
             raise Exception(_complete_extra_msg(msg, extra_msg))
@@ -543,51 +545,47 @@ def _obj_key(d0=None, short=None, key=None, ndigits=None):
 #                   Utilities for plotting
 # #############################################################################
 
+# DEPRECATED
+# def _check_inplace(coll=None, keys=None):
+    # """ Check key to data and inplace """
 
-def _check_inplace(coll=None, keys=None, inplace=None):
-    """ Check key to data and inplace """
+    # # -----------------------------
+    # # keys of data to be extracted
+    # # ----------------------------
 
-    # key
-    if isinstance(keys, str):
-        keys = [keys]
-    keys = _check_var_iter(
-        keys, 'keys',
-        default=None,
-        types=list,
-        types_iter=str,
-        allowed=list(coll.ddata.keys()),
-    )
+    # if isinstance(keys, str):
+        # keys = [keys]
+    # keys = _check_var_iter(
+        # keys, 'keys',
+        # default=None,
+        # types=list,
+        # types_iter=str,
+        # allowed=list(coll.ddata.keys()),
+    # )
 
-    # inplace
-    inplace = _check_var(
-        inplace, 'inplace',
-        types=bool,
-        default=False,
-    )
+    # # ----------------------
+    # # extract sub-collection
+    # # ----------------------
 
-    # extract sub-collection of necessary
-    if inplace:
-        coll2 = coll
-    else:
-        lk0 = list(keys)
-        for key in keys:
+    # lk0 = list(keys)
+    # for key in keys:
 
-            # Include all data matching any single ref
-            for rr in coll._ddata[key]['ref']:
-                for k0, v0 in coll._ddata.items():
-                    if v0['ref'] == (rr,):
-                        if k0 not in lk0:
-                            lk0.append(k0)
+        # # Include all data matching any single ref
+        # for rr in coll._ddata[key]['ref']:
+            # for k0, v0 in coll._ddata.items():
+                # if v0['ref'] == (rr,):
+                    # if k0 not in lk0:
+                        # lk0.append(k0)
 
-            # include all data matching all refs
-            for k0, v0 in coll._ddata.items():
-                if v0['ref'] == coll._ddata[key]['ref']:
-                    if k0 not in lk0:
-                        lk0.append(k0)
+        # # include all data matching all refs
+        # for k0, v0 in coll._ddata.items():
+            # if v0['ref'] == coll._ddata[key]['ref']:
+                # if k0 not in lk0:
+                    # lk0.append(k0)
 
-        coll2 = coll.extract(lk0)
+    # coll2 = coll.extract(lk0)
 
-    return keys, inplace, coll2
+    # return keys, coll2
 
 
 def _check_dax(dax=None, main=None):
