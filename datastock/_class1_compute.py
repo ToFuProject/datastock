@@ -718,6 +718,7 @@ def _extract_instance(
     inc_allrefs=None,
     # output
     coll2=None,
+    inplace=None,
     return_keys=None,
 ):
 
@@ -728,7 +729,7 @@ def _extract_instance(
     (
         keys,
         inc_monot, inc_vectors, inc_allrefs,
-        return_keys,
+        inplace, return_keys,
     ) = _extract_check(**locals())
 
     # -----------------
@@ -749,7 +750,11 @@ def _extract_instance(
     # -------------------
 
     if coll2 is None:
-        coll2 = coll.__class__()
+        if inplace is True:
+            coll2 = coll
+        else:
+            coll2 = coll.__class__()
+
 
     # ------------------------
     # Populate
@@ -803,6 +808,7 @@ def _extract_check(
     vectors=None,
     # output
     coll2=None,
+    inplace=None,
     return_keys=None,
 ):
 
@@ -859,6 +865,13 @@ def _extract_check(
         default=False,
     )
 
+    # inplace
+    inplace = _generic_check._check_var(
+        inplace, 'inplace',
+        types=bool,
+        default=False,
+    )
+
     # coll2
     if coll2 is not None:
         c0 = (
@@ -872,7 +885,7 @@ def _extract_check(
     return (
         keys,
         inc_monot, inc_vectors, inc_allrefs,
-        return_keys,
+        inplace, return_keys,
     )
 
 
