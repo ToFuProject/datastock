@@ -97,6 +97,7 @@ def plot_as_array(
         inc_vectors=False,
         inc_allrefs=False,
         return_keys=True,
+        inplace=inplace,
     )
     key = [kk for kk in key if kk not in lk][0]
     ndim = coll2.ddata[key]['data'].ndim
