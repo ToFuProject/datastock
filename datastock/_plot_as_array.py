@@ -326,7 +326,8 @@ def _check_keyXYZ(
                         islog = _check_uniform_log(k0=keyX, ddata=coll._ddata)
                         msg += f"\t- uniform linear: {islin}\n"
                         msg += f"\t- uniform log:    {islog}\n"
-                    msg += f"Provided: '{keyX}'\nAllowed values: {lok}\n"
+                    msg += f"Allowed values: {lok}\nProvided: '{keyX}'\n"
+                    msg += f"Value:\n{coll.ddata[keyX]['data']}\n"
                     err.args = (msg,)
                     raise err
 
