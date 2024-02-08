@@ -533,14 +533,6 @@ def _check_params(
     # ----
     # ndim
 
-    if deriv not in [None, 0] and ndim > 1:
-        msg = (
-            "Arg deriv can only be used for 1d interpolations!\n"
-            f"\t- ndim: {ndim}\n"
-            f"\t- deriv: {deriv}\n"
-        )
-        raise Exception(msg)
-
     if ndim > 2:
         msg = (
             "Interpolations of more than 2 dimensions not implemented!\n"
@@ -551,12 +543,24 @@ def _check_params(
     # -----
     # deriv
 
-    deriv = _generic_check._check_var(
-        deriv, 'deriv',
-        default=0,
-        types=int,
-        allowed=[ii for ii in range(deg + 1)],
-    )
+    if ndim == 1:
+        deriv = _generic_check._check_var(
+            deriv, 'deriv',
+            default=0,
+            types=int,
+            allowed=[ii for ii in range(deg + 1)],
+        )
+
+    elif ndim == 2:
+
+        deriv = tuple(_generic_check._check_var_iter(
+            deriv, 'deriv',
+            default=(0, 0),
+            types=(list, tuple),
+            types_iter=int,
+            size=2,
+            allowed=[ii for ii in range(deg + 1)],
+        ))
 
     # -------
     # log_log
@@ -1518,6 +1522,8 @@ def _interp2d(
                 )(
                     np.log(x0[slix]),
                     np.log(x1[slix]),
+                    dx=deriv[0],
+                    dy=deriv[1],
                     grid=False,
                 )
             )
@@ -1533,6 +1539,8 @@ def _interp2d(
             )(
                 x0[slix],
                 x1[slix],
+                dx=deriv[0],
+                dy=deriv[1],
                 grid=False,
             )
 
