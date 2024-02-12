@@ -553,6 +553,9 @@ def _check_params(
 
     elif ndim == 2:
 
+        if np.isscalar(deriv):
+            deriv = (int(deriv), int(deriv))
+
         deriv = tuple(_generic_check._check_var_iter(
             deriv, 'deriv',
             default=(0, 0),
