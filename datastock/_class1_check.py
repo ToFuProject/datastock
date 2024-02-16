@@ -474,7 +474,7 @@ def _remove_obj(
             del dobj0[which][kk]
 
     # cleanup
-    if propagate is True and len(dobj0.get(which, {})) == 0:
+    if propagate is True and dobj0.get(which) is not None and len(dobj0[which]) == 0:
         del dobj0[which]
 
     return _consistency(
