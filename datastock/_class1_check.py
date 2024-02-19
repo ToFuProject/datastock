@@ -198,12 +198,18 @@ def _check_conflicts(dd=None, dd0=None, dd_name=None, returnas=None):
 
 
 def _check_remove(key=None, dkey=None, name=None):
-    c0 = isinstance(key, str) and key in dkey.keys()
-    c1 = (
-        isinstance(key, list)
-        and all([isinstance(kk, str) and kk in dkey.keys() for kk in key])
+
+    # -----------------------
+    # check basic conformity
+
+    if isinstance(key, str):
+        key = [key]
+
+    c0 = (
+        isinstance(key, (list, tuple, set))
+        and all([isinstance(kk, str) for kk in key])
     )
-    if not (c0 or c1):
+    if not c0:
         msg = (
             """
             Removed item must be a str already in self.d{}
@@ -213,8 +219,12 @@ def _check_remove(key=None, dkey=None, name=None):
             """.format(name, key, sorted(dkey.keys()))
         )
         raise Exception(msg)
-    if c0:
-        key = [key]
+
+    # -----------------------
+    # only keep relevant keys
+
+    key = [k0 for k0 in key if k0 in dkey.keys()]
+
     return key
 
 
@@ -327,7 +337,8 @@ def _remove_ref(
     for k0 in key:
         # Remove orphan ddata
         for k1 in dref0[k0]['ldata']:
-            del ddata0[k1]
+            if k1 in ddata0.keys():
+                del ddata0[k1]
         del dref0[k0]
 
     # Double-check consistency
