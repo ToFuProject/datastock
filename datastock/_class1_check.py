@@ -1020,13 +1020,15 @@ def _check_dobj(
 
     # ----------------
     # Trivial case
+    # ----------------
+
     if dobj in [None, {}]:
         return {}
 
-    # ----------------
-    # Check conformity
+    # ------------
+    # Check type
+    # ------------
 
-    # map possible non-conformities
     if not isinstance(dobj, dict):
         msg = (
             "Arg dobj must be a dict!\n"
@@ -1034,48 +1036,69 @@ def _check_dobj(
         )
         raise Exception(msg)
 
+    # -----------------------------
     # Map possible non-conformities
+    # -----------------------------
+
     dc = {}
     dobj2 = {}
     for k0, v0 in dobj.items():
 
+        # -----------------------
         # check types (str, dict)
+
         c1 = isinstance(k0, str) and isinstance(v0, dict)
         if not c1:
             dc[k0] = "type(key) != str or type(value) != dict"
             continue
 
-        # check each key / value
-        lc2 = [
-            f'\t- {str(k1)}: type {type(v1)}'
-            f', key already in dobj0: {k1 in dobj0.get(k0, {}).keys()}'
-            for k1, v1 in v0.items()
-            if not (
-                (k1 is None or isinstance(k1, str))
-                and isinstance(v1, dict)
-                and k1 not in dobj0.get(k0, {}).keys()
-            )
-        ]
-        if len(lc2) > 0:
-            dc[k0] = (
-                f"The following keys of dobj['{k0}'] are not valid:\n"
-                + "\n".join(lc2)
-            )
-            continue
 
-        # set None to default keys if any None
-        dobj2[k0] = {}
-        for k1 in v0.keys():
+        lc2 = []
+        for k1, v1 in v0.items():
 
+            # key
             key = _generic_check._obj_key(
                 d0=dobj0.get(k0, {}),
                 short=dshort.get(k0, k0[:4]),
                 key=k1,
             )
 
+            # value
+            if not isinstance(v1, dict):
+                lc2.append(f'\t- {key}: type {type(v1)}')
+                continue
+
+            # key in dobj0
+            if key in dobj0.get(k0, {}).keys():
+
+                isidentical = compare_dict(
+                    d0=dobj0[k0][key],
+                    d1=v1,
+                    dname='v1',
+                    returnas=bool,
+                    verb=False,
+                )
+
+                if not isidentical:
+                    lc2.append(f"\t- '{key}' already in dobj0['{k0}']")
+                continue
+
+            # add to dobj2
+            if dobj2.get(k0) is None:
+                dobj2[k0] = {}
             dobj2[k0][key] = dict(dobj[k0][k1])
 
+
+        if len(lc2) > 0:
+            dc[k0] = (
+                f"The following keys of dobj['{k0}'] are not valid:\n"
+                + "\n".join(lc2)
+            )
+
+    # ----------------
     # Raise Exception
+    # ----------------
+
     if len(dc) > 0:
         msg = (
             "The following keys of dobj are non-conform:\n"
