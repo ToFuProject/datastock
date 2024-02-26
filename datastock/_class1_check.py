@@ -12,6 +12,7 @@ import astropy.units as asunits
 
 
 from . import _generic_check
+from . import _generic_utils
 
 
 _DRESERVED_KEYS = {
@@ -1082,7 +1083,7 @@ def _check_dobj(
             # key in dobj0
             if key in dobj0.get(k0, {}).keys():
 
-                isidentical = compare_dict(
+                isidentical = _generic_utils.compare_dict(
                     d0=dobj0[k0][key],
                     d1=v1,
                     dname='v1',
