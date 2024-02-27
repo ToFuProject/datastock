@@ -140,6 +140,7 @@ def _check_var_iter(
     types=None,
     types_iter=None,
     default=None,
+    size=None,
     allowed=None,
     excluded=None,
     extra_msg=None,
@@ -185,6 +186,15 @@ def _check_var_iter(
             msg = (
                 f"Arg {varname} must be an iterable of types {types_iter}\n"
                 f"Provided: {[type(vv) for vv in var]}"
+            )
+            raise Exception(_complete_extra_msg(msg, extra_msg))
+
+    # check size
+    if size is not None:
+        if len(var) != size:
+            msg = (
+                f"Arg {varname} must be an iterable of len = {size}\n"
+                f"Provided: {len(var)}"
             )
             raise Exception(_complete_extra_msg(msg, extra_msg))
 
