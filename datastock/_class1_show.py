@@ -13,7 +13,6 @@ from . import _generic_utils
 from . import _generic_check
 
 
-
 #############################################
 #############################################
 #       Main
@@ -77,7 +76,13 @@ def main(
         for k0 in coll._dobj.keys():
             if 'obj' in show_which or k0 in show_which:
                 func = coll._get_show_obj(k0)
-                lcol, lar = func(coll=coll, which=k0, lcol=lcol, lar=lar, show=show)
+                lcol, lar = func(
+                    coll=coll,
+                    which=k0,
+                    lcol=lcol,
+                    lar=lar,
+                    show=show,
+                )
 
     return _generic_utils.pretty_print(
         headers=lcol,
@@ -404,3 +409,115 @@ def _show_extract(dobj=None, lk=None):
             lv0.append(str(v0))
 
     return lv0
+
+
+#############################################
+#############################################
+#       Main - details
+#############################################
+
+
+def main_details(
+    coll=None,
+    # options
+    which=None,
+    key=None,
+    # print parameters
+    sep=None,
+    line=None,
+    justify=None,
+    table_sep=None,
+    # bool options
+    verb=True,
+    returnas=False,
+):
+
+    # -------------
+    # check inputs
+    # -------------
+
+    which, key = _check_details(
+        coll=coll,
+        which=which,
+        key=key,
+    )
+
+    # intialize
+    lcol, lar = [], []
+
+    # -----------------------
+    # Build for dobj
+    # -----------------------
+
+    func = coll._get_show_details(which=which)
+    lcol, lar = func(
+        coll=coll,
+        key=key,
+        lcol=lcol,
+        lar=lar,
+    )
+
+    return _generic_utils.pretty_print(
+        headers=lcol,
+        content=lar,
+        sep=sep,
+        line=line,
+        table_sep=table_sep,
+        verb=verb,
+        returnas=returnas,
+    )
+
+
+###########################################################
+###########################################################
+#       check details
+###########################################################
+
+
+def _check_details(
+    coll=None,
+    which=None,
+    key=None,
+):
+
+    # -------------
+    # key
+    # -------------
+
+    lok_which = list(coll._dobj.keys())
+    dkey = {}
+    for kw in lok_which:
+        dkey.update({
+            k1: kw for k1 in coll.dobj[kw].keys()
+        })
+
+    # check
+    try:
+        key = _generic_check._check_var(
+            key, 'key',
+            types=str,
+            allowed=list(dkey.keys()),
+        )
+
+        which = dkey[key]
+
+    except Exception:
+
+        # -------------
+        # show_which
+
+        lok = list(coll._dobj.keys())
+        which = _generic_check._check_var(
+            which, 'which',
+            types=str,
+            allowed=lok,
+        )
+
+        lok = [k1 for k1, kw in dkey.items() if kw == which]
+        key = _generic_check._check_var(
+            key, 'key',
+            types=str,
+            allowed=lok,
+        )
+
+    return which, key

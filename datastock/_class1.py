@@ -977,6 +977,37 @@ class DataStock1(DataStock0):
     def show_interactive(self):
         self.show(show_which=['axes', 'mobile', 'interactivity'])
 
+    def show_details(
+        self,
+        key=None,
+        which=None,
+        # pretty print options
+        sep=None,
+        line=None,
+        justify=None,
+        table_sep=None,
+        # bool options
+        verb=True,
+        returnas=False,
+    ):
+        """ Summary description of the object content """
+        return _class1_show.main_details(
+            coll=self,
+            which=which,
+            key=key,
+            # pretty print options
+            sep=sep,
+            line=line,
+            justify=justify,
+            table_sep=table_sep,
+            # bool options
+            verb=verb,
+            returnas=returnas,
+        )
+
+    def _get_show_details(self, which=None, key=None):
+        raise NotImplementedError()
+
     def __repr__(self):
         try:
             return self.show(returnas=str, verb=False)
