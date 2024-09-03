@@ -904,7 +904,7 @@ def _check_ddata(
                                 v0.get('ref') is None
                                 or isinstance(v0.get('ref'), str)
                                 or (
-                                    isinstance(v0.get('ref'), tuple)
+                                    isinstance(v0.get('ref'), (list, tuple))
                                     and all([
                                         isinstance(rr, str)
                                         for rr in v0['ref']
@@ -977,6 +977,8 @@ def _check_ddata(
         # find ref
         if isinstance(v0['ref'], str):
             ddata[k0]['ref'] = (v0['ref'],)
+        elif isinstance(v0['ref'], list):
+            ddata[k0]['ref'] = tuple(v0['ref'])
 
         _check_data_ref(
             k0=k0,
