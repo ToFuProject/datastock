@@ -87,12 +87,18 @@ class DataStock2(DataStock1):
 
         if isinstance(dtype, str):
             dtype = [dtype]
+        lok = [
+            'xdata', 'ydata',
+            'data', 'data.T',
+            'xy', 'alpha',
+            'txt', 'x', 'y', 'position',
+        ]
         dtype = _generic_check._check_var_iter(
             dtype,
             'dtype',
             types=(list, tuple),
             types_iter=str,
-            allowed=['xdata', 'ydata', 'data', 'data.T', 'xy', 'alpha', 'txt']
+            allowed=lok,
         )
         if len(dtype) != nref:
             msg = (

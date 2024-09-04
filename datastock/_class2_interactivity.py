@@ -479,6 +479,15 @@ def get_fupdate(handle=None, dtype=None, norm=None, bstr=None):
             handle.set_alpha(norm(val))
     elif dtype == 'txt':
         func = lambda val, handle=handle, bstr=bstr: handle.set_text(bstr.format(val))
+    elif dtype == 'x':
+        def func(val, handle=handle):
+            handle.set_x(val)
+    elif dtype == 'y':
+        def func(val, handle=handle):
+            handle.set_y(val)
+    elif dtype == 'position':
+        def func(val, handle=handle):
+            handle.set_position(val)
     else:
         msg = f'Unknown mobile dtype: {dtype}'
         raise Exception(msg)
