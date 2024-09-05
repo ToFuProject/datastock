@@ -361,10 +361,14 @@ def compare_dict(
 
         # numpy arrays
         elif isinstance(d0[k0], np.ndarray):
-            if d0[k0].shape != d1[k0].shape:
-                dkeys[key] = f'!= shapes ({d0[k0].shape} vs {d1[k0].shape})'
-            elif not np.allclose(d0[k0], d1[k0], equal_nan=True):
-                dkeys[key] = "not allclose"
+            msg = _compare_arrays(
+                dname=dname,
+                k0=k0,
+                d0=d0,
+                d1=d1,
+            )
+            if msg is not None:
+                dkeys[key] = msg
 
         # sparse arrays
         elif scpsp.issparse(d0[k0]):
@@ -375,16 +379,15 @@ def compare_dict(
 
         # lists and tuples
         elif isinstance(d0[k0], (list, tuple)):
-            try:
-                if not d0[k0] == d1[k0]:
-                    dkeys[key] = "!= list/tuple values"
-            except Exception as err:
-                msg = (
-                    f"Don't know how to handle {key}:\n"
-                    f"\t- type: {type(d0[k0])}\n"
-                    f"\t- value: {d0[k0]}\n"
-                )
-                raise NotImplementedError(msg)
+            msg = _compare_list_tuple(
+                dname=dname,
+                k0=k0,
+                d0=d0,
+                d1=d1,
+                key=key,
+            )
+            if msg is not None:
+                dkeys[key] = msg
 
         # functions
         elif callable(d0[k0]):
@@ -421,6 +424,97 @@ def compare_dict(
     # return
 
     return _compare_dict_verb_return(dkeys, returnas, verb)
+
+
+def _compare_arrays(
+    dname=None,
+    k0=None,
+    d0=None,
+    d1=None,
+):
+
+    msg = None
+
+    # shape
+    if d0[k0].shape != d1[k0].shape:
+        msg = f'!= shapes ({d0[k0].shape} vs {d1[k0].shape})'
+
+    # dtype
+    elif not d0[k0].dtype == d1[k0].dtype:
+        msg = f"!= dtypes ({d0[k0].dtype} vs {d1[k0].dtype})"
+
+    # special case: array of str
+    if 'str' in d0[k0].dtype.name:
+        d0flat = d0[k0].ravel().tolist()
+        d1flat = d1[k0].ravel().tolist()
+        c0 = all([ss == d1flat[ii] for ii, ss in enumerate(d0flat)])
+    else:
+        try:
+            c0 = np.allclose(d0[k0], d1[k0], equal_nan=True)
+        except Exception as err:
+            msg = (
+                f"Failed to compare 2 arrays from '{dname}':\n"
+                f"\t- d0['{k0}'] = {d0[k0]}\n"
+                f"\t- d1['{k0}'] = {d1[k0]}\n"
+            )
+            raise Exception(msg) from err
+
+        if not c0:
+            msg = "not allclose"
+
+    return msg
+
+
+def _compare_list_tuple(
+    dname=None,
+    k0=None,
+    d0=None,
+    d1=None,
+    key=None,
+):
+
+    msg = None
+
+    # length
+    if len(d0[k0]) != len(d1[k0]):
+        msg = f'!= length ({len(d0[k0])} vs {len(d1[k0])})'
+
+    # content type
+    ltyp0 = [_simple_type(type(ss)) for ss in d0[k0]]
+    ltyp1 = [_simple_type(type(ss)) for ss in d1[k0]]
+    if any([t0 != t1 for t0, t1 in zip(ltyp0, ltyp1)]):
+        msg = f"!= content type ({ltyp0} vs {ltyp1})"
+
+    # content
+    for ii in range(len(d0[k0])):
+
+        if isinstance(d0[k0][ii], np.ndarray):
+            c0 = np.allclose(d0[k0][ii], d1[k0][ii])
+
+        else:
+
+            try:
+                c0 = d0[k0][ii] == d1[k0][ii]
+            except Exception as err:
+                msg = (
+                    f"Don't know how to handle {key}:\n"
+                    f"\t- type: {type(d0[k0])}\n"
+                    f"\t- value: {d0[k0]}\n"
+                )
+                raise NotImplementedError(msg) from err
+
+        if not c0:
+            msg = f"!= content at position {ii} ({d0[k0][ii]} vs {d1[k0][ii]})"
+            break
+
+    return msg
+
+
+def _simple_type(typ):
+    return ''.join([
+        ss for ss in typ.__name__.replace('_', '')
+        if not ss.isdigit()
+    ])
 
 
 def compare_obj(
