@@ -617,6 +617,9 @@ class DataStock1(DataStock0):
         quant=None,
         name=None,
         units=None,
+        # exclude from search
+        key_exclude=None,
+        ref_exclude=None,
         # nearest-neighbour interpolation input
         values=None,
         indices=None,
@@ -666,6 +669,9 @@ class DataStock1(DataStock0):
             quant=quant,
             name=name,
             units=units,
+            # exclude from search
+            key_exclude=key_exclude,
+            ref_exclude=ref_exclude,
             # parameters
             values=values,
             indices=indices,
@@ -686,6 +692,9 @@ class DataStock1(DataStock0):
         # strategy for choosing common ref vector
         strategy=None,
         strategy_bounds=None,
+        # exclude from search
+        key_exclude=None,
+        ref_exclude=None,
         # values, indices
         values=None,
         indices=None,
@@ -719,6 +728,9 @@ class DataStock1(DataStock0):
             # strategy for choosing common ref vector
             strategy=strategy,
             strategy_bounds=strategy_bounds,
+            # exclude from search
+            key_exclude=key_exclude,
+            ref_exclude=ref_exclude,
             # parameters
             values=values,
             indices=indices,
