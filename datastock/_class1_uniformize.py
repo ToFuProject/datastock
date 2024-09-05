@@ -88,6 +88,8 @@ def get_ref_vector(
 
     # key_exclude
     if key_exclude is not None:
+        if isinstance(key_exclude, str):
+            key_exclude = [key_exclude]
         key_exclude = _generic_check._check_var_iter(
             key_exclude, 'key_exclude',
             types=(list, tuple),
@@ -96,6 +98,8 @@ def get_ref_vector(
 
     # ref_exclude
     if ref_exclude is not None:
+        if isinstance(ref_exclude, str):
+            ref_exclude = [ref_exclude]
         ref_exclude = _generic_check._check_var_iter(
             ref_exclude, 'ref_exclude',
             types=(list, tuple),
@@ -163,7 +167,7 @@ def get_ref_vector(
         # cases
         if len(lk_vect) == 0:
             if warn is True:
-                msg = "No matching vector found!"
+                msg = f"No vector found for key0 = '{key0}', ref '{ref}'!"
                 warnings.warn(msg)
             hasvect = False
 
@@ -177,15 +181,14 @@ def get_ref_vector(
                 hasref = True
 
         else:
-            if warn is True:
-                msg = (
-                    f"Multiple possible vectors found:\n{lk_vect}\n"
-                    f"\t- key0: {key0}\n"
-                    f"\t- ref: {ref}\n"
-                    f"\t- hasref: {hasref}\n"
-                    f"\t- refok: {refok}\n"
-                )
-                warnings.warn(msg)
+            msg = (
+                f"Multiple possible vectors found:\n{lk_vect}\n"
+                f"\t- key0: {key0}\n"
+                f"\t- ref: {ref}\n"
+                f"\t- hasref: {hasref}\n"
+                f"\t- refok: {refok}\n"
+            )
+            warnings.warn(msg)
             hasvect = False
     else:
         hasvect = False
@@ -493,6 +496,9 @@ def get_ref_vector_common(
     quant=None,
     name=None,
     units=None,
+    # exclude from search
+    key_exclude=None,
+    ref_exclude=None,
     # strategy for choosing common ref vector
     strategy=None,
     strategy_bounds=None,
@@ -558,6 +564,10 @@ def get_ref_vector_common(
             quant=quant,
             name=name,
             units=units,
+            # exclude from search
+            key_exclude=key_exclude,
+            ref_exclude=ref_exclude,
+            # parameters
             values=None,
             indices=None,
         )
@@ -735,6 +745,9 @@ def get_ref_vector_common(
         dkeys=dkeys,
         key_vector=key_vector,
         val=val,
+        # exclude from search
+        key_exclude=key_exclude,
+        ref_exclude=ref_exclude,
         # values, indices
         values=values,
         indices=indices,
@@ -763,6 +776,9 @@ def _get_ref_vector_common_values(
     dkeys=None,
     key_vector=None,
     val=None,
+    # exclude from search
+    key_exclude=None,
+    ref_exclude=None,
     # values, indices
     values=None,
     indices=None,
@@ -791,6 +807,10 @@ def _get_ref_vector_common_values(
                 quant=quant,
                 name=name,
                 units=units,
+                # exclude from search
+                key_exclude=key_exclude,
+                ref_exclude=ref_exclude,
+                # parameters
                 values=values,
                 indices=indices,
             )
