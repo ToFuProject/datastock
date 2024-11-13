@@ -1,14 +1,14 @@
 
 
-from ._class2 import *
-from . import _plot_as_array
-from . import _plot_as_profile1d
-from . import _plot_as_mobile_lines
-from . import _plot_correlations
-from . import _plot_BvsA_as_distribution
+from ._class03_Bins import Bins as Previous
+from . import _class04_plot_as_array as _plot_as_array
+from . import _class04_plot_as_profile1d as _plot_as_profile1d
+from . import _class04_plot_as_mobile_lines as _plot_as_mobile_lines
+from . import _class04_plot_correlations as _plot_correlations
+from . import _class04_plot_BvsA_as_distribution as _plot_BvsA_as_distribution
 
 
-class DataStock3(DataStock2):
+class Plots(Previous):
     """ Provide default interactive plots """
 
     # -------------------

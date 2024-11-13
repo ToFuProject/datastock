@@ -10,7 +10,7 @@ import numpy as np
 
 
 # local
-from ._class02_BSplines2D import BSplines2D as Previous
+from ._class2 import DataStock2 as Previous
 from . import _class03_checks as _checks
 from . import _class03_binning as _binning
 
