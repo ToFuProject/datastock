@@ -11,11 +11,11 @@ import astropy.units as asunits
 
 
 # library-specific
+from ._class00 import DataStock0 as Previous
 from . import _generic_check
 from . import _generic_utils
-from . import _class1_check
-from . import _class1_show
-from ._class0 import *
+from . import _class01_check as _check
+from . import _class01_show as _show
 from . import _class01_compute as _compute
 from . import _class01_domain as _domain
 from . import _class01_binning as _binning
@@ -32,7 +32,7 @@ from . import _find_plateau
 #############################################
 
 
-class DataStock1(DataStock0):
+class DataStock1(Previous):
     """ A generic class for handling data
 
     Provides methods for:
@@ -117,7 +117,7 @@ class DataStock1(DataStock0):
         # Check consistency
         (
             self._dref, self._ddata, self._dobj, self.__dlinks,
-        ) = _class1_check._consistency(
+        ) = _check._consistency(
             dobj=dobj, dobj0=self._dobj,
             ddata=ddata, ddata0=self._ddata,
             dref=dref, dref0=self._dref,
@@ -173,7 +173,7 @@ class DataStock1(DataStock0):
         """ Remove a ref (or list of refs) and all associated data """
         (
             self._dref, self._ddata, self._dobj, self.__dlinks,
-        ) = _class1_check._remove_ref(
+        ) = _check._remove_ref(
             key=key,
             dref0=self._dref, ddata0=self._ddata,
             dobj0=self._dobj,
@@ -189,7 +189,7 @@ class DataStock1(DataStock0):
         """ Remove a data (or list of data) """
         (
             self._dref, self._ddata, self._dobj, self.__dlinks,
-        ) = _class1_check._remove_data(
+        ) = _check._remove_data(
             key=key,
             dref0=self._dref, ddata0=self._ddata,
             dobj0=self._dobj,
@@ -205,7 +205,7 @@ class DataStock1(DataStock0):
         """ Remove a data (or list of data) """
         (
             self._dref, self._ddata, self._dobj, self.__dlinks,
-        ) = _class1_check._remove_obj(
+        ) = _check._remove_obj(
             key=key,
             which=which,
             propagate=propagate,
@@ -247,7 +247,7 @@ class DataStock1(DataStock0):
 
     def __check_which(self, which=None, return_dict=None):
         """ Check which in ['data'] + list(self._dobj.keys() """
-        return _class1_check._check_which(
+        return _check._check_which(
             dref=self._dref,
             ddata=self._ddata,
             dobj=self._dobj,
@@ -266,7 +266,7 @@ class DataStock1(DataStock0):
         which, dd = self.__check_which(which, return_dict=True)
         if which in ['ref', 'data']:
             for_show = False
-        return _class1_show._get_lparam(dd=dd, for_show=for_show)
+        return _show._get_lparam(dd=dd, for_show=for_show)
 
     def get_param(
         self,
@@ -291,7 +291,7 @@ class DataStock1(DataStock0):
 
         """
         which, dd = self.__check_which(which, return_dict=True)
-        return _class1_check._get_param(
+        return _check._get_param(
             dd=dd, dd_name=which,
             param=param, key=key, ind=ind, returnas=returnas,
         )
@@ -322,7 +322,7 @@ class DataStock1(DataStock0):
 
         """
         which, dd = self.__check_which(which, return_dict=True)
-        param = _class1_check._set_param(
+        param = _check._set_param(
             dd=dd, dd_name=which,
             param=param, value=value, ind=ind, key=key,
             distribute=distribute,
@@ -340,7 +340,7 @@ class DataStock1(DataStock0):
     ):
         """ Add a parameter, optionnally also set its value """
         which, dd = self.__check_which(which, return_dict=True)
-        param = _class1_check._add_param(
+        param = _check._add_param(
             dd=dd,
             dd_name=which,
             param=param,
@@ -358,7 +358,7 @@ class DataStock1(DataStock0):
     ):
         """ Remove a parameter, none by default, all if param = 'all' """
         which, dd = self.__check_which(which, return_dict=True)
-        _class1_check._remove_param(
+        _check._remove_param(
             dd=dd,
             dd_name=which,
             param=param,
@@ -529,7 +529,7 @@ class DataStock1(DataStock0):
 
         """
         which, dd = self.__check_which(which, return_dict=True)
-        return _class1_check._select(
+        return _check._select(
             dd=dd, dd_name=which,
             log=log, returnas=returnas,
             **kwdargs,
@@ -544,7 +544,7 @@ class DataStock1(DataStock0):
     ):
         """ Return ind from key or key from ind for all data """
         which, dd = self.__check_which(which, return_dict=True)
-        return _class1_check._ind_tofrom_key(
+        return _check._ind_tofrom_key(
             dd=dd, dd_name=which, ind=ind, key=key,
             returnas=returnas,
         )
@@ -963,7 +963,7 @@ class DataStock1(DataStock0):
         returnas=False,
     ):
         """ Summary description of the object content """
-        return _class1_show.main(
+        return _show.main(
             coll=self,
             show_which=show_which,
             show=show,
@@ -978,7 +978,7 @@ class DataStock1(DataStock0):
         )
 
     def _get_show_obj(self, which=None):
-        return _class1_show._show_obj_def
+        return _show._show_obj_def
 
     def show_data(self):
         self.show(show_which=['ref', 'data'])
@@ -1003,7 +1003,7 @@ class DataStock1(DataStock0):
         returnas=False,
     ):
         """ Summary description of the object content """
-        return _class1_show.main_details(
+        return _show.main_details(
             coll=self,
             which=which,
             key=key,
