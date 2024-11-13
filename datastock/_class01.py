@@ -16,11 +16,11 @@ from . import _generic_utils
 from . import _class1_check
 from . import _class1_show
 from ._class0 import *
-from . import _class1_compute
-from . import _class1_domain
-from . import _class1_binning
-from . import _class1_interpolate
-from . import _class1_uniformize
+from . import _class01_compute as _compute
+from . import _class01_domain as _domain
+from . import _class01_binning as _binning
+from . import _class01_interpolate as _interpolate
+from . import _class01_uniformize as _uniformize
 from . import _export_dataframe
 from . import _find_plateau
 
@@ -427,7 +427,7 @@ class DataStock1(DataStock0):
                 - 'index': set matching indices (default)
                 - param: set matching monotonous quantities depending on ref
         """
-        _class1_compute.propagate_indices_per_ref(
+        _compute.propagate_indices_per_ref(
             ref=ref,
             lref=lref,
             ldata=ldata,
@@ -470,7 +470,7 @@ class DataStock1(DataStock0):
 
         """
 
-        return _class1_compute._extract_instance(
+        return _compute._extract_instance(
             self,
             keys=keys,
             # optional includes
@@ -657,7 +657,7 @@ class DataStock1(DataStock0):
 
         """
 
-        return _class1_uniformize.get_ref_vector(
+        return _uniformize.get_ref_vector(
             # ressources
             ddata=self._ddata,
             dref=self._dref,
@@ -712,7 +712,7 @@ class DataStock1(DataStock0):
 
         """
 
-        return _class1_uniformize.get_ref_vector_common(
+        return _uniformize.get_ref_vector_common(
             # ressources
             ddata=self._ddata,
             dref=self._dref,
@@ -750,7 +750,7 @@ class DataStock1(DataStock0):
         returnas=None,
     ):
 
-        return _class1_uniformize.uniformize(
+        return _uniformize.uniformize(
             coll=self,
             keys=keys,
             refs=refs,
@@ -770,7 +770,7 @@ class DataStock1(DataStock0):
         """ Return a dict of index of valid steps based on desired domain
         """
 
-        return _class1_domain.domain_ref(coll=self, domain=domain)
+        return _domain.domain_ref(coll=self, domain=domain)
 
     # ---------------------
     # Binning
@@ -841,7 +841,7 @@ class DataStock1(DataStock0):
 
         """
 
-        return _class1_binning.binning(
+        return _binning.binning(
             coll=self,
             data=data,
             data_units=data_units,
@@ -897,7 +897,7 @@ class DataStock1(DataStock0):
         """ Interpolate keys in desired dimension
 
         """
-        return _class1_interpolate.interpolate(
+        return _interpolate.interpolate(
             coll=self,
             # interpolation base
             keys=keys,
@@ -935,7 +935,7 @@ class DataStock1(DataStock0):
         verb=None,
         returnas=None,
     ):
-        return _class1_compute.correlations(
+        return _compute.correlations(
             data=data,
             ref=ref,
             correlations=correlations,

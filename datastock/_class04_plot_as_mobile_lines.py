@@ -10,9 +10,9 @@ import matplotlib.colors as mcolors
 
 # library-specific
 from . import _generic_check
-from . import _plot_text
-from . import _class1_compute
-from ._plot_as_array import _check_keyXYZ
+from . import _class04_plot_text as _plot_text
+from . import _class01_compute
+from ._class04_plot_as_array import _check_keyXYZ
 from ._generic_utils_plot import _get_str_datadlab
 
 
@@ -445,7 +445,7 @@ def _plot_as_mobile_lines2d(
     #  prepare slicing
 
     # here slice X and Y alike => slice in dim Y and vice-versa
-    sli = _class1_compute._get_slice(laxis=[axisch], ndim=2)
+    sli = _class01_compute._get_slice(laxis=[axisch], ndim=2)
 
     # --------------
     # plot - prepare
@@ -688,7 +688,7 @@ def _plot_as_mobile_lines3d(
         # reshape into (nt, nch*(npts+1))
         ntot = nch*(npts + 1)
         order = 'C' if axisch < axispts else 'F'
-        slibck = _class1_compute._get_slice(laxis=[axist], ndim=3)
+        slibck = _class01_compute._get_slice(laxis=[axist], ndim=3)
         bckx = np.array([
             bckx[slibck(ii)].reshape((ntot,), order=order)
             for ii in range(nt)
@@ -723,7 +723,7 @@ def _plot_as_mobile_lines3d(
     #  prepare slicing
 
     # here slice X and Y alike => slice in dim Y and vice-versa
-    sli = _class1_compute._get_slice(laxis=[axist, axisch], ndim=3)
+    sli = _class01_compute._get_slice(laxis=[axist, axisch], ndim=3)
 
     # --------------
     # plot - prepare

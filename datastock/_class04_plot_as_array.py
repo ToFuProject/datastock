@@ -8,10 +8,10 @@ import matplotlib.colors as mcolors
 
 # library-specific
 from . import _generic_check
-from . import _class1_compute
+from . import _class01_compute
 from . import _generic_utils_plot as _uplot
-from . import _plot_as_array_1d
-from . import _plot_as_array_234d
+from . import _class04_plot_as_array_1d  as _plot_as_array_1d
+from . import _class04_plot_as_array_234d as _plot_as_array_234d
 
 
 __all__ = ['plot_as_array']
@@ -869,7 +869,7 @@ def get_data_str(dk=None, coll2=None, key=None, ndim=None, dscale=None):
             dk[k1]['axis'] for k1 in lorder
             if k1 != k0 and dk[k1]['key'] is not None
         ]
-        dk[k0]['sli'] = _class1_compute._get_slice(
+        dk[k0]['sli'] = _class01_compute._get_slice(
             laxis=laxis,
             ndim=ndim,
         )

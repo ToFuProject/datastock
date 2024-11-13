@@ -9,8 +9,8 @@ from matplotlib import gridspec
 
 # library-specific
 from . import _generic_check
-from . import _class1_compute
-from . import _plot_text
+from . import _class01_compute
+from . import _class04_plot_text as _plot_text
 
 
 # #############################################################
@@ -82,7 +82,7 @@ def main(
 
     elif ndim >= 3:
         # here slice X => slice in dim Y and vice-versa
-        sliZ2 = _class1_compute._get_slice(
+        sliZ2 = _class01_compute._get_slice(
             laxis=[dkeys[ss]['axis'] for ss in lorder],
             ndim=ndim,
         )
