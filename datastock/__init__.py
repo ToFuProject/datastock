@@ -1,8 +1,3 @@
-
-from . import _class1_compute
-from . import _class1_compute
-from . import _class1_compute
-
 from .version import __version__
 
 from . import _generic_check
