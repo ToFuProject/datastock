@@ -9,7 +9,7 @@ import scipy.sparse as scpsparse
 
 from . import _generic_check
 from . import _generic_utils
-from . import _class1_compute
+from . import _class01_compute
 
 
 _INCREMENTS = [1, 10]
@@ -256,7 +256,7 @@ def _setup_mobile(
 
         # functions for slicing
         dmobile[k0]['func_slice'] = [
-            _class1_compute._get_slice(
+            _class01_compute._get_slice(
                 laxis=dmobile[k0]['axis'][ii],
                 ndim=(
                     1 if dmobile[k0]['data'][ii] == 'index'
@@ -442,7 +442,7 @@ def _get_ix_for_refx_only_1or2d(
         raise NotImplementedError()
 
     # get index of datax corresponding to clicked point
-    return _class1_compute._get_index_from_data(
+    return _class01_compute._get_index_from_data(
         data=cd,
         data_pick=np.r_[eventdata],
         monot=monot,

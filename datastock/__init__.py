@@ -1,10 +1,13 @@
 
+from . import _class1_compute
+from . import _class1_compute
+from . import _class1_compute
 
 from .version import __version__
 
 from . import _generic_check
 from ._generic_utils_plot import *
-from ._class04 import Plots as Collection
+from ._class04_Plots import Plots as Collection
 from ._saveload import load, get_files
 from ._direct_calls import *
 from . import tests

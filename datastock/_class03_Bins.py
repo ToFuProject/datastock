@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from . import _class1_compute
 
 
 # Built-in

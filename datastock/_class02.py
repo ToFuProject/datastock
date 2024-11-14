@@ -13,9 +13,8 @@ import matplotlib.pyplot as plt
 
 
 from . import _generic_check
-from ._class1 import *
-from . import _class2_interactivity
-from . import _class1_compute
+from ._class01 import DataStock1 as Previous
+from . import _class02_interactivity as _interactivity
 
 
 # #################################################################
@@ -24,7 +23,7 @@ from . import _class1_compute
 # #################################################################
 
 
-class DataStock2(DataStock1):
+class DataStock2(Previous):
     """ Handles matplotlib interactivity """
 
     _LPAXES = ['axes', 'type']
@@ -311,7 +310,7 @@ class DataStock2(DataStock1):
     # ------------------
 
     def show_commands(self, verb=None, returnas=None):
-        return _class2_interactivity.show_commands(
+        return _interactivity.show_commands(
             verb=verb,
             returnas=returnas,
         )
@@ -363,7 +362,7 @@ class DataStock2(DataStock1):
         # ----------
         # Check dgroup
 
-        dgroup, newgroup = _class2_interactivity._setup_dgroup(
+        dgroup, newgroup = _interactivity._setup_dgroup(
             dgroup=dgroup,
             dobj0=self._dobj,
             dref0=self._dref,
@@ -372,7 +371,7 @@ class DataStock2(DataStock1):
         # ----------
         # Check increment dict
 
-        dinc, newinc = _class2_interactivity._setup_dinc(
+        dinc, newinc = _interactivity._setup_dinc(
             dinc=dinc,
             lparam_ref=self.get_lparam(which='ref'),
             dref0=self._dref,
@@ -381,7 +380,7 @@ class DataStock2(DataStock1):
         # ----------------------------------------------------------
         # make sure all refs are known and are associated to a group
 
-        drefgroup = _class2_interactivity._setup_drefgroup(
+        drefgroup = _interactivity._setup_drefgroup(
             dref0=self._dref,
             dgroup=dgroup,
         )
@@ -451,7 +450,7 @@ class DataStock2(DataStock1):
         # --------------------------
         # update mobile with group, group_vis and func
 
-        _class2_interactivity._setup_mobile(
+        _interactivity._setup_mobile(
             dmobile=self._dobj['mobile'],
             dref=self._dref,
             ddata=self._ddata,
@@ -486,7 +485,7 @@ class DataStock2(DataStock1):
         # ---------
         # dkeys
 
-        dkeys = _class2_interactivity._setup_keys(dkeys=dkeys, dgroup=dgroup)
+        dkeys = _interactivity._setup_keys(dkeys=dkeys, dgroup=dgroup)
 
         # implement dict
         for ii, (k0, v0) in enumerate(dkeys.items()):
@@ -532,7 +531,7 @@ class DataStock2(DataStock1):
             **dinter,
         )
 
-        _class2_interactivity._set_dbck(
+        _interactivity._set_dbck(
             lax=self._dobj['axes'].keys(),
             daxes=self._dobj['axes'],
             dcanvas=self._dobj['canvas'],
@@ -904,7 +903,7 @@ class DataStock2(DataStock1):
 
         # ---- update data of group objects ----  0.15 s
         for k0 in lmobiles:
-            _class2_interactivity._update_mobile(
+            _interactivity._update_mobile(
                 dmobile=self._dobj['mobile'],
                 dref=self._dref,
                 ddata=self._ddata,
@@ -941,7 +940,7 @@ class DataStock2(DataStock1):
     # ----------------------
 
     def resize(self, event):
-        _class2_interactivity._set_dbck(
+        _interactivity._set_dbck(
             lax=self._dobj['axes'].keys(),
             daxes=self._dobj['axes'],
             dcanvas=self._dobj['canvas'],
@@ -955,7 +954,7 @@ class DataStock2(DataStock1):
                 v0['handle'].manager.toolbar.__class__,
                 v0['handle'].manager.toolbar,
             ).home(*args)
-        _class2_interactivity._set_dbck(
+        _interactivity._set_dbck(
             lax=self._dobj['axes'].keys(),
             daxes=self._dobj['axes'],
             dcanvas=self._dobj['canvas'],
@@ -1014,7 +1013,7 @@ class DataStock2(DataStock1):
             gax += self._dobj['axes'][kax]['groupy']
         for gg in set([cur_groupx, cur_groupy]):
             if gg is not None and gg in gax:
-                out = _class2_interactivity._update_indices_nb(
+                out = _interactivity._update_indices_nb(
                     group=gg,
                     dgroup=self._dobj['group'],
                     ctrl=ctrl,
@@ -1055,7 +1054,7 @@ class DataStock2(DataStock1):
                 and cur_refx in self._dobj['axes'][kax]['refx']
             )
             if c0x:
-                ix = _class2_interactivity._get_ix_for_refx_only_1or2d(
+                ix = _interactivity._get_ix_for_refx_only_1or2d(
                     cur_data=cur_datax,
                     cur_ref=cur_refx,
                     eventdata=event.xdata,
@@ -1072,7 +1071,7 @@ class DataStock2(DataStock1):
                 and cur_refy in self._dobj['axes'][kax]['refy']
             )
             if c0y:
-                iy = _class2_interactivity._get_ix_for_refx_only_1or2d(
+                iy = _interactivity._get_ix_for_refx_only_1or2d(
                     cur_data=cur_datay,
                     cur_ref=cur_refy,
                     eventdata=event.ydata,
@@ -1142,7 +1141,7 @@ class DataStock2(DataStock1):
                 ][0]
                 for ax in lax
             ]
-            _class2_interactivity._set_dbck(
+            _interactivity._set_dbck(
                 lax=lax,
                 daxes=self._dobj['axes'],
                 dcanvas=self._dobj['canvas'],
@@ -1339,7 +1338,7 @@ class DataStock2(DataStock1):
                 return
 
             # update nb of visible indices
-            out = _class2_interactivity._update_indices_nb(
+            out = _interactivity._update_indices_nb(
                 group=group,
                 dgroup=self._dobj['group'],
                 ctrl=ctrl,
