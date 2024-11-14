@@ -15,6 +15,8 @@ import matplotlib.pyplot as plt
 # datastock-specific
 from .._class04_Plots import Plots as Collection
 from .._saveload import load
+from . import test_input as _input
+
 
 
 _PATH_HERE = os.path.dirname(__file__)
@@ -401,6 +403,9 @@ class Test02_Manipulate():
                     f"\t- expected: {tuple(shape)}"
                 )
                 raise Exception(msg)
+
+    def test10_add_bins(self):
+        _input.add_bins(self.coll)
 
     def test10_interpolate(self):
 
