@@ -10,7 +10,7 @@ import matplotlib.colors as mcolors
 from . import _generic_check
 from . import _class01_compute
 from . import _generic_utils_plot as _uplot
-from . import _class04_plot_as_array_1d  as _plot_as_array_1d
+from . import _class04_plot_as_array_1d as _plot_as_array_1d
 from . import _class04_plot_as_array_234d as _plot_as_array_234d
 
 
@@ -126,8 +126,7 @@ def plot_as_array(
     # --------------------------------
 
     if sameref:
-        from ._class import DataStock
-        cc = DataStock()
+        cc = coll.__class__()
         lk = ['keyX', 'keyY', 'keyZ', 'keyU']
         lk = [k0 for k0 in lk if dkeys[k0]['ref'] is not None]
         for ii, k0 in enumerate(lk):
@@ -602,7 +601,6 @@ def _check(
             dvminmax2[k1]['min'] = nanmin - margin
         else:
             dvminmax2[k1]['min'] = dvminmax[kk]['min']
-
 
         if dvminmax is None or dvminmax.get(kk, {}).get('max') is None:
             dvminmax2[k1]['max'] = nanmax + margin
