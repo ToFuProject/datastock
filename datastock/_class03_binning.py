@@ -6,9 +6,6 @@ Created on Thu Jan  5 20:14:40 2023
 """
 
 
-import warnings
-
-
 import numpy as np
 import datastock as ds
 
@@ -55,7 +52,7 @@ def binning(
 
     # keys
     isbs, bin_data0 = _check_bs(
-        coll=coll, 
+        coll=coll,
         bin_data0=bin_data0,
         bin_data1=bin_data1,
     )
@@ -65,7 +62,7 @@ def binning(
 
     nobin = False
     if isbs:
-        
+
         # add ref and data
         kr, kd, ddatan, nobin = _interpolate(
             coll=coll,
@@ -80,16 +77,16 @@ def binning(
             store=store,
             store_keys=store_keys,
         )
-        
+
         # safety check
         if nobin is False:
             lk = list(ddatan.keys())
             data = [ddatan[k0]['data'] for k0 in lk]
             bin_data0 = [ddatan[k0]['bin_data'] for k0 in lk]
-        
+
     # --------------------
     # do the actua binning
-    
+
     if nobin is False:
         dout = ds._class1_binning.binning(
             coll=coll,
@@ -118,14 +115,14 @@ def binning(
 
         # --------------------------------
         # remove intermediate ref and data
-    
+
         if isbs is True:
             for dd in data + bin_data0 + [kd]:
                 if dd in coll.ddata.keys():
                     coll.remove_data(dd)
             if kr in coll.dref.keys():
                 coll.remove_ref(kr)
-                
+
             for k0 in data:
                 k1 = [k1 for k1, v1 in ddatan.items() if v1['data'] == k0][0]
                 dout[k1] = dict(dout[k0])
@@ -151,31 +148,58 @@ def _check_bs(
     bin_data0=None,
     bin_data1=None,
 ):
-    
-    wbs = coll._which_bsplines
-    lok_bs = [
-        k0 for k0, v0 in coll.dobj.get(wbs, {}).items()
-        if len(v0['ref']) == 1
-    ]
-    lok_dbs = [
-        k0 for k0, v0 in coll.ddata.items()
-        if v0.get(wbs) is not None
-        and len(v0[wbs]) == 1
-        and v0[wbs][0] in coll.dobj.get(wbs, {}).keys()
-        and len(coll.dobj[wbs][v0[wbs][0]]['ref']) == 1
-    ]
-        
-    c0 = (
-        isinstance(bin_data0, str)
-        and bin_data1 is None
-        and bin_data0 in lok_dbs + lok_bs
-    )
-    
-    if bin_data0 in lok_bs:
-        bin_data0 = coll.dobj[wbs][bin_data0]['apex'][0]
-    
+
+    # ----------------
+    # Has bsplines
+    # ----------------
+
+    if hasattr(coll, '_which_bsplines'):
+
+        # ----------------
+        # list of bsplines
+
+        wbs = coll._which_bsplines
+        lok_bs = [
+            k0 for k0, v0 in coll.dobj.get(wbs, {}).items()
+            if len(v0['ref']) == 1
+        ]
+
+        # ----------------
+        # list data with bsplines
+
+        lok_dbs = [
+            k0 for k0, v0 in coll.ddata.items()
+            if v0.get(wbs) is not None
+            and len(v0[wbs]) == 1
+            and v0[wbs][0] in coll.dobj.get(wbs, {}).keys()
+            and len(coll.dobj[wbs][v0[wbs][0]]['ref']) == 1
+        ]
+
+        # ----------------
+        # flag whether is bsplines
+
+        c0 = (
+            isinstance(bin_data0, str)
+            and bin_data1 is None
+            and bin_data0 in lok_dbs + lok_bs
+        )
+
+        # -----------------
+        # adjust bin_data0 from key_bs to key_apex
+
+        if bin_data0 in lok_bs:
+            bin_data0 = coll.dobj[wbs][bin_data0]['apex'][0]
+
+    # ----------------
+    # Does not have bsplines
+    # ----------------
+
+    else:
+
+        c0 = False
+
     return c0, bin_data0
-        
+
 
 # ######################################################
 # ######################################################
@@ -213,7 +237,7 @@ def _interpolate(
 
     # ---------
     # sampling
-    
+
     ddata = ds._class1_binning._check_data(
         coll=coll,
         data=data,
@@ -221,7 +245,7 @@ def _interpolate(
         store=True,
     )
     lkdata = list(ddata.keys())
-    
+
     # --------------------
     # bins
 
@@ -235,7 +259,7 @@ def _interpolate(
 
     # ----------------------
     # npts for interpolation
-    
+
     dv = np.abs(np.diff(vect))
     dvmean = np.mean(dv) + np.std(dv)
     db = np.mean(np.diff(dbins0[lkdata[0]]['edges']))
@@ -263,10 +287,10 @@ def _interpolate(
 
     # -------------------
     #  add ref
-    
+
     kr = "ntemp"
     kd = "xxtemp"
-    
+
     coll.add_ref(kr, size=xx.size)
     coll.add_data(kd, data=xx, ref=kr, units=coll.ddata[kknots]['units'])
 
@@ -301,7 +325,7 @@ def _interpolate(
         #     )
         #     err.args = (msg,)
         #     raise err
-        
+
         # interpolate_data
         kdn = f"kbd{ii}_temp"
         coll.interpolate(
@@ -327,33 +351,33 @@ def _get_nobins(
     store=None,
     store_keys=None,
 ):
-    
+
     lk = list(ddata.keys())
     wbs = coll._which_bsplines
-    
+
     if isinstance(store_keys, str):
         store_keys = [store_keys]
-    
+
     dout = {}
     for ii, k0 in enumerate(lk):
-        
+
         axis = ddata[k0]['ref'].index(coll.dobj[wbs][key_bs]['ref'][0])
-        
+
         shape = list(ddata[k0]['data'].shape)
         nb = dbins0[k0]['edges'].size - 1
         shape[axis] = nb
-        
+
         ref = list(ddata[k0]['ref'])
         ref[axis] = dbins0[k0]['bin_ref'][0]
-        
+
         dout[store_keys[ii]] = {
             'data': np.zeros(shape, dtype=float),
             'ref': tuple(ref),
             'units': ddata[k0]['units'],
         }
-        
+
     if store is True:
         for k0, v0 in dout.items():
             coll.add_data(key=k0, **v0)
-        
+
     return dout
