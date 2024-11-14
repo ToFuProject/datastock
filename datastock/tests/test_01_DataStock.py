@@ -14,7 +14,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # datastock-specific
-from .._class import DataStock
+from .._class04_Plots import Plots as Collection
 from .._saveload import load
 
 
@@ -210,7 +210,7 @@ class Test01_Instanciate():
 
     @classmethod
     def setup_class(cls):
-        cls.st = DataStock()
+        cls.st = Collection()
         cls.nc = 5
         cls.nx = 80
         cls.lnt = [100, 90, 80, 120, 80]
@@ -240,7 +240,7 @@ class Test02_Manipulate():
 
     @classmethod
     def setup_class(cls):
-        cls.st = DataStock()
+        cls.st = Collection()
         cls.nc = 5
         cls.nx = 80
         cls.lnt = [100, 90, 80, 120, 80]
