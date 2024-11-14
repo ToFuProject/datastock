@@ -7,7 +7,9 @@ Created on Thu Jan  5 20:14:40 2023
 
 
 import numpy as np
-import datastock as ds
+
+
+from . import _class01_binning
 
 
 # ############################################################
@@ -88,7 +90,7 @@ def binning(
     # do the actua binning
 
     if nobin is False:
-        dout = ds._class1_binning.binning(
+        dout = _class01_binning.binning(
             coll=coll,
             data=data,
             data_units=data_units,
@@ -238,7 +240,7 @@ def _interpolate(
     # ---------
     # sampling
 
-    ddata = ds._class1_binning._check_data(
+    ddata = _class01_binning._check_data(
         coll=coll,
         data=data,
         data_units=data_units,
@@ -249,7 +251,7 @@ def _interpolate(
     # --------------------
     # bins
 
-    dbins0 = ds._class1_binning._check_bins(
+    dbins0 = _class01_binning._check_bins(
         coll=coll,
         lkdata=lkdata,
         bins=bins0,
