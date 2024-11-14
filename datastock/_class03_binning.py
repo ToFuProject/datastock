@@ -99,8 +99,9 @@ def main(
 
     """
 
-    # ----------
-    # checks
+    # ---------------------
+    # checks inputs
+    # ---------------------
 
     # keys
     (
@@ -110,15 +111,18 @@ def main(
      verb, store, returnas,
      ) = _check(**locals())
 
-    # --------------
-    # actual binning
+    # -------------------------
+    # binning with fixed edges
+    # -------------------------
 
     if dvariable['bin0'] is False and dvariable['bin1'] is False:
 
         dout = {k0: {'units': v0['units']} for k0, v0 in ddata.items()}
         for k0, v0 in ddata.items():
 
+            # -------------
             # handle dbins1
+
             if dbins1 is None:
                 bins1, vect1, bin_ref1 = None, None, None
             else:
@@ -126,7 +130,9 @@ def main(
                 vect1 = dbins1['data']
                 bin_ref1 = dbins1[k0].get('bin_ref')
 
+            # ------------
             # compute
+
             dout[k0]['data'], dout[k0]['ref'] = _bin_fixed_bin(
                 # data to bin
                 data=v0['data'],
@@ -147,6 +153,10 @@ def main(
                 variable_data=dvariable['data'],
             )
 
+    # -------------------------
+    # binning with variable edges
+    # -------------------------
+
     else:
         msg = (
             "Variable bin vectors not implemented yet!\n"
@@ -156,8 +166,9 @@ def main(
         )
         raise NotImplementedError(msg)
 
-    # --------------
+    # ---------------------
     # storing
+    # ---------------------
 
     if store is True:
 
@@ -167,16 +178,18 @@ def main(
             store_keys=store_keys,
         )
 
-    # -------------
+    # ---------------------
     # return
+    # ---------------------
 
     if returnas is True:
         return dout
 
 
-# ####################################
-#       check
-# ####################################
+# ################################################################
+# ################################################################
+#        Check inputs
+# ################################################################
 
 
 def _check(
@@ -398,6 +411,12 @@ def _check(
     )
 
 
+# ################################################################
+# ################################################################
+#        Check data
+# ################################################################
+
+
 def _check_data(
     coll=None,
     data=None,
@@ -427,7 +446,7 @@ def _check_data(
         all([
             isinstance(dd, str)
             and dd in coll.ddata.keys()
-            and coll.ddata[dd]['data'].ndim == coll.ddata[data[0]]['data'].ndim
+            and coll.ddata[dd]['ref'] == coll.ddata[data[0]]['ref']
             for dd in data
         ]),
         all([
@@ -481,6 +500,12 @@ def _check_data(
         }
 
     return ddata
+
+
+# ################################################################
+# ################################################################
+#        Check bins
+# ################################################################
 
 
 def _check_bins(
@@ -571,6 +596,12 @@ def _check_bins(
             dbins[k0]['edges'] = bin_edges
 
     return dbins
+
+
+# ################################################################
+# ################################################################
+#        Check bins data
+# ################################################################
 
 
 def _check_bins_data(
@@ -1074,6 +1105,8 @@ def _bin_fixed_bin(
 
     return val, ref
 
+
+# #######################################################
 # #######################################################
 #           Store
 # #######################################################
@@ -1093,6 +1126,7 @@ def _store(
 
     ldef = [f"{k0}_binned" for k0 in dout.items()]
     lex = list(coll.ddata.keys())
+
     store_keys = _generic_check._check_var_iter(
         store_keys, 'store_keys',
         types=list,
