@@ -1,10 +1,6 @@
 # -*- coding: utf-8 -*-
 
 
-# Built-in
-import copy
-
-
 # Common
 import numpy as np
 import astropy.units as asunits
@@ -556,7 +552,14 @@ class DataStock1(Previous):
             return
 
         if param == 'key':
-            ind = np.argsort(list(dd.keys()))
+            if which == 'ref':
+                lk = list(self.dref.keys())
+            elif which == 'data':
+                lk = list(self.ddata.keys())
+            else:
+                lk = list(self.dobj.get(which, {}).keys())
+            ind = np.argsort(lk)
+
         elif isinstance(param, str):
             ind = np.argsort(
                 self.get_param(param, which=which, returnas=np.ndarray)[param]
@@ -564,6 +567,7 @@ class DataStock1(Previous):
         else:
             msg = "Arg param must be a valid str\n  Provided: {}".format(param)
             raise Exception(msg)
+
         return ind
 
     def sortby(self, param=None, order=None, which=None):
@@ -640,7 +644,9 @@ class DataStock1(Previous):
         >>> st.add_data(key='t0', data=t0)
         >>> st.add_data(key='x', data=x)
         >>> st.add_data(key='xt', data=xt)
-        >>> hasref, hasvect, ref, key_vect, dind = st.get_ref_vector(key='xt', ref='nt', values=[2, 3, 3.1, 5])
+        >>> hasref, hasvect, ref, key_vect, dind = st.get_ref_vector(
+        >>>     key='xt', ref='nt', values=[2, 3, 3.1, 5],
+        >>> )
 
         In the above example:
             - hasref = True: 'xt' has 'nt' has ref
@@ -651,7 +657,7 @@ class DataStock1(Previous):
                 'key': [2, 3, 3.1, 5],  # the desired time points
                 'ind':  [2, 3, 3, 5],   # the indices of t in t0
                 'indu': [2, 3, 5]       # the unique indices of t in t0
-                'indr': (3, 4),         # bool array showing, for each indu, matching ind
+                'indr': (3, 4),         # bool array with ind for each indu
                 'indok': [True, False, ...]
               }
 
@@ -820,7 +826,7 @@ class DataStock1(Previous):
         bin_data0: the data used to compute binning indices, can be:
             - a str, key to a ddata item
             - a np.ndarray
-            _ a list of any of the above if each data has different size along axis
+            - a list of any of the above if each data has diff. size along axis
 
         bin_units: str
             only used if integrate = True and bin_data is a np.ndarray
@@ -829,7 +835,7 @@ class DataStock1(Previous):
             flag indicating whether binning is used for integration
             Implies that:
                 Only usable for 1d binning (axis has to be a single index)
-                data is multiplied by the underlying bin_data0 step prior to binning
+                data is multiplied by bin_data0 step prior to binning
 
         statistic: str
             the statistic kwd feed to scipy.stats.binned_statistic()
