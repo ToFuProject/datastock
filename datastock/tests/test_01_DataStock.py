@@ -6,7 +6,6 @@ This module contains tests for tofu.geom in its structured version
 
 # Built-in
 import os
-import warnings
 
 
 # Standard
@@ -70,7 +69,10 @@ def _add_data(st=None, nc=None, nx=None, lnt=None):
 
     ne = np.logspace(15, 21, 11)
     Te = np.logspace(1, 5, 21)
-    pec = np.exp(-(ne[:, None] - 1e18)**2/1e5**2 - (Te[None, :] - 5e3)**2/3e3**2)
+    pec = np.exp(
+        -(ne[:, None] - 1e18)**2/1e5**2
+        - (Te[None, :] - 5e3)**2/3e3**2
+    )
 
     lt = [np.linspace(1, 10, nt) for nt in lnt]
     lprof = [(1 + np.cos(t)[:, None]) * x[None, :] for t in lt]
@@ -392,9 +394,10 @@ class Test02_Manipulate():
 
             shape.insert(ax[0], nb)
             if dout[k0]['data'].shape != tuple(shape):
+                shstr = dout[k0]['data'].shape
                 msg = (
                     "Mismatching shapes for case {ii}!\n"
-                    f"\t- dout['{k0}']['data'].shape = {dout[k0]['data'].shape}\n"
+                    f"\t- dout['{k0}']['data'].shape = {shstr}\n"
                     f"\t- expected: {tuple(shape)}"
                 )
                 raise Exception(msg)
@@ -416,7 +419,7 @@ class Test02_Manipulate():
         zipall = zip(lk, lref, lax, llog, lgrid, lx0, lx1, ldom)
         for ii, (kk, rr, aa, lg, gg, x0, x1, dom) in enumerate(zipall):
 
-            domain = self.st.get_domain_ref(domain=dom)
+            _ = self.st.get_domain_ref(domain=dom)
 
             dout = self.st.interpolate(
                 keys=kk,
@@ -490,7 +493,7 @@ class Test02_Manipulate():
             assert isinstance(dout[kk]['data'], np.ndarray)
 
             if not (dout[kk]['data'].shape == ss and dout[kk]['ref'] == ri):
-                lstr = [f'\t- {k0}: {v0}' for k0, v0 in dparams.items()]
+                # lstr = [f'\t- {k0}: {v0}' for k0, v0 in dparams.items()]
                 msg = (
                     "Wrong interpolation shape / ref:\n"
                     f"\t- ii: {ii}\n"
@@ -511,7 +514,6 @@ class Test02_Manipulate():
 
                 )
                 raise Exception(msg)
-
 
                 # Not tested: float, store=True, inplace
 
@@ -553,7 +555,9 @@ class Test02_Manipulate():
         del dax
 
     # def test18_plot_BvsA_as_distribution(self):
-    #     dax = self.st.plot_BvsA_as_distribution(keyA='prof0', keyB='prof0-bis')
+    #     dax = self.st.plot_BvsA_as_distribution(
+    #         keyA='prof0', keyB='prof0-bis',
+    #     )
     #     plt.close('all')
     #     del dax
 
