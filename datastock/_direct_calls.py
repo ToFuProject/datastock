@@ -4,7 +4,7 @@ import numpy as np
 
 
 # library-specific
-from ._class import DataStock
+from ._class04_Plots import Plots as Collection
 
 
 __all__ = [
@@ -39,7 +39,7 @@ def plot_as_array(data=None):
     # ---------------------
     # Instanciate datastock
 
-    st = DataStock()
+    st = Collection()
     st.add_data(key='data', data=data)
 
     return st.plot_as_array(inplace=True)
@@ -67,7 +67,7 @@ def plot_BvsA_as_distribution(dataA=None, dataB=None):
     # ---------------------
     # Instanciate datastock
 
-    st = DataStock()
+    st = Collection()
     st.add_data(key='dataA', data=dataA)
     st.add_data(key='dataB', data=dataB)
 

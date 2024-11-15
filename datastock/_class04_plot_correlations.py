@@ -15,9 +15,9 @@ from matplotlib import gridspec
 
 # library-specific
 from . import _generic_check
-from . import _plot_BvsA_as_distribution_check
-from . import _plot_text
-from . import _class2_interactivity
+from . import _class04_plot_BvsA_as_distribution_check as _plot_BvsA_as_distribution_check
+from . import _class04_plot_text as _plot_text
+from . import _class02_interactivity
 
 
 __all__ = ['plot_correlations']

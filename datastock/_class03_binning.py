@@ -29,11 +29,11 @@ _DUFUNC = {
 
 # ############################################################
 # ############################################################
-#               interpolate spectral
+#               main
 # ############################################################
 
 
-def binning(
+def main(
     coll=None,
     data=None,
     data_units=None,
@@ -87,7 +87,7 @@ def binning(
         flag indicating whether binning is used for integration
         Implies that:
             Only usable for 1d binning (axis has to be a single index)
-            data is multiplied by the underlying bin_data0 step prior to binning
+            data is multiplied by the underlying bin_data0 step before binning
 
     statistic: str
         the statistic kwd feed to scipy.stats.binned_statistic()
@@ -99,8 +99,9 @@ def binning(
 
     """
 
-    # ----------
-    # checks
+    # ---------------------
+    # checks inputs
+    # ---------------------
 
     # keys
     (
@@ -110,15 +111,18 @@ def binning(
      verb, store, returnas,
      ) = _check(**locals())
 
-    # --------------
-    # actual binning
+    # -------------------------
+    # binning with fixed edges
+    # -------------------------
 
     if dvariable['bin0'] is False and dvariable['bin1'] is False:
 
         dout = {k0: {'units': v0['units']} for k0, v0 in ddata.items()}
         for k0, v0 in ddata.items():
 
+            # -------------
             # handle dbins1
+
             if dbins1 is None:
                 bins1, vect1, bin_ref1 = None, None, None
             else:
@@ -126,7 +130,9 @@ def binning(
                 vect1 = dbins1['data']
                 bin_ref1 = dbins1[k0].get('bin_ref')
 
+            # ------------
             # compute
+
             dout[k0]['data'], dout[k0]['ref'] = _bin_fixed_bin(
                 # data to bin
                 data=v0['data'],
@@ -147,6 +153,10 @@ def binning(
                 variable_data=dvariable['data'],
             )
 
+    # -------------------------
+    # binning with variable edges
+    # -------------------------
+
     else:
         msg = (
             "Variable bin vectors not implemented yet!\n"
@@ -156,8 +166,9 @@ def binning(
         )
         raise NotImplementedError(msg)
 
-    # --------------
+    # ---------------------
     # storing
+    # ---------------------
 
     if store is True:
 
@@ -167,16 +178,18 @@ def binning(
             store_keys=store_keys,
         )
 
-    # -------------
+    # ---------------------
     # return
+    # ---------------------
 
     if returnas is True:
         return dout
 
 
-# ####################################
-#       check
-# ####################################
+# ################################################################
+# ################################################################
+#        Check inputs
+# ################################################################
 
 
 def _check(
@@ -337,7 +350,6 @@ def _check(
             )
             raise Exception(msg)
 
-
     # -----------------------
     # additional safety check
 
@@ -399,6 +411,12 @@ def _check(
     )
 
 
+# ################################################################
+# ################################################################
+#        Check data
+# ################################################################
+
+
 def _check_data(
     coll=None,
     data=None,
@@ -428,7 +446,7 @@ def _check_data(
         all([
             isinstance(dd, str)
             and dd in coll.ddata.keys()
-            and coll.ddata[dd]['data'].ndim == coll.ddata[data[0]]['data'].ndim
+            and coll.ddata[dd]['ref'] == coll.ddata[data[0]]['ref']
             for dd in data
         ]),
         all([
@@ -443,7 +461,6 @@ def _check_data(
         if not lc[0]:
             msg = "If storing, all data, bin data and bins must be declared!"
             raise Exception(msg)
-
 
     # if none => err
     if np.sum(lc) != 1:
@@ -483,6 +500,12 @@ def _check_data(
         }
 
     return ddata
+
+
+# ################################################################
+# ################################################################
+#        Check bins
+# ################################################################
 
 
 def _check_bins(
@@ -573,6 +596,12 @@ def _check_bins(
             dbins[k0]['edges'] = bin_edges
 
     return dbins
+
+
+# ################################################################
+# ################################################################
+#        Check bins data
+# ################################################################
 
 
 def _check_bins_data(
@@ -827,9 +856,10 @@ def _check_bins_data(
                 lim = safety_ratio * dvmean
                 db = np.mean(np.diff(dbins[k0]['edges']))
                 if db < lim:
+                    ss = f"{db}) are < {safety_ratio} * bin_data ({lim}"
                     msg = (
                         f"Uncertain binning for bin_data '{v0['key']}':\n"
-                        f"Binning steps ({db}) are < {safety_ratio} * bin_data ({lim}) step"
+                        f"Binning steps ({ss}) step"
                     )
                     raise Exception(msg)
 
@@ -1016,7 +1046,8 @@ def _bin_fixed_bin(
 
                 if statistic == 'sum_smooth':
                     val[tuple(sli)] *= (
-                        np.nansum(data[tuple(sli)]) / np.nansum(val[tuple(sli)])
+                        np.nansum(data[tuple(sli)])
+                        / np.nansum(val[tuple(sli)])
                     )
 
         else:
@@ -1039,7 +1070,8 @@ def _bin_fixed_bin(
 
                 if statistic == 'sum_smooth':
                     val[tuple(sli_val)] *= (
-                        np.nansum(data[tuple(sli)]) / np.nansum(val[tuple(sli_val)])
+                        np.nansum(data[tuple(sli)])
+                        / np.nansum(val[tuple(sli_val)])
                     )
 
     # ---------------
@@ -1073,6 +1105,8 @@ def _bin_fixed_bin(
 
     return val, ref
 
+
+# #######################################################
 # #######################################################
 #           Store
 # #######################################################
@@ -1084,7 +1118,6 @@ def _store(
     store_keys=None,
 ):
 
-
     # ----------------
     # check store_keys
 
@@ -1093,6 +1126,7 @@ def _store(
 
     ldef = [f"{k0}_binned" for k0 in dout.items()]
     lex = list(coll.ddata.keys())
+
     store_keys = _generic_check._check_var_iter(
         store_keys, 'store_keys',
         types=list,

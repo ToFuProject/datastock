@@ -9,7 +9,7 @@ from matplotlib import gridspec
 
 # library-specific
 from . import _generic_check
-from . import _plot_text
+from . import _class04_plot_text as _plot_text
 
 
 # #############################################################

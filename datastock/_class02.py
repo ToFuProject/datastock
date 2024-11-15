@@ -13,9 +13,8 @@ import matplotlib.pyplot as plt
 
 
 from . import _generic_check
-from ._class1 import *
-from . import _class2_interactivity
-from . import _class1_compute
+from ._class01 import DataStock1 as Previous
+from . import _class02_interactivity as _interactivity
 
 
 # #################################################################
@@ -24,7 +23,7 @@ from . import _class1_compute
 # #################################################################
 
 
-class DataStock2(DataStock1):
+class DataStock2(Previous):
     """ Handles matplotlib interactivity """
 
     _LPAXES = ['axes', 'type']
@@ -150,7 +149,7 @@ class DataStock2(DataStock1):
             else:
                 msg = (
                     f"In dmobile['{key}']:\n"
-                    "Nb. of different dtypes must match nb of different data!\n"
+                    "Nb. of diff. dtypes must match nb of diff. data!\n"
                     f"\t- dtype: {dtype}\n"
                     f"\t- data: {data}\n"
                 )
@@ -193,15 +192,15 @@ class DataStock2(DataStock1):
         # check refx, refy
 
         # if refx is None and refy is None:
-            # msg = f"Please provide at least refx or refy for axes {key}!"
-            # raise Exception(msg)
+        #     msg = f"Please provide at least refx or refy for axes {key}!"
+        #     raise Exception(msg)
 
         if isinstance(refx, str):
             refx = [refx]
         if isinstance(refy, str):
             refy = [refy]
 
-        c0 =(
+        c0 = (
             isinstance(refx, list)
             and all([rr in self._dref.keys() for rr in refx])
         )
@@ -209,7 +208,7 @@ class DataStock2(DataStock1):
             msg = "Arg refx must be a list of valid ref keys!"
             raise Exception(msg)
 
-        c0 =(
+        c0 = (
             isinstance(refy, list)
             and all([rr in self._dref.keys() for rr in refy])
         )
@@ -311,7 +310,7 @@ class DataStock2(DataStock1):
     # ------------------
 
     def show_commands(self, verb=None, returnas=None):
-        return _class2_interactivity.show_commands(
+        return _interactivity.show_commands(
             verb=verb,
             returnas=returnas,
         )
@@ -363,7 +362,7 @@ class DataStock2(DataStock1):
         # ----------
         # Check dgroup
 
-        dgroup, newgroup = _class2_interactivity._setup_dgroup(
+        dgroup, newgroup = _interactivity._setup_dgroup(
             dgroup=dgroup,
             dobj0=self._dobj,
             dref0=self._dref,
@@ -372,7 +371,7 @@ class DataStock2(DataStock1):
         # ----------
         # Check increment dict
 
-        dinc, newinc = _class2_interactivity._setup_dinc(
+        dinc, newinc = _interactivity._setup_dinc(
             dinc=dinc,
             lparam_ref=self.get_lparam(which='ref'),
             dref0=self._dref,
@@ -381,7 +380,7 @@ class DataStock2(DataStock1):
         # ----------------------------------------------------------
         # make sure all refs are known and are associated to a group
 
-        drefgroup = _class2_interactivity._setup_drefgroup(
+        drefgroup = _interactivity._setup_drefgroup(
             dref0=self._dref,
             dgroup=dgroup,
         )
@@ -389,8 +388,9 @@ class DataStock2(DataStock1):
         #  add indices to ref
         for k0, v0 in self._dref.items():
             if drefgroup[k0] is not None:
+                zeros = np.zeros((dgroup[drefgroup[k0]]['nmax'],), dtype=int)
                 self.add_indices_per_ref(
-                    indices=np.zeros((dgroup[drefgroup[k0]]['nmax'],), dtype=int),
+                    indices=zeros,
                     ref=k0,
                     distribute=False,
                 )
@@ -451,7 +451,7 @@ class DataStock2(DataStock1):
         # --------------------------
         # update mobile with group, group_vis and func
 
-        _class2_interactivity._setup_mobile(
+        _interactivity._setup_mobile(
             dmobile=self._dobj['mobile'],
             dref=self._dref,
             ddata=self._ddata,
@@ -460,7 +460,7 @@ class DataStock2(DataStock1):
         # --------------------
         # axes mobile, refs and canvas
 
-        daxcan = dict.fromkeys(self._dobj['axes'].keys())
+        # daxcan = dict.fromkeys(self._dobj['axes'].keys())
         for k0, v0 in self._dobj['axes'].items():
 
             # Update mobile
@@ -486,7 +486,7 @@ class DataStock2(DataStock1):
         # ---------
         # dkeys
 
-        dkeys = _class2_interactivity._setup_keys(dkeys=dkeys, dgroup=dgroup)
+        dkeys = _interactivity._setup_keys(dkeys=dkeys, dgroup=dgroup)
 
         # implement dict
         for ii, (k0, v0) in enumerate(dkeys.items()):
@@ -532,7 +532,7 @@ class DataStock2(DataStock1):
             **dinter,
         )
 
-        _class2_interactivity._set_dbck(
+        _interactivity._set_dbck(
             lax=self._dobj['axes'].keys(),
             daxes=self._dobj['axes'],
             dcanvas=self._dobj['canvas'],
@@ -600,43 +600,44 @@ class DataStock2(DataStock1):
         if self._warn_ifnotInteractive():
             return
         for k0, v0 in self._dobj['canvas'].items():
-            keyp = v0['handle'].mpl_connect('key_press_event', self.onkeypress)
-            keyr = v0['handle'].mpl_connect('key_release_event', self.onkeypress)
-            butp = v0['handle'].mpl_connect('button_press_event', self.mouseclic)
-            res = v0['handle'].mpl_connect('resize_event', self.resize)
-            butr = v0['handle'].mpl_connect('button_release_event', self.mouserelease)
-            close = v0['handle'].mpl_connect('close_event', self.on_close)
-            draw = v0['handle'].mpl_connect('draw_event', self.on_draw)
+            hand = v0['handle']
+            keyp = hand.mpl_connect('key_press_event', self.onkeypress)
+            keyr = hand.mpl_connect('key_release_event', self.onkeypress)
+            butp = hand.mpl_connect('button_press_event', self.mouseclic)
+            res = hand.mpl_connect('resize_event', self.resize)
+            butr = hand.mpl_connect('button_release_event', self.mouserelease)
+            close = hand.mpl_connect('close_event', self.on_close)
+            # draw = hand.mpl_connect('draw_event', self.on_draw)
             # Make sure resizing is doen before resize_event
             # works without re-initializing because not a Qt Action
-            v0['handle'].manager.toolbar.release = self.mouserelease
+            hand.manager.toolbar.release = self.mouserelease
             # v0['handle'].manager.toolbar.release_zoom = self.mouserelease
             # v0['handle'].manager.toolbar.release_pan = self.mouserelease
 
             # make sure home button triggers background update
             # requires re-initializing because home is a Qt Action
             # only created by toolbar.addAction()
-            v0['handle'].manager.toolbar.home = self.new_home
+            hand.manager.toolbar.home = self.new_home
 
             # if _init_toolbar() implemented (matplotlib > )
             error = False
-            if hasattr(v0['handle'].manager.toolbar, '_init_toolbar'):
+            if hasattr(hand.manager.toolbar, '_init_toolbar'):
                 try:
-                    v0['handle'].manager.toolbar._init_toolbar()
+                    hand.manager.toolbar._init_toolbar()
                 except NotImplementedError:
-                    v0['handle'].manager.toolbar.__init__(
-                        v0['handle'],
-                        v0['handle'].parent(),
+                    hand.manager.toolbar.__init__(
+                        hand,
+                        hand.parent(),
                     )
                 except Exception as err:
                     error = err
-            elif hasattr(v0['handle'], 'parent'):
+            elif hasattr(hand, 'parent'):
                 try:
-                    v0['handle'].manager.toolbar.__init__(
-                        v0['handle'],
-                        v0['handle'].parent(),
+                    hand.manager.toolbar.__init__(
+                        hand,
+                        hand.parent(),
                     )
-                except Exception as err:
+                except Exception:
                     error = True
             else:
                 error = True
@@ -644,9 +645,8 @@ class DataStock2(DataStock1):
             if error is not False:
                 import platform
                 import sys
-                import inspect
-                lstr0 = [f"\t- {k1}" for k1 in dir(v0['handle'])]
-                lstr1 = [f"\t- {k1}" for k1 in dir(v0['handle'].manager.toolbar)]
+                lstr0 = [f"\t- {k1}" for k1 in dir(hand)]
+                lstr1 = [f"\t- {k1}" for k1 in dir(hand.manager.toolbar)]
                 msg = (
                     f"platform: {platform.platform()}\n"
                     f"python: {sys.version}\n"
@@ -657,7 +657,7 @@ class DataStock2(DataStock1):
                     + "\n".join(lstr1)
                 )
                 if error is not True:
-                    msg += '\n' + str(err)
+                    msg += '\n' + str(error)
                 warnings.warn(msg)
 
             self._dobj['canvas'][k0]['cid'] = {
@@ -726,8 +726,8 @@ class DataStock2(DataStock1):
         # Get current group and ref
         groupx = self._dobj['axes'][kax]['groupx']
         groupy = self._dobj['axes'][kax]['groupy']
-        refx = self._dobj['axes'][kax]['refx']
-        refy = self._dobj['axes'][kax]['refy']
+        # refx = self._dobj['axes'][kax]['refx']
+        # refy = self._dobj['axes'][kax]['refy']
 
         # Get kinter
         kinter = list(self._dobj['interactivity'].keys())[0]
@@ -802,7 +802,7 @@ class DataStock2(DataStock1):
             types=str,
             allowed=lkax,
         )
-        ax = self._dobj['axes'][kax]['handle']
+        # ax = self._dobj['axes'][kax]['handle']
 
         # Check axes is relevant and toolbar not active
         lc = [
@@ -831,8 +831,8 @@ class DataStock2(DataStock1):
         cur_groupy = self._dobj['interactivity'][self.kinter]['cur_groupy']
         cur_refx = self._dobj['interactivity'][self.kinter]['cur_refx']
         cur_refy = self._dobj['interactivity'][self.kinter]['cur_refy']
-        cur_datax = self._dobj['interactivity'][self.kinter]['cur_datax']
-        cur_datay = self._dobj['interactivity'][self.kinter]['cur_datay']
+        # cur_datax = self._dobj['interactivity'][self.kinter]['cur_datax']
+        # cur_datay = self._dobj['interactivity'][self.kinter]['cur_datay']
 
         # Propagate indices through refs
         if cur_refx is not None:
@@ -871,7 +871,7 @@ class DataStock2(DataStock1):
                 ])
             ]
 
-        self._update_mobiles(lmobiles=lmobiles) # 0.2 s
+        self._update_mobiles(lmobiles=lmobiles)  # 0.2 s
 
         if self.debug:
             self.show_debug()
@@ -904,7 +904,7 @@ class DataStock2(DataStock1):
 
         # ---- update data of group objects ----  0.15 s
         for k0 in lmobiles:
-            _class2_interactivity._update_mobile(
+            _interactivity._update_mobile(
                 dmobile=self._dobj['mobile'],
                 dref=self._dref,
                 ddata=self._ddata,
@@ -913,20 +913,21 @@ class DataStock2(DataStock1):
 
         # --- Redraw all objects (due to background restore) --- 25 ms
         for k0, v0 in self._dobj['mobile'].items():
-            v0['handle'].set_visible(v0['visible'])
+            hand = v0['handle']
+            hand.set_visible(v0['visible'])
             try:
-                self._dobj['axes'][v0['axes']]['handle'].draw_artist(v0['handle'])
+                self._dobj['axes'][v0['axes']]['handle'].draw_artist(hand)
             except Exception as err:
                 print()
                 print(0, k0)            # DB
                 print(1, v0['axes'])    # DB
                 print(2, self._dobj['axes'][v0['axes']]['handle'])  # DB
-                print(3, v0['handle'])  # DB
+                print(3, hand)  # DB
                 print(
                     4, 'x and y data shapes: ',
-                    [vv.shape for vv in v0['handle'].get_data()]
+                    [vv.shape for vv in hand.get_data()]
                 )   # DB
-                print(5, 'data: ', v0['handle'].get_data())
+                print(5, 'data: ', hand.get_data())
                 print(err)              # DB
                 print()                 # DB
 
@@ -941,7 +942,7 @@ class DataStock2(DataStock1):
     # ----------------------
 
     def resize(self, event):
-        _class2_interactivity._set_dbck(
+        _interactivity._set_dbck(
             lax=self._dobj['axes'].keys(),
             daxes=self._dobj['axes'],
             dcanvas=self._dobj['canvas'],
@@ -955,7 +956,7 @@ class DataStock2(DataStock1):
                 v0['handle'].manager.toolbar.__class__,
                 v0['handle'].manager.toolbar,
             ).home(*args)
-        _class2_interactivity._set_dbck(
+        _interactivity._set_dbck(
             lax=self._dobj['axes'].keys(),
             daxes=self._dobj['axes'],
             dcanvas=self._dobj['canvas'],
@@ -1004,7 +1005,9 @@ class DataStock2(DataStock1):
         cur_datay = self._dobj['interactivity'][kinter]['cur_datay']
 
         shift = self._dobj['key']['shift']['val']
-        ctrl = any([self._dobj['key'][ss]['val'] for ss in ['control', 'ctrl']])
+        ctrl = any([
+            self._dobj['key'][ss]['val'] for ss in ['control', 'ctrl']
+        ])
 
         # Update number of indices (for visibility)
         gax = []
@@ -1014,7 +1017,7 @@ class DataStock2(DataStock1):
             gax += self._dobj['axes'][kax]['groupy']
         for gg in set([cur_groupx, cur_groupy]):
             if gg is not None and gg in gax:
-                out = _class2_interactivity._update_indices_nb(
+                out = _interactivity._update_indices_nb(
                     group=gg,
                     dgroup=self._dobj['group'],
                     ctrl=ctrl,
@@ -1055,7 +1058,7 @@ class DataStock2(DataStock1):
                 and cur_refx in self._dobj['axes'][kax]['refx']
             )
             if c0x:
-                ix = _class2_interactivity._get_ix_for_refx_only_1or2d(
+                ix = _interactivity._get_ix_for_refx_only_1or2d(
                     cur_data=cur_datax,
                     cur_ref=cur_refx,
                     eventdata=event.xdata,
@@ -1072,7 +1075,7 @@ class DataStock2(DataStock1):
                 and cur_refy in self._dobj['axes'][kax]['refy']
             )
             if c0y:
-                iy = _class2_interactivity._get_ix_for_refx_only_1or2d(
+                iy = _interactivity._get_ix_for_refx_only_1or2d(
                     cur_data=cur_datay,
                     cur_ref=cur_refy,
                     eventdata=event.ydata,
@@ -1120,15 +1123,15 @@ class DataStock2(DataStock1):
             if v0['handle'] == event.inaxes.figure.canvas
         ][0]
         mode = self._dobj['canvas'][can]['handle'].manager.toolbar.mode.lower()
-        c0 = 'pan' in  mode
+        c0 = 'pan' in mode
         c1 = 'zoom' in mode
 
         if c0 or c1:
             kax = self._dobj['interactivity'][self.kinter]['cur_ax_panzoom']
             if kax is None:
                 msg = (
-                    "Make sure you release the mouse button on an axes !"
-                    "\n Otherwise the background plot cannot be properly updated !"
+                    "Make sure you release the mouse button on an axes!"
+                    "\n Otherwise background plot can't be properly updated!"
                 )
                 raise Exception(msg)
             ax = self._dobj['axes'][kax]['handle']
@@ -1142,7 +1145,7 @@ class DataStock2(DataStock1):
                 ][0]
                 for ax in lax
             ]
-            _class2_interactivity._set_dbck(
+            _interactivity._set_dbck(
                 lax=lax,
                 daxes=self._dobj['axes'],
                 dcanvas=self._dobj['canvas'],
@@ -1193,7 +1196,7 @@ class DataStock2(DataStock1):
         ln = np.r_[ngen, nmov, ngrp, nind]
         if np.any(ln > 1) or np.sum(ln) > 2:
             return
-        if np.sum(ln) == 2 and (ngrp == 1 or nind ==1 ):
+        if np.sum(ln) == 2 and (ngrp == 1 or nind == 1):
             return
 
         # only keep relevant keys
@@ -1222,7 +1225,7 @@ class DataStock2(DataStock1):
             # group
             group = self._dobj['key'][event.key]['group']
             cx = any([
-                v0['groupx'] is not None and  group in v0['groupx']
+                v0['groupx'] is not None and group in v0['groupx']
                 for v0 in self._dobj['axes'].values()
             ])
             if cx:
@@ -1276,7 +1279,10 @@ class DataStock2(DataStock1):
                 imax = self._dobj['group'][groupx]['nmaxcur']
                 ii = int(event.key)
                 if ii > imax:
-                    msg = "Set to current max index for group '{groupx}': {imax}"
+                    msg = (
+                        f"Set to current max index for group '{groupx}':"
+                        f" {imax}"
+                    )
                     print(msg)
                 ii = min(ii, imax)
                 self._dobj['group'][groupx]['indcur'] = ii
@@ -1286,7 +1292,10 @@ class DataStock2(DataStock1):
                 imax = self._dobj['group'][groupy]['nmaxcur']
                 ii = int(event.key)
                 if ii > imax:
-                    msg = "Set to current max index for group '{groupy}': {imax}"
+                    msg = (
+                        f"Set to current max index for group '{groupy}':"
+                        f" {imax}"
+                    )
                     print(msg)
                 ii = min(ii, imax)
                 self._dobj['group'][groupy]['indcur'] = ii
@@ -1339,7 +1348,7 @@ class DataStock2(DataStock1):
                 return
 
             # update nb of visible indices
-            out = _class2_interactivity._update_indices_nb(
+            out = _interactivity._update_indices_nb(
                 group=group,
                 dgroup=self._dobj['group'],
                 ctrl=ctrl,
@@ -1380,7 +1389,7 @@ class DataStock2(DataStock1):
     # -------------------
 
     def on_close(self, event):
-        self.remove_all(excluded=['canvas']) # to avoid crash
+        self.remove_all(excluded=['canvas'])  # to avoid crash
         print("\n---- CLOSING interactive figure ----")
         print(f"\tleft in dax: {self.get_nbytes()[0]/1000} Ko\n")
 
