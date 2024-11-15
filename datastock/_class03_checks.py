@@ -21,7 +21,8 @@ def check(
     # custom names
     key_edges=None,
     key_cents=None,
-    key_ref=None,
+    key_ref_edges=None,
+    key_ref_cents=None,
     # additional attributes
     **kwdargs,
 ):
@@ -70,17 +71,35 @@ def check(
     # ----------------------------
     # make tuple of 1d flat arrays
 
-    edges_new = []
+    edges_new = [None for ee in edges]
     for ii, ee in enumerate(edges):
         if isinstance(ee, str):
-            edges_new.append(ee)
+            edges_new[ii] = ee
         else:
-            edges_new.append(_generic_check._check_flat1darray(
+            edges_new[ii] = _generic_check._check_flat1darray(
                 ee, f'edges[{ii}]',
                 dtype=float,
                 unique=True,
                 can_be_None=False,
-            ))
+            )
+
+    # ---------------------
+    # safety check for NaNs
+
+    for ii, ee in enumerate(edges_new):
+        if isinstance(ee, str):
+            ee = coll.ddata[ee]['data']
+
+        isnan = np.any(np.isnan(ee))
+        if isnan:
+            msg = (
+                f"Bins '{key}', provided edges have NaNs!\n"
+                f"\t- edges[{ii}]: {ee}"
+            )
+            raise Exception(msg)
+
+    # --------------
+    # wrap up
 
     edges = edges_new
     nd = f"{len(edges)}d"
@@ -91,21 +110,21 @@ def check(
 
     for k0, v0 in kwdargs.items():
         if isinstance(v0, str) or v0 is None:
-            if nd == 1:
+            if nd == '1d':
                 kwdargs[k0] = (v0,)
             else:
                 kwdargs[k0] = (v0, v0)
 
         c0 = (
             isinstance(kwdargs[k0], tuple)
-            and len(kwdargs[k0]) == nd
+            and len(kwdargs[k0]) == len(edges)
             and all([isinstance(vv, str) or vv is None for vv in kwdargs[k0]])
         )
         if not c0:
             msg = (
                 f"Bins '{key}', arg kwdargs must be dict of data attributes\n"
                 "Where each attribute is provided as a tuple of "
-                "len() = len(edges)\n"
+                f"len() = len(edges) = ({len(edges)})\n"
                 f"Provided:\n\t{kwdargs}"
             )
             raise Exception(msg)
@@ -114,28 +133,52 @@ def check(
     # other keys
     # -----------------
 
+    key_edges = _check_keys_ref(key_edges, edges, key, 'key_edges')
+    key_cents = _check_keys_ref(key_cents, edges, key, 'key_cents')
+    key_ref_edges = _check_keys_ref(key_ref_edges, edges, key, 'key_ref_edges')
+    key_ref_cents = _check_keys_ref(key_ref_cents, edges, key, 'key_ref_cents')
+
+    # -----------------
+    # edges, cents
+    # -----------------
+
     # -----------------
     # key_ref
 
     dref = {}
     ddata = {}
-    cents = [None for ii in edges]
+    shape_edges = [None for ee in edges]
+    is_linear = [None for ee in edges]
+    is_log = [None for ee in edges]
+    units = [None for ee in edges]
     for ii, ee in enumerate(edges):
-
-        edges[ii], cents[ii] = _to_dict(
+        (
+            key_edges[ii], key_cents[ii],
+            key_ref_edges[ii], key_ref_cents[ii],
+            shape_edges[ii],
+            is_linear[ii], is_log[ii],
+            units[ii],
+        ) = _to_dict(
             coll=coll,
             key=key,
             ii=ii,
-            edge=ee,
+            ee=ee,
             # custom names
-            key_cents=key_cents,
-            key_ref=key_ref,
+            key_edge=key_edges[ii],
+            key_cent=key_cents[ii],
+            key_ref_edge=key_ref_edges[ii],
+            key_ref_cent=key_ref_cents[ii],
             # dict
             dref=dref,
             ddata=ddata,
             # attributes
             **{kk: vv[ii] for kk, vv in kwdargs.items()},
         )
+
+    # -------------
+    # ref and shape
+
+    shape_cents = tuple([ss - 1 for ss in shape_edges])
 
     # --------------
     # dobj
@@ -145,11 +188,16 @@ def check(
     dobj = {
         coll._which_bins: {
             key: {
-                'nd': '1d',
-                'edges': tuple(edges),
-                'cents': (key_cents,),
-                'ref': (key_ref,),
-                # 'shape': (nb,),
+                'nd': nd,
+                'edges': tuple(key_edges),
+                'cents': tuple(key_cents),
+                'ref_edges': tuple(key_ref_edges),
+                'ref_cents': tuple(key_ref_cents),
+                'shape_edges': tuple(shape_edges),
+                'shape_cents': tuple(shape_cents),
+                'units': tuple(units),
+                'is_linear': tuple(is_linear),
+                'is_log': tuple(is_log),
             },
         },
     }
@@ -167,7 +215,32 @@ def _check_edges_str(edges, coll):
 
 def _check_edges_array(edges):
     return (
+        isinstance(edges, (list, tuple, np.ndarray))
+        and np.array(edges).ndim == 1
+        and np.array(edges).size > 1
     )
+
+
+def _check_keys_ref(keys, edges, key, keys_name):
+    if keys is None:
+        keys = [None for ee in edges]
+    elif isinstance(keys, str):
+        keys = [keys for ee in edges]
+    elif isinstance(keys, (list, tuple)):
+        c0 = (
+            len(keys) == len(edges)
+            and all([isinstance(ss, str) or ss is None for ss in keys])
+        )
+        if not c0:
+            msg = (
+                f"Bins '{key}', arg '{keys_name}' should be either:\n"
+                "\t- None (automatically set)\n"
+                "\t- str to existing key\n"
+                "\t- tuple of the above of len() = {len(edges)}\n"
+                "Provided:\n\t{keys}"
+            )
+            raise Exception(msg)
+    return keys
 
 
 # ##############################################################
@@ -176,46 +249,75 @@ def _check_edges_array(edges):
 # ###############################################################
 
 
-# TBF
 def _to_dict(
     coll=None,
     key=None,
     ii=None,
     ee=None,
+    # custom names
+    key_edge=None,
+    key_cent=None,
+    key_ref_edge=None,
+    key_ref_cent=None,
     # dict
     dref=None,
     ddata=None,
-    # custom names
-    key_edge=None,
-    key_cents=None,
-    key_ref=None,
     # additional attributes
     **kwdargs,
 ):
+    """ check key_edge, key_cents, key_ref_edge, key_ref_cent
 
+    If new, append to dref and ddata
+    """
+
+    # -------------
     # attributes
+    # -------------
+
     latt = ['dim', 'quant', 'name', 'units']
     dim, quant, name, units = [kwdargs.get(ss) for ss in latt]
 
     # -------------
-    # prepare dict
+    # edges
+    # -------------
 
     # ref
     if isinstance(ee, str):
-        pass
+        key_edge = ee
+        ee = coll.ddata[key_edge]['data']
+        units = coll.ddata[key_edge]['units']
+
     else:
+
+        # ------------------
+        # key_ref_edge
+
         defk = f"{key}_ne{ii}"
         lout = [k0 for k0, v0 in coll.dref.items()]
-        key_ref = _generic_check._check_var(
-            key_ref[ii], defk,
+        key_ref_edge = _generic_check._check_var(
+            key_ref_edge, defk,
             types=str,
             default=defk,
-            excluded=lout,
         )
-        dref[key_ref] = {'size': ee.size}
+        if key_ref_edge in lout:
+            size = coll.dref[key_ref_edge]['size']
+            c0 = size == ee.size
+            if not c0:
+                msg = (
+                    f"Bins '{key}', arg key_ref_edges[{ii}]"
+                    " conflicts with existing ref:\n"
+                    f"\t- coll.dref['{key_ref_edge}']['size'] = {size}"
+                    f"\t- edges['{ii}'].size = {ee.size}\n"
+                )
+                raise Exception(msg)
+        else:
+            dref[key_ref_edge] = {'size': ee.size}
 
-        #
+        # ---------------
+        # key_edge
+
         defk = f"{key}_e{ii}"
+        lout = [k0 for k0, v0 in coll.ddata.items()]
         key_edge = _generic_check._check_var(
             key_edge, defk,
             types=str,
@@ -224,48 +326,96 @@ def _to_dict(
         )
         ddata[key_edge] = {
             'data': ee,
-            'ref': key_ref,
+            'ref': key_ref_edge,
             **kwdargs,
         }
 
+        units = kwdargs.get('units')
+
+    # shape
+    shape_edge = ee.size
+
+    # ------------------
+    # is_linear, is_log
+    # ------------------
+
+    is_log = (
+        np.all(ee > 0.)
+        and np.allclose(ee[1:] / ee[:-1], ee[1]/ee[0], atol=0, rtol=1e-6)
+    )
+
+    is_linear = np.allclose(np.diff(ee), ee[1] - ee[0], atol=0, rtol=1e-6)
+    assert not (is_log and is_linear), ee
+
+    # ------------
+    # cents
+    # ------------
+
+    # ------------
+    # key_ref_cent
+
     defk = f"{key}_nc{ii}"
     lout = [k0 for k0, v0 in coll.dref.items()]
-    key_ref = _generic_check._check_var(
-        key_ref, defk,
+    key_ref_cent = _generic_check._check_var(
+        key_ref_cent, defk,
         types=str,
         default=defk,
-        excluded=lout,
     )
-    dref[key_ref] = {'size': ee.size - 1}
-
-    # dref
-    if key_ref not in coll.dref.keys():
-        dref = {
-            key_ref: {
-                'size': ee.size,
-            },
-        }
+    if key_ref_cent in lout:
+        size = coll.dref[key_ref_cent]['size']
+        c0 = size == (ee.size - 1)
+        if not c0:
+            msg = (
+                f"Bins '{key}', arg key_ref_cents[{ii}]"
+                " conflicts with existing ref:\n"
+                f"\t- coll.dref['{key_ref_edge}']['size'] = {size}"
+                f"\t- edges['{ii}'].size - 1 = {ee.size-1}\n"
+            )
+            raise Exception(msg)
     else:
-        dref = None
+        dref[key_ref_cent] = {'size': ee.size - 1}
 
-    # ddata
-    key_cent = None
-    if key_cents not in coll.ddata.keys():
-        ddata = {
-            key_cents: {
-                # 'data': cents,
-                'units': units,
-                # 'source': None,
-                'dim': dim,
-                'quant': quant,
-                'name': name,
-                'ref': key_ref,
-            },
-        }
+    # ------------
+    # key_cent
+
+    defk = f"{key}_c{ii}"
+    lout = [k0 for k0, v0 in coll.ddata.items()]
+    key_cent = _generic_check._check_var(
+        key_cent, defk,
+        types=str,
+        default=defk,
+    )
+    if key_cent in lout:
+        ref = coll.ddata[key_cent]['ref']
+        c0 = ref == (key_ref_cent,)
+        if not c0:
+            msg = (
+                f"Bins '{key}', arg key_ref_cents[{ii}]"
+                " conflicts with existing ref:\n"
+                f"\t- coll.ddata['{key_ref_cent}']['ref'] = {ref}"
+                f"\t- key_ref_cent = {key_ref_cent}\n"
+            )
+            raise Exception(msg)
+
     else:
-        ddata = None
+        if is_log:
+            cents = np.sqrt(ee[:-1] * ee[1:])
+        else:
+            cents = 0.5 * (ee[1:] + ee[:-1])
 
-    return key_edge, key_cent
+        ddata[key_cent] = {
+            'data': cents,
+            'ref': (key_ref_cent,),
+            **kwdargs,
+        }
+
+    return (
+        key_edge, key_cent,
+        key_ref_edge, key_ref_cent,
+        shape_edge,
+        is_linear, is_log,
+        units,
+    )
 
 
 # ##############################################################
@@ -306,11 +456,17 @@ def remove_bins(coll=None, key=None, propagate=None):
     for k0 in key:
 
         # specific data
-        kdata = list(coll.dobj[wbins][k0]['cents'])
+        kdata = (
+            coll.dobj[wbins][k0]['cents']
+            + coll.dobj[wbins][k0]['edges']
+        )
         coll.remove_data(kdata, propagate=propagate)
 
         # specific ref
-        lref = list(coll.dobj[wbins][k0]['ref'])
+        lref = (
+            coll.dobj[wbins][k0]['ref_cents']
+            + coll.dobj[wbins][k0]['ref_edges']
+        )
         for rr in lref:
             if rr in coll.dref.keys():
                 coll.remove_ref(rr, propagate=propagate)

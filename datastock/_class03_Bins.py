@@ -29,9 +29,11 @@ class Bins(Previous):
     _dshow.update({
         _which_bins: [
             'nd',
-            'cents',
-            'shape',
-            'ref',
+            'shape_edges',
+            'edges',
+            'ref_edges',
+            'is_linear',
+            'is_log',
         ],
     })
 
@@ -44,13 +46,25 @@ class Bins(Previous):
         key=None,
         edges=None,
         # custom names
-        key_ref=None,
+        key_edges=None,
         key_cents=None,
-        key_res=None,
-        # attributes
+        key_ref_edges=None,
+        key_ref_cents=None,
+        # additional attributes
         **kwdargs,
     ):
-        """ Add bin """
+        """ Add bin
+
+        Defined from edges, which can be:
+            - np.ndarray or tuple of 2
+            - key to existing monotnous array or tuple of 2
+
+        key names are generated automatically
+        But can also be specified:
+            - for creation
+            - or for refering to existing data
+
+        """
 
         # --------------
         # check inputs
@@ -60,8 +74,10 @@ class Bins(Previous):
             key=key,
             edges=edges,
             # custom names
+            key_edges=key_edges,
             key_cents=key_cents,
-            key_ref=key_ref,
+            key_ref_edges=key_ref_edges,
+            key_ref_cents=key_ref_cents,
             # attributes
             **kwdargs,
         )
