@@ -18,7 +18,6 @@ from .._saveload import load
 from . import test_input as _input
 
 
-
 _PATH_HERE = os.path.dirname(__file__)
 _PATH_OUTPUT = os.path.join(_PATH_HERE, 'output')
 
