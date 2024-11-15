@@ -213,7 +213,7 @@ class Test01_Instanciate():
 
     @classmethod
     def setup_class(cls):
-        cls.st = Collection()
+        cls.coll = Collection()
         cls.nc = 5
         cls.nx = 80
         cls.lnt = [100, 90, 80, 120, 80]
@@ -223,13 +223,13 @@ class Test01_Instanciate():
     # ------------------------
 
     def test01_add_ref(self):
-        _add_ref(st=self.st, nc=self.nc, nx=self.nx, lnt=self.lnt)
+        _add_ref(st=self.coll, nc=self.nc, nx=self.nx, lnt=self.lnt)
 
     def test02_add_data(self):
-        _add_data(st=self.st, nc=self.nc, nx=self.nx, lnt=self.lnt)
+        _add_data(st=self.coll, nc=self.nc, nx=self.nx, lnt=self.lnt)
 
     def test03_add_obj(self):
-        _add_obj(st=self.st, nc=self.nc)
+        _add_obj(st=self.coll, nc=self.nc)
 
 
 #######################################################
@@ -243,14 +243,14 @@ class Test02_Manipulate():
 
     @classmethod
     def setup_class(cls):
-        cls.st = Collection()
+        cls.coll = Collection()
         cls.nc = 5
         cls.nx = 80
         cls.lnt = [100, 90, 80, 120, 80]
 
-        _add_ref(st=cls.st, nc=cls.nc, nx=cls.nx, lnt=cls.lnt)
-        _add_data(st=cls.st, nc=cls.nc, nx=cls.nx, lnt=cls.lnt)
-        _add_obj(st=cls.st, nc=cls.nc)
+        _add_ref(st=cls.coll, nc=cls.nc, nx=cls.nx, lnt=cls.lnt)
+        _add_data(st=cls.coll, nc=cls.nc, nx=cls.nx, lnt=cls.lnt)
+        _add_obj(st=cls.coll, nc=cls.nc)
 
     # ------------------------
     #   Add / remove
@@ -258,17 +258,17 @@ class Test02_Manipulate():
 
     def test01_add_param(self):
         # create new 'campaign' parameter for data arrays
-        self.st.add_param('campaign', which='data')
+        self.coll.add_param('campaign', which='data')
 
         # tag each data with its campaign
         for ii in range(self.nc):
-            self.st.set_param(
+            self.coll.set_param(
                 which='data',
                 key=f't{ii}',
                 param='campaign',
                 value=f'c{ii}',
             )
-            self.st.set_param(
+            self.coll.set_param(
                 which='data',
                 key=f'prof{ii}',
                 param='campaign',
@@ -276,38 +276,38 @@ class Test02_Manipulate():
             )
 
     def test02_remove_param(self):
-        self.st.add_param('blabla', which='campaign')
-        self.st.remove_param('blabla', which='campaign')
+        self.coll.add_param('blabla', which='campaign')
+        self.coll.remove_param('blabla', which='campaign')
 
     # ------------------------
     #   Selection / sorting
     # ------------------------
 
     def test03_select(self):
-        key = self.st.select(which='data', units='s', returnas=str)
+        key = self.coll.select(which='data', units='s', returnas=str)
         assert key.tolist() == ['t0', 't1', 't2', 't3', 't4']
 
-        out = self.st.select(dim='time', returnas=int)
+        out = self.coll.select(dim='time', returnas=int)
         assert len(out) == 5, out
 
         # test quantitative param selection
-        out = self.st.select(which='campaign', index=[2, 4])
+        out = self.coll.select(which='campaign', index=[2, 4])
         assert len(out) == 3
 
-        out = self.st.select(which='campaign', index=(2, 4))
+        out = self.coll.select(which='campaign', index=(2, 4))
         assert len(out) == 2
 
     def test04_sortby(self):
-        self.st.sortby(which='data', param='units')
+        self.coll.sortby(which='data', param='units')
 
     # ------------------------
     #   show
     # ------------------------
 
     def test05_show(self):
-        self.st.show()
-        self.st.show_data()
-        self.st.show_obj()
+        self.coll.show()
+        self.coll.show_data()
+        self.coll.show_obj()
 
     # ------------------------
     #   Interpolate
@@ -318,7 +318,7 @@ class Test02_Manipulate():
             hasref, hasvector,
             ref, key_vector,
             values, dind,
-        ) = self.st.get_ref_vector(
+        ) = self.coll.get_ref_vector(
             key='prof0',
             ref='nx',
             values=[1, 2, 2.01, 3],
@@ -329,7 +329,7 @@ class Test02_Manipulate():
         assert dind['indr'].shape == (2, 4)
 
     def test07_get_ref_vector_common(self):
-        hasref, ref, key, val, dout = self.st.get_ref_vector_common(
+        hasref, ref, key, val, dout = self.coll.get_ref_vector_common(
             keys=['t0', 'prof0', 'prof1', 't3'],
             dim='time',
         )
@@ -342,10 +342,10 @@ class Test02_Manipulate():
             'y': [[0, 0.9], (0.1, 0.2)],
             't0': {'domain': [2, 3]},
             't1': {'domain': [[2, 3], (2.5, 3), [4, 6]]},
-            't2': {'ind': self.st.ddata['t2']['data'] > 5},
+            't2': {'ind': self.coll.ddata['t2']['data'] > 5},
         }
 
-        dout = self.st.get_domain_ref(domain=domain)
+        dout = self.coll.get_domain_ref(domain=domain)
 
         lk = list(domain.keys())
         assert all([isinstance(dout[k0]['ind'], np.ndarray) for k0 in lk])
@@ -374,9 +374,9 @@ class Test02_Manipulate():
         zipall = zip(lk, lref, lax, llog, lgrid, lx0, lx1, ldom)
         for ii, (kk, rr, aa, lg, gg, x0, x1, dom) in enumerate(zipall):
 
-            _ = self.st.get_domain_ref(domain=dom)
+            _ = self.coll.get_domain_ref(domain=dom)
 
-            dout = self.st.interpolate(
+            dout = self.coll.interpolate(
                 keys=kk,
                 ref_key=rr,
                 x0=x0,
@@ -391,7 +391,7 @@ class Test02_Manipulate():
 
             assert isinstance(dout, dict)
             assert isinstance(dout[kk]['data'], np.ndarray)
-            shape = list(self.st.ddata[kk]['data'].shape)
+            shape = list(self.coll.ddata[kk]['data'].shape)
             x0s = np.array(x0).shape if gg is False else (len(x0), len(x1))
             if dom is None:
                 shape = tuple(np.r_[shape[:aa[0]], x0s, shape[aa[-1]+1:]])
@@ -409,10 +409,10 @@ class Test02_Manipulate():
         llog = [False, True, False]
 
         # add data for common ref interpolation
-        nt0 = self.st.dref['nt0']['size']
-        nt1 = self.st.dref['nt1']['size']
-        nc = self.st.dref['nc']['size']
-        self.st.add_data(
+        nt0 = self.coll.dref['nt0']['size']
+        nt1 = self.coll.dref['nt1']['size']
+        nc = self.coll.dref['nc']['size']
+        self.coll.add_data(
             key='data_com',
             data=1. + np.random.random((nc, nt1, nt0))*2,
             ref=('nc', 'nt1', 'nt0'),
@@ -429,7 +429,7 @@ class Test02_Manipulate():
         zipall = zip(lk, lref, lax, llog, lx1, lrefc, ls, lr)
         for ii, (kk, rr, aa, lg, x1, refc, ss, ri) in enumerate(zipall):
 
-            dout, dparams = self.st.interpolate(
+            dout, dparams = self.coll.interpolate(
                 keys=kk,
                 ref_key=rr,
                 x0='data_com',
@@ -457,8 +457,8 @@ class Test02_Manipulate():
                     f"\t- x1: {x1}\n"
                     f"\t- ref_com: {refc}\n"
                     f"\t- log_log: {lg}\n"
-                    f"\t- key['ref']: {self.st.ddata[kk]['ref']}\n"
-                    f"\t- x0['ref']: {self.st.ddata['data_com']['ref']}\n"
+                    f"\t- key['ref']: {self.coll.ddata[kk]['ref']}\n"
+                    f"\t- x0['ref']: {self.coll.ddata['data_com']['ref']}\n"
                     "\n"
                     # + "\n".join(lstr)
                     "\n"
@@ -477,17 +477,17 @@ class Test02_Manipulate():
     # ------------------------
 
     def test12_plot_as_array_1d(self):
-        dax = self.st.plot_as_array(key='t0')
+        dax = self.coll.plot_as_array(key='t0')
         plt.close('all')
         del dax
 
     def test13_plot_as_array_2d(self):
-        dax = self.st.plot_as_array(key='prof0')
+        dax = self.coll.plot_as_array(key='prof0')
         plt.close('all')
         del dax
 
     def test14_plot_as_array_2d_log(self):
-        dax = self.st.plot_as_array(
+        dax = self.coll.plot_as_array(
             key='pec', keyX='ne', keyY='Te',
             dscale={'data': 'log'},
         )
@@ -495,29 +495,29 @@ class Test02_Manipulate():
         del dax
 
     def test15_plot_as_array_3d(self):
-        dax = self.st.plot_as_array(key='3d', dvminmax={'keyX': {'min': 0}})
+        dax = self.coll.plot_as_array(key='3d', dvminmax={'keyX': {'min': 0}})
         plt.close('all')
         del dax
 
     def test16_plot_as_array_3d_ZNonMonot(self):
-        dax = self.st.plot_as_array(key='3d', keyZ='y')
+        dax = self.coll.plot_as_array(key='3d', keyZ='y')
         plt.close('all')
         del dax
 
     def test17_plot_as_array_4d(self):
-        dax = self.st.plot_as_array(key='4d', dscale={'keyU': 'linear'})
+        dax = self.coll.plot_as_array(key='4d', dscale={'keyU': 'linear'})
         plt.close('all')
         del dax
 
     # def test18_plot_BvsA_as_distribution(self):
-    #     dax = self.st.plot_BvsA_as_distribution(
+    #     dax = self.coll.plot_BvsA_as_distribution(
     #         keyA='prof0', keyB='prof0-bis',
     #     )
     #     plt.close('all')
     #     del dax
 
     def test19_plot_as_profile1d(self):
-        dax = self.st.plot_as_profile1d(
+        dax = self.coll.plot_as_profile1d(
             key='prof0',
             key_time='t0',
             keyX='prof0-bis',
@@ -529,7 +529,7 @@ class Test02_Manipulate():
     # def test20_plot_as_mobile_lines(self):
 
     #     # 3d
-    #     dax = self.st.plot_as_mobile_lines(
+    #     dax = self.coll.plot_as_mobile_lines(
     #         keyX='3d',
     #         keyY='3d-bis',
     #         key_time='t0',
@@ -537,7 +537,7 @@ class Test02_Manipulate():
     #     )
 
     #     # 2d
-    #     dax = self.st.plot_as_mobile_lines(
+    #     dax = self.coll.plot_as_mobile_lines(
     #         keyX='prof2',
     #         keyY='prof2-bis',
     #         key_chan='nx',
@@ -551,21 +551,21 @@ class Test02_Manipulate():
     # ------------------------
 
     def test21_copy_equal(self):
-        st2 = self.st.copy()
-        assert st2 is not self.st
+        st2 = self.coll.copy()
+        assert st2 is not self.coll
 
-        msg = st2.__eq__(self.st, returnas=str)
+        msg = st2.__eq__(self.coll, returnas=str)
         if msg is not True:
             raise Exception(msg)
 
     def test22_get_nbytes(self):
-        nb, dnb = self.st.get_nbytes()
+        nb, dnb = self.coll.get_nbytes()
 
     def test23_saveload(self, verb=False):
-        pfe = self.st.save(path=_PATH_OUTPUT, verb=verb, return_pfe=True)
+        pfe = self.coll.save(path=_PATH_OUTPUT, verb=verb, return_pfe=True)
         st2 = load(pfe, verb=verb)
         # Just to check the loaded version works fine
-        msg = st2.__eq__(self.st, returnas=str)
+        msg = st2.__eq__(self.coll, returnas=str)
         if msg is not True:
             raise Exception(msg)
         os.remove(pfe)

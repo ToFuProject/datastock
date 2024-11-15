@@ -216,6 +216,7 @@ def _check_edges_str(edges, coll):
 def _check_edges_array(edges):
     return (
         isinstance(edges, (list, tuple, np.ndarray))
+        and all([np.isscalar(ee) for ee in edges])
         and np.array(edges).ndim == 1
         and np.array(edges).size > 1
     )
