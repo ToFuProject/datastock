@@ -602,7 +602,12 @@ class Test02_Manipulate():
     def test22_get_nbytes(self):
         nb, dnb = self.st.get_nbytes()
 
-    def test23_saveload(self, verb=False):
+    def test23_save_pfe(self, verb=False):
+        pfe = os.path.join(_PATH_OUTPUT, 'testsave.npz')
+        self.st.save(pfe=pfe, return_pfe=False)
+        os.remove(pfe)
+
+    def test24_saveload(self, verb=False):
         pfe = self.st.save(path=_PATH_OUTPUT, verb=verb, return_pfe=True)
         st2 = load(pfe, verb=verb)
         # Just to check the loaded version works fine

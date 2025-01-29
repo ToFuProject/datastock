@@ -26,10 +26,12 @@ _KEY_SEP = '--sep--'
 
 def save(
     dflat=None,
+    pfe=None,
     sep=None,
     name=None,
     path=None,
     clsname=None,
+    overwrite=None,
     return_pfe=None,
     verb=None,
 ):
@@ -37,30 +39,97 @@ def save(
 
     # ------------
     # check inputs
+    # ------------
 
-    # path
-    path = _generic_check._check_var(
-        path, 'path',
-        default=os.path.abspath('./'),
-        types=str,
-    )
-    path = os.path.abspath(path)
-    if not os.path.isdir(path):
-        msg = f"Arg path must be a valid path!\nProvided: {path}"
+    # ------------------
+    # pfe vs path/name
+
+    lc = [
+        pfe is not None,
+        path is not None or name is not None,
+    ]
+
+    if np.sum(lc) > 1:
+        msg = (
+            "Saving, please provide {pfe} xor {path and/or name}!\n"
+            f"\t- path: {path}\n"
+            f"\t- name: {name}\n"
+            f"\t- pfe: {pfe}\n"
+        )
         raise Exception(msg)
 
-    # clsname
-    clsname = _generic_check._check_var(
-        clsname, 'clsname',
-        default='DataCollection',
-        types=str,
-    )
+    # ------------------
+    # pfe vs path/name
 
-    # name
-    name = _generic_check._check_var(
-        name, 'name',
-        default='name',
-        types=str,
+    if lc[0]:
+        if not isinstance(pfe, str):
+            msg = (
+                "Arg pfe must be a str ponting to a file!\n"
+                f"Provided: {pfe}\n"
+            )
+            raise Exception(msg)
+
+        sdir, sfile = os.path.split(pfe)
+        if sdir == '':
+            sdir = os.path.asbpath('.')
+
+        # check path
+        if not os.path.isdir(sdir):
+            msg = (
+                "Arg pfe seems to have a non-valid path!\n"
+                "Provided: {sdir}\n"
+            )
+            raise Exception(msg)
+
+        # check file name
+        if not sfile.endswith('.npz'):
+            sfile = f"{sfile}.npz"
+
+        # re-assemble
+        pfe = os.path.join(sdir, sfile)
+
+    else:
+        # path
+        path = _generic_check._check_var(
+            path, 'path',
+            default=os.path.abspath('./'),
+            types=str,
+        )
+        path = os.path.abspath(path)
+        if not os.path.isdir(path):
+            msg = f"Arg path must be a valid path!\nProvided: {path}"
+            raise Exception(msg)
+
+        # clsname
+        clsname = _generic_check._check_var(
+            clsname, 'clsname',
+            default='DataCollection',
+            types=str,
+        )
+
+        # name
+        name = _generic_check._check_var(
+            name, 'name',
+            default='name',
+            types=str,
+        )
+
+        # set automatic name
+        user = getpass.getuser()
+        dt = dtm.datetime.now().strftime("%Y%m%d-%H%M%S")
+        name = f'{clsname}_{name}_{user}_{dt}.npz'
+
+        # pfe
+        pfe = os.path.join(path, name)
+
+    # ------------------
+    # options
+
+    # overwrite
+    overwrite = _generic_check._check_var(
+        overwrite, 'overwrite',
+        default=False,
+        types=bool,
     )
 
     # verb
@@ -79,24 +148,44 @@ def save(
 
     # ----------------------
     # save / print / return
-
-    user = getpass.getuser()
-    dt = dtm.datetime.now().strftime("%Y%m%d-%H%M%S")
-    name = f'{clsname}_{name}_{user}_{dt}.npz'
+    # ----------------------
 
     # add sep
     dflat[_KEY_SEP] = sep
 
-    # save
-    pfe = os.path.join(path, name)
-    np.savez(pfe,  **dflat)
+    # -----------------
+    # check vs existing
 
+    if os.path.isfile(pfe):
+        if overwrite is True:
+            msg = (
+                "Overwriting existing file:\n"
+                f"\t{pfe}"
+            )
+            warnings.warn(msg)
+        else:
+            msg = (
+                "File already existing!\n"
+                "\t=> use overwrite = True to overwrite\n"
+                f"\t{pfe}"
+            )
+            raise Exception(msg)
+
+    # --------
+    # save
+
+    np.savez(pfe, **dflat)
+
+    # -------
     # print
+
     if verb:
-        msg = f"Saved in:\n\t{pfe}"
+        msg = f"\nSaved in:\n\t{pfe}\n"
         print(msg)
 
+    # -------
     # return
+
     if return_pfe is True:
         return pfe
 
