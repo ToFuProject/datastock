@@ -604,7 +604,7 @@ class Test02_Manipulate():
 
     def test23_save_pfe(self, verb=False):
         pfe = os.path.join(_PATH_OUTPUT, 'testsave.npz')
-        pfe = self.st.save(pfe=pfe, return_pfe=False)
+        self.st.save(pfe=pfe, return_pfe=False)
         os.remove(pfe)
 
     def test24_saveload(self, verb=False):
