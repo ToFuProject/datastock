@@ -161,6 +161,7 @@ class DataStock0(object):
 
     def save(
         self,
+        pfe=None,
         path=None,
         name=None,
         sep=None,
@@ -192,6 +193,7 @@ class DataStock0(object):
                 asarray=True,
                 returnas='blended',
             ),
+            pfe=pfe,
             sep=sep,
             path=path,
             name=name,
