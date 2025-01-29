@@ -10,9 +10,9 @@ import matplotlib.colors as mcolors
 
 # library-specific
 from . import _generic_check
-from . import _plot_text
-from . import _class1_compute
-from ._plot_as_array import _check_keyXYZ
+from . import _class04_plot_text as _plot_text
+from . import _class01_compute
+from ._class04_plot_as_array import _check_keyXYZ
 from ._generic_utils_plot import _get_str_datadlab
 
 
@@ -595,8 +595,8 @@ def _plot_as_profile1d(
     #  prepare slicing
 
     # here slice X => slice in dim Y and vice-versa
-    slit = _class1_compute._get_slice(laxis=[1-axist], ndim=2)
-    sliX = _class1_compute._get_slice(laxis=[1-axisX], ndim=2)
+    slit = _class01_compute._get_slice(laxis=[1-axist], ndim=2)
+    sliX = _class01_compute._get_slice(laxis=[1-axisX], ndim=2)
     sliXt = _get_sliceXt(laxis=[axist], ndim=dataX.ndim)
 
     # --------------

@@ -125,8 +125,8 @@ def load(
 
     # cls
     if cls is None:
-        from ._class import DataStock
-        cls = DataStock
+        from ._class04_Plots import Plots as Collection
+        cls = Collection
 
     if not (type(cls) is type and hasattr(cls, 'from_dict')):
         msg = (
@@ -168,6 +168,10 @@ def load(
     # ----------
     # reshape
 
+    # sparse types
+    lsparse = ['csc_', 'bsr_', 'coo_', 'csr_', 'dia_', 'dok_', 'lil_']
+
+    # loop
     dout = {}
     for k0, v0 in dflat.items():
 
@@ -201,7 +205,7 @@ def load(
             dout[k0] = None
         elif typ == 'ndarray':
             dout[k0] = dflat[k0]
-        elif any([ss in typ for ss in ['csc_', 'bsr_', 'coo_', 'csr_', 'dia_', 'dok_', 'lil_']]):
+        elif any([ss in typ for ss in lsparse]):
             assert typ in type(dflat[k0]).__name__
             dout[k0] = dflat[k0]
         elif 'Unit' in typ:
@@ -276,8 +280,10 @@ def get_files(
 
     lc = [
         isinstance(dpfe, (str, tuple)),
-        isinstance(dpfe, list) and all([isinstance(pp, (str, tuple)) for pp in dpfe]),
-        isinstance(dpfe, dict) and all([isinstance(pp, str) for pp in dpfe.keys()])
+        isinstance(dpfe, list)
+        and all([isinstance(pp, (str, tuple)) for pp in dpfe]),
+        isinstance(dpfe, dict)
+        and all([isinstance(pp, str) for pp in dpfe.keys()])
     ]
 
     if not any(lc):
@@ -288,7 +294,7 @@ def get_files(
             "\t\tkeys = valid path str\n"
             "\t\tvalues =\n"
             "\t\t\t- str: valid file names in the associated path\n"
-            "\t\t\t- str: pattern to be found in the files names in that path\n"
+            "\t\t\t- str: pattern to be found in the files names in path\n"
             "\t\t\t- list of str: list of the above (file names or patterns)\n"
         )
         raise Exception(msg)
@@ -406,7 +412,10 @@ def _get_files_from_path(
 
     lc = [
         any([os.path.isfile(pfe) for pfe in lpfe if isinstance(pfe, str)]),
-        any([os.path.isfile(os.path.join(path, pfe)) for pfe in lpfe if isinstance(pfe, str)]),
+        any([
+            os.path.isfile(os.path.join(path, pfe))
+            for pfe in lpfe if isinstance(pfe, str)
+        ]),
     ]
 
     # ---------------------

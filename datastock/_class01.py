@@ -1,26 +1,21 @@
 # -*- coding: utf-8 -*-
 
 
-# Built-in
-import copy
-
-
 # Common
 import numpy as np
 import astropy.units as asunits
 
 
 # library-specific
+from ._class00 import DataStock0 as Previous
 from . import _generic_check
 from . import _generic_utils
-from . import _class1_check
-from . import _class1_show
-from ._class0 import *
-from . import _class1_compute
-from . import _class1_domain
-from . import _class1_binning
-from . import _class1_interpolate
-from . import _class1_uniformize
+from . import _class01_check as _check
+from . import _class01_show as _show
+from . import _class01_compute as _compute
+from . import _class01_domain as _domain
+from . import _class01_interpolate as _interpolate
+from . import _class01_uniformize as _uniformize
 from . import _export_dataframe
 from . import _find_plateau
 
@@ -32,7 +27,7 @@ from . import _find_plateau
 #############################################
 
 
-class DataStock1(DataStock0):
+class DataStock1(Previous):
     """ A generic class for handling data
 
     Provides methods for:
@@ -117,7 +112,7 @@ class DataStock1(DataStock0):
         # Check consistency
         (
             self._dref, self._ddata, self._dobj, self.__dlinks,
-        ) = _class1_check._consistency(
+        ) = _check._consistency(
             dobj=dobj, dobj0=self._dobj,
             ddata=ddata, ddata0=self._ddata,
             dref=dref, dref0=self._dref,
@@ -173,7 +168,7 @@ class DataStock1(DataStock0):
         """ Remove a ref (or list of refs) and all associated data """
         (
             self._dref, self._ddata, self._dobj, self.__dlinks,
-        ) = _class1_check._remove_ref(
+        ) = _check._remove_ref(
             key=key,
             dref0=self._dref, ddata0=self._ddata,
             dobj0=self._dobj,
@@ -189,7 +184,7 @@ class DataStock1(DataStock0):
         """ Remove a data (or list of data) """
         (
             self._dref, self._ddata, self._dobj, self.__dlinks,
-        ) = _class1_check._remove_data(
+        ) = _check._remove_data(
             key=key,
             dref0=self._dref, ddata0=self._ddata,
             dobj0=self._dobj,
@@ -205,7 +200,7 @@ class DataStock1(DataStock0):
         """ Remove a data (or list of data) """
         (
             self._dref, self._ddata, self._dobj, self.__dlinks,
-        ) = _class1_check._remove_obj(
+        ) = _check._remove_obj(
             key=key,
             which=which,
             propagate=propagate,
@@ -247,7 +242,7 @@ class DataStock1(DataStock0):
 
     def __check_which(self, which=None, return_dict=None):
         """ Check which in ['data'] + list(self._dobj.keys() """
-        return _class1_check._check_which(
+        return _check._check_which(
             dref=self._dref,
             ddata=self._ddata,
             dobj=self._dobj,
@@ -266,7 +261,7 @@ class DataStock1(DataStock0):
         which, dd = self.__check_which(which, return_dict=True)
         if which in ['ref', 'data']:
             for_show = False
-        return _class1_show._get_lparam(dd=dd, for_show=for_show)
+        return _show._get_lparam(dd=dd, for_show=for_show)
 
     def get_param(
         self,
@@ -291,7 +286,7 @@ class DataStock1(DataStock0):
 
         """
         which, dd = self.__check_which(which, return_dict=True)
-        return _class1_check._get_param(
+        return _check._get_param(
             dd=dd, dd_name=which,
             param=param, key=key, ind=ind, returnas=returnas,
         )
@@ -322,7 +317,7 @@ class DataStock1(DataStock0):
 
         """
         which, dd = self.__check_which(which, return_dict=True)
-        param = _class1_check._set_param(
+        param = _check._set_param(
             dd=dd, dd_name=which,
             param=param, value=value, ind=ind, key=key,
             distribute=distribute,
@@ -340,7 +335,7 @@ class DataStock1(DataStock0):
     ):
         """ Add a parameter, optionnally also set its value """
         which, dd = self.__check_which(which, return_dict=True)
-        param = _class1_check._add_param(
+        param = _check._add_param(
             dd=dd,
             dd_name=which,
             param=param,
@@ -358,7 +353,7 @@ class DataStock1(DataStock0):
     ):
         """ Remove a parameter, none by default, all if param = 'all' """
         which, dd = self.__check_which(which, return_dict=True)
-        _class1_check._remove_param(
+        _check._remove_param(
             dd=dd,
             dd_name=which,
             param=param,
@@ -427,7 +422,7 @@ class DataStock1(DataStock0):
                 - 'index': set matching indices (default)
                 - param: set matching monotonous quantities depending on ref
         """
-        _class1_compute.propagate_indices_per_ref(
+        _compute.propagate_indices_per_ref(
             ref=ref,
             lref=lref,
             ldata=ldata,
@@ -470,7 +465,7 @@ class DataStock1(DataStock0):
 
         """
 
-        return _class1_compute._extract_instance(
+        return _compute._extract_instance(
             self,
             keys=keys,
             # optional includes
@@ -529,7 +524,7 @@ class DataStock1(DataStock0):
 
         """
         which, dd = self.__check_which(which, return_dict=True)
-        return _class1_check._select(
+        return _check._select(
             dd=dd, dd_name=which,
             log=log, returnas=returnas,
             **kwdargs,
@@ -544,7 +539,7 @@ class DataStock1(DataStock0):
     ):
         """ Return ind from key or key from ind for all data """
         which, dd = self.__check_which(which, return_dict=True)
-        return _class1_check._ind_tofrom_key(
+        return _check._ind_tofrom_key(
             dd=dd, dd_name=which, ind=ind, key=key,
             returnas=returnas,
         )
@@ -556,7 +551,14 @@ class DataStock1(DataStock0):
             return
 
         if param == 'key':
-            ind = np.argsort(list(dd.keys()))
+            if which == 'ref':
+                lk = list(self.dref.keys())
+            elif which == 'data':
+                lk = list(self.ddata.keys())
+            else:
+                lk = list(self.dobj.get(which, {}).keys())
+            ind = np.argsort(lk)
+
         elif isinstance(param, str):
             ind = np.argsort(
                 self.get_param(param, which=which, returnas=np.ndarray)[param]
@@ -564,6 +566,7 @@ class DataStock1(DataStock0):
         else:
             msg = "Arg param must be a valid str\n  Provided: {}".format(param)
             raise Exception(msg)
+
         return ind
 
     def sortby(self, param=None, order=None, which=None):
@@ -640,7 +643,9 @@ class DataStock1(DataStock0):
         >>> st.add_data(key='t0', data=t0)
         >>> st.add_data(key='x', data=x)
         >>> st.add_data(key='xt', data=xt)
-        >>> hasref, hasvect, ref, key_vect, dind = st.get_ref_vector(key='xt', ref='nt', values=[2, 3, 3.1, 5])
+        >>> hasref, hasvect, ref, key_vect, dind = st.get_ref_vector(
+        >>>     key='xt', ref='nt', values=[2, 3, 3.1, 5],
+        >>> )
 
         In the above example:
             - hasref = True: 'xt' has 'nt' has ref
@@ -651,13 +656,13 @@ class DataStock1(DataStock0):
                 'key': [2, 3, 3.1, 5],  # the desired time points
                 'ind':  [2, 3, 3, 5],   # the indices of t in t0
                 'indu': [2, 3, 5]       # the unique indices of t in t0
-                'indr': (3, 4),         # bool array showing, for each indu, matching ind
+                'indr': (3, 4),         # bool array with ind for each indu
                 'indok': [True, False, ...]
               }
 
         """
 
-        return _class1_uniformize.get_ref_vector(
+        return _uniformize.get_ref_vector(
             # ressources
             ddata=self._ddata,
             dref=self._dref,
@@ -712,7 +717,7 @@ class DataStock1(DataStock0):
 
         """
 
-        return _class1_uniformize.get_ref_vector_common(
+        return _uniformize.get_ref_vector_common(
             # ressources
             ddata=self._ddata,
             dref=self._dref,
@@ -750,7 +755,7 @@ class DataStock1(DataStock0):
         returnas=None,
     ):
 
-        return _class1_uniformize.uniformize(
+        return _uniformize.uniformize(
             coll=self,
             keys=keys,
             refs=refs,
@@ -770,100 +775,7 @@ class DataStock1(DataStock0):
         """ Return a dict of index of valid steps based on desired domain
         """
 
-        return _class1_domain.domain_ref(coll=self, domain=domain)
-
-    # ---------------------
-    # Binning
-    # ---------------------
-
-    def binning(
-        self,
-        data=None,
-        data_units=None,
-        axis=None,
-        # binning
-        bins0=None,
-        bins1=None,
-        bin_data0=None,
-        bin_data1=None,
-        bin_units0=None,
-        # kind of binning
-        integrate=None,
-        statistic=None,
-        # options
-        safety_ratio=None,
-        dref_vector=None,
-        verb=None,
-        returnas=None,
-        # storing
-        store=None,
-        store_keys=None,
-    ):
-        """ Return the binned data
-
-        data:  the data on which to apply binning, can be
-            - a list of np.ndarray to be binned
-                (any dimension as long as they all have the same)
-            - a list of keys to ddata items sharing the same refs
-
-        data_units: str only necessary if data is a list of arrays
-
-        axis: int or array of int indices
-            the axis of data along which to bin
-            data will be flattened along all those axis priori to binning
-            If None, assumes bin_data is not variable and uses all its axis
-
-        bins0: the bins (centers), can be
-            - a 1d vector of monotonous bins
-            - a int, used to compute a bins vector from max(data), min(data)
-
-        bin_data0: the data used to compute binning indices, can be:
-            - a str, key to a ddata item
-            - a np.ndarray
-            _ a list of any of the above if each data has different size along axis
-
-        bin_units: str
-            only used if integrate = True and bin_data is a np.ndarray
-
-        integrate: bool
-            flag indicating whether binning is used for integration
-            Implies that:
-                Only usable for 1d binning (axis has to be a single index)
-                data is multiplied by the underlying bin_data0 step prior to binning
-
-        statistic: str
-            the statistic kwd feed to scipy.stats.binned_statistic()
-            automatically set to 'sum' if integrate = True
-
-        store: bool
-            If True, will sotre the result in ddata
-            Only possible if all (data, bin_data and bin) are provided as keys
-
-        """
-
-        return _class1_binning.binning(
-            coll=self,
-            data=data,
-            data_units=data_units,
-            axis=axis,
-            # binning
-            bins0=bins0,
-            bins1=bins1,
-            bin_data0=bin_data0,
-            bin_data1=bin_data1,
-            bin_units0=bin_units0,
-            # kind of binning
-            integrate=integrate,
-            statistic=statistic,
-            # options
-            safety_ratio=safety_ratio,
-            dref_vector=dref_vector,
-            verb=verb,
-            returnas=returnas,
-            # storing
-            store=store,
-            store_keys=store_keys,
-        )
+        return _domain.domain_ref(coll=self, domain=domain)
 
     # ---------------------
     # Interpolation
@@ -897,7 +809,7 @@ class DataStock1(DataStock0):
         """ Interpolate keys in desired dimension
 
         """
-        return _class1_interpolate.interpolate(
+        return _interpolate.interpolate(
             coll=self,
             # interpolation base
             keys=keys,
@@ -935,7 +847,7 @@ class DataStock1(DataStock0):
         verb=None,
         returnas=None,
     ):
-        return _class1_compute.correlations(
+        return _compute.correlations(
             data=data,
             ref=ref,
             correlations=correlations,
@@ -963,7 +875,7 @@ class DataStock1(DataStock0):
         returnas=False,
     ):
         """ Summary description of the object content """
-        return _class1_show.main(
+        return _show.main(
             coll=self,
             show_which=show_which,
             show=show,
@@ -978,7 +890,7 @@ class DataStock1(DataStock0):
         )
 
     def _get_show_obj(self, which=None):
-        return _class1_show._show_obj_def
+        return _show._show_obj_def
 
     def show_data(self):
         self.show(show_which=['ref', 'data'])
@@ -1003,7 +915,7 @@ class DataStock1(DataStock0):
         returnas=False,
     ):
         """ Summary description of the object content """
-        return _class1_show.main_details(
+        return _show.main_details(
             coll=self,
             which=which,
             key=key,
