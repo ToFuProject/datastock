@@ -121,7 +121,7 @@ def save(
 
     # print
     if verb:
-        msg = f"Saved in:\n\t{pfe}"
+        msg = f"\nSaved in:\n\t{pfe}\n"
         print(msg)
 
     # return
