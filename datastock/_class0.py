@@ -164,8 +164,9 @@ class DataStock0(object):
         path=None,
         name=None,
         sep=None,
-        verb=True,
+        overwrite=None,
         return_pfe=False,
+        verb=True,
     ):
 
         lsep = [';', '&', '?', '#', ',', '~', '.', '-', '_']
@@ -194,6 +195,7 @@ class DataStock0(object):
             sep=sep,
             path=path,
             name=name,
+            overwrite=overwrite,
             clsname=self.__class__.__name__,
             return_pfe=return_pfe,
             verb=verb,

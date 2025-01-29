@@ -30,6 +30,7 @@ def save(
     name=None,
     path=None,
     clsname=None,
+    overwrite=None,
     return_pfe=None,
     verb=None,
 ):
@@ -37,6 +38,7 @@ def save(
 
     # ------------
     # check inputs
+    # ------------
 
     # path
     path = _generic_check._check_var(
@@ -63,6 +65,13 @@ def save(
         types=str,
     )
 
+    # overwrite
+    overwrite = _generic_check._check_var(
+        overwrite, 'overwrite',
+        default=False,
+        types=bool,
+    )
+
     # verb
     verb = _generic_check._check_var(
         verb, 'verb',
@@ -79,6 +88,7 @@ def save(
 
     # ----------------------
     # save / print / return
+    # ----------------------
 
     user = getpass.getuser()
     dt = dtm.datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -87,8 +97,26 @@ def save(
     # add sep
     dflat[_KEY_SEP] = sep
 
-    # save
+    # pfe
     pfe = os.path.join(path, name)
+
+    # check vs existing
+    if os.path.isfile(pfe):
+        if overwrite is True:
+            msg = (
+                "Overwriting existing file:\n"
+                f"\t{pfe}"
+            )
+            warnings.warn(msg)
+        else:
+            msg = (
+                "File already existing!\n"
+                "\t=> use overwrite = True to overwrite\n"
+                f"\t{pfe}"
+            )
+            raise Exception(msg)
+
+    # save
     np.savez(pfe,  **dflat)
 
     # print
