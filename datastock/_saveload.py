@@ -199,6 +199,7 @@ def save(
 def load(
     pfe=None,
     cls=None,
+    coll=None,
     allow_pickle=None,
     sep=None,
     verb=None,
@@ -206,16 +207,24 @@ def load(
 
     # -------------
     # check inputs
+    # -------------
 
+    # ---------
     # pfe
+
     if not os.path.isfile(pfe):
         msg = f"Arg pfe must be a valid path to a file!\n\t- Provided: {pfe}"
         raise Exception(msg)
 
-    # cls
-    if cls is None:
-        from ._class import DataStock
-        cls = DataStock
+    # --------------
+    # cls vs coll
+
+    if coll is None:
+        if cls is None:
+            from ._class import DataStock
+            cls = DataStock
+    else:
+        cls = coll.__class__
 
     if not (type(cls) is type and hasattr(cls, 'from_dict')):
         msg = (
@@ -224,14 +233,18 @@ def load(
         )
         raise Exception(msg)
 
+    # ------------
     # allow_pickle
+
     allow_pickle = _generic_check._check_var(
         allow_pickle, 'allow_pickle',
         default=True,
         types=bool,
     )
 
+    # -------
     # verb
+
     verb = _generic_check._check_var(
         verb, 'verb',
         default=True,
@@ -240,11 +253,13 @@ def load(
 
     # --------------
     # load flat dict
+    # --------------
 
     dflat = dict(np.load(pfe, allow_pickle=allow_pickle))
 
     # ------------------------------
     # load sep from file if exists
+    # ------------------------------
 
     if _KEY_SEP in dflat.keys():
         # new
@@ -256,6 +271,7 @@ def load(
 
     # ----------
     # reshape
+    # ----------
 
     dout = {}
     for k0, v0 in dflat.items():
@@ -310,14 +326,19 @@ def load(
 
     # -----------
     # Instanciate
+    # -----------
 
-    obj = cls.from_dict(dout)
+    coll = cls.from_dict(dout, obj=coll)
+
+    # -----------
+    # verb
+    # -----------
 
     if verb:
         msg = f"Loaded from\n\t{pfe}"
         print(msg)
 
-    return obj
+    return coll
 
 
 # #################################################################

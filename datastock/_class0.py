@@ -65,7 +65,7 @@ class DataStock0(object):
         )
 
     @classmethod
-    def from_dict(cls, din=None, isflat=None, sep=None):
+    def from_dict(cls, din=None, isflat=None, sep=None, obj=None):
         """ Populate the instances attributes using an input dict
 
         The input dict must be properly formatted
@@ -85,7 +85,9 @@ class DataStock0(object):
         # ---------------------
         # Instanciate and populate
 
-        obj = cls()
+        if obj is None:
+            obj = cls()
+
         for k0 in din.keys():
             if k0 == '_ddef':
                 if 'dobj' not in din[k0]['params'].keys():

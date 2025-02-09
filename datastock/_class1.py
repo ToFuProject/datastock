@@ -369,8 +369,8 @@ class DataStock1(DataStock0):
     ###########
 
     @classmethod
-    def from_dict(cls, din=None, sep=None):
-        obj = super().from_dict(din=din, sep=sep)
+    def from_dict(cls, din=None, sep=None, obj=None):
+        obj = super().from_dict(din=din, sep=sep, obj=obj)
         obj.update()
         return obj
 
