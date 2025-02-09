@@ -615,3 +615,13 @@ class Test02_Manipulate():
         if msg is not True:
             raise Exception(msg)
         os.remove(pfe)
+
+    def test25_saveload_coll(self, verb=False):
+        pfe = self.st.save(path=_PATH_OUTPUT, verb=verb, return_pfe=True)
+        st = DataStock()
+        st2 = load(pfe, coll=st, verb=verb)
+        # Just to check the loaded version works fine
+        msg = st2.__eq__(self.st, returnas=str)
+        if msg is not True:
+            raise Exception(msg)
+        os.remove(pfe)
