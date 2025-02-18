@@ -88,6 +88,7 @@ def interpolate(
         ddata, dout, dsh_other, sli_c, sli_x, sli_v,
         log_log, nan0, grid, ndim, xunique,
         returnas, return_params, store, inplace,
+        domain,
     ) = _check(
         coll=coll,
         # interpolation base
@@ -143,7 +144,7 @@ def interpolate(
     # adjust data and ref if xunique
 
     if xunique:
-        _xunique(dout)
+        _xunique(dout, domain=domain)
 
     # --------
     # store
@@ -392,9 +393,9 @@ def _check(
     )
 
     # ---------------------
-    # get dvect from domain
+    # get dref_dom from domain
 
-    domain, dvect = _get_dvect(
+    domain, dref_dom = _get_drefdom(
         coll=coll,
         domain=domain,
         ref_key=ref_key,
@@ -407,7 +408,7 @@ def _check(
         coll=coll,
         keys=keys,
         ref_key=ref_key,
-        dvect=dvect,
+        dref_dom=dref_dom,
     )
 
     # --------
@@ -422,7 +423,7 @@ def _check(
     )
 
     if ref_com is not None and domain is not None:
-        if ref_com in [coll.ddata[k0]['ref'][0] for k0 in dvect.keys()]:
+        if ref_com in list(dref_dom.keys()):
             msg = (
                 "Arg ref_com and domain cannot be applied to the same ref!\n"
                 f"\t- ref_com: {ref_com}\n"
@@ -440,8 +441,10 @@ def _check(
         x0=x0,
         daxis=daxis,
         dunits=dunits,
+        # ref com
         dref_com=dref_com,
-        dvect=dvect,
+        # domain
+        dref_dom=dref_dom,
     )
 
     # --------------
@@ -488,6 +491,7 @@ def _check(
         ddata, dout, dsh_other, sli_c, sli_x, sli_v,
         log_log, nan0, grid, ndim, xunique,
         returnas, return_params, store, inplace,
+        domain,
     )
 
 
@@ -963,56 +967,59 @@ def _x01_grid(
     return x0, x1, refx, ix, xunique
 
 
-def _get_dvect(
+def _get_drefdom(
     coll=None,
     domain=None,
     ref_key=None,
 ):
     # ----------------
-    # domain => dvect
+    # domain => dref_dom
+
+    lr_ref_key = [coll.ddata[kk]['ref'][0] for kk in ref_key]
 
     if domain is not None:
 
         # get domain
         domain = coll.get_domain_ref(domain)
 
-        # derive dvect
-        lvectu = sorted({
-            v0['vect'] for v0 in domain.values() if v0['vect'] not in ref_key
+        # derive lrefu
+        lrefu = sorted({
+            v0['ref'] for v0 in domain.values() if v0['ref'] not in lr_ref_key
         })
 
-        dvect = {
-            k0: [k1 for k1, v1 in domain.items() if v1['vect'] == k0]
-            for k0 in lvectu
+        # derive dref_dom
+        dref_dom = {
+            rr: [k1 for k1, v1 in domain.items() if v1['ref'] == rr]
+            for rr in lrefu
         }
 
         # check unicity of vect
-        dfail = {k0: v0 for k0, v0 in dvect.items() if len(v0) > 1}
+        dfail = {k0: v0 for k0, v0 in dref_dom.items() if len(v0) > 1}
         if len(dfail) > 0:
             lstr = [f"\t- '{k0}': {v0}" for k0, v0 in dfail.items()]
             msg = (
-                "Some ref vector have been specified with multiple domains!\n"
+                "Some ref have been specified with multiple domains!\n"
                 + "\n".join(lstr)
             )
             raise Exception(msg)
 
-        # build final dvect
-        dvect = {
+        # build final dref_dom
+        dref_dom = {
             k0: domain[v0[0]]['ind']
-            for k0, v0 in dvect.items()
+            for k0, v0 in dref_dom.items()
         }
 
     else:
-        dvect = None
+        dref_dom = None
 
-    return domain, dvect
+    return domain, dref_dom
 
 
 def _get_ddata(
     coll=None,
     keys=None,
     ref_key=None,
-    dvect=None,
+    dref_dom=None,
 ):
 
     # --------
@@ -1024,13 +1031,12 @@ def _get_ddata(
         data = coll.ddata[k0]['data']
 
         # apply domain
-        if dvect is not None:
-            for k1, v1 in dvect.items():
-                ref = coll.ddata[k1]['ref'][0]
-                if ref in coll.ddata[k0]['ref']:
-                    ax = coll.ddata[k0]['ref'].index(ref)
+        if dref_dom is not None:
+            for rr, vr in dref_dom.items():
+                if rr in coll.ddata[k0]['ref']:
+                    ax = coll.ddata[k0]['ref'].index(rr)
                     sli = tuple([
-                        v1 if ii == ax else slice(None)
+                        vr if ii == ax else slice(None)
                         for ii in range(data.ndim)
                     ])
                     data = data[sli]
@@ -1050,7 +1056,7 @@ def _get_dout(
     # common refs
     dref_com=None,
     # domain
-    dvect=None,
+    dref_dom=None,
 ):
 
     # -------------
@@ -1069,11 +1075,11 @@ def _get_dout(
         rd = list(coll.ddata[k0]['ref'])
 
         # apply domain
-        if dvect is not None:
-            for k1, v1 in dvect.items():
-                if coll.ddata[k1]['ref'][0] in rd:
-                    ax = rd.index(coll.ddata[k1]['ref'][0])
-                    sh[ax] = len(v1) if v1.dtype == int else v1.sum()
+        if dref_dom is not None:
+            for rr, vr in dref_dom.items():
+                if rr in rd:
+                    ax = rd.index(rr)
+                    sh[ax] = len(vr) if vr.dtype == int else vr.sum()
                     rd[ax] = None
 
         # ------------------------
@@ -1556,7 +1562,7 @@ def _interp2d(
 # ###############################################################
 
 
-def _xunique(dout=None):
+def _xunique(dout=None, domain=None):
     """ interpolation on a single point => eliminates a ref  """
 
     # ----------
@@ -1567,13 +1573,17 @@ def _xunique(dout=None):
         for k0, v0 in dout.items()
     }
 
-    dwrong = {k0: v0 for k0, v0 in dind.items() if len(v0) != 1}
+    # Number of Nones expected
+    nNone = 1 + len(domain)
+
+    # check
+    dwrong = {k0: v0 for k0, v0 in dind.items() if len(v0) != nNone}
     if len(dwrong) > 0:
         lstr = [
             f"\t- {k0}: {dout[k0]['ref']} => {v0}" for k0, v0 in dwrong.items()
         ]
         msg = (
-            "Interpolation at unique point => ref should have one None:\n"
+            "Interpolate unique pt => ref should have nNone = 1 + {len(domain)}:\n"
             + "\n".join(lstr)
         )
         raise Exception(msg)
