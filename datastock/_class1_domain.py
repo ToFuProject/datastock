@@ -30,7 +30,10 @@ def domain_ref(
     # -----------
     # get indices
 
-    lvectu = sorted({v0['vect'] for v0 in domain.values()})
+    lvectu = sorted({
+        v0['vect'] for v0 in domain.values()
+        if v0.get('vect') is not None
+    })
 
     for vv in lvectu:
 
@@ -61,12 +64,14 @@ def _check(
 
     # ---------
     # prepare
+    # ---------
 
     ldata = list(coll.ddata.keys())
     lref = list(coll.dref.keys())
 
     # ------------
     # domain
+    # ------------
 
     c0 = (
         isinstance(domain, dict)
@@ -80,24 +85,17 @@ def _check(
         )
         raise Exception(msg)
 
-    # ------------
+    # --------------
     # check each key
+    # --------------
 
     dfail = {}
     domain = copy.deepcopy(domain)
     for k0, v0 in domain.items():
 
-        # check ref vector
-        kwd = {'ref': k0} if k0 in lref else {'key0': k0}
-        hasref, hasvect, ref, vect = coll.get_ref_vector(**kwd)[:4]
-        if not (hasref and ref is not None):
-            dfail[k0] = "No associated ref identified!"
-            continue
-        if not (hasvect and vect is not None):
-            dfail[k0] = "No associated ref vector identified!"
-            continue
-
+        # -----------
         # v0 is dict
+
         ltyp = (list, tuple, np.ndarray)
         if isinstance(v0, ltyp):
             domain[k0] = {'domain': v0}
@@ -106,21 +104,42 @@ def _check(
 
         c0 = (
             isinstance(domain[k0], dict)
-            and any(ss in ['ind', 'domain'] for ss in domain[k0].keys())
+            and any([ss in ['ind', 'domain'] for ss in domain[k0].keys()])
             and (
                 isinstance(domain[k0].get('domain'), ltyp)
                 or np.isscalar(domain[k0].get('domain', 0))
             )
-            and isinstance(domain[k0].get('ind', np.r_[0]), np.ndarray)
+            and isinstance(domain[k0].get('ind', np.r_[0]), (np.ndarray, int))
         )
+
         if not c0:
             dfail[k0] = "must be a dict with keys ['ind', 'domain']"
             continue
 
-        # vect
-        domain[k0]['vect'] = vect
+        # ----------------
+        # check ref vector
 
+        kwd = {'ref': k0} if k0 in lref else {'key0': k0}
+        hasref, hasvect, ref, vect = coll.get_ref_vector(**kwd)[:4]
+
+        if not (hasref and ref is not None):
+            dfail[k0] = "No associated ref identified!"
+            continue
+
+        # vect
+        domain[k0]['ref'] = ref
+
+        if domain[k0].get('domain') is not None:
+            if not (hasvect and vect is not None):
+                dfail[k0] = "No associated ref vector identified!"
+                continue
+
+            # vect
+            domain[k0]['vect'] = vect
+
+        # -------
         # domain
+
         dom = domain[k0].get('domain')
         if dom is not None:
             dom, err = _check_domain(dom)
@@ -129,10 +148,15 @@ def _check(
                 continue
             domain[k0]['domain'] = dom
 
+        # -----
         # ind
+
         ind = domain[k0].get('ind')
         if ind is not None:
-            vsize = coll.ddata[vect]['data'].size
+            if np.isscalar(ind):
+                ind = np.array([ind], dtype=int)
+
+            vsize = coll.dref[ref]['size']
             if ind.dtype == bool:
                 pass
             elif 'int' in ind.dtype.name:
@@ -151,12 +175,14 @@ def _check(
 
     # -----------
     # errors
+    # -----------
 
     if len(dfail) > 0:
         lstr = [f"\t- '{k0}': {v0}" for k0, v0 in dfail.items()]
         msg = (
             "The following domain keys / values are not conform:\n"
              + "\n".join(lstr)
+             + f"\nProvided:\n{domain}"
         )
         raise Exception(msg)
 
