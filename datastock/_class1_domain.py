@@ -37,7 +37,7 @@ def domain_ref(
 
     for vv in lvectu:
 
-        lk0 = [k0 for k0, v0 in domain.items() if v0['vect'] == vv]
+        lk0 = [k0 for k0, v0 in domain.items() if v0.get('vect') == vv]
         for k0 in lk0:
 
             if domain[k0].get('domain') is None:
