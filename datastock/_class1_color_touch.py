@@ -79,11 +79,12 @@ def main(
     # output
     # ------------------
 
+    lcol = set([v0['color'] for v0 in dcolor.values()])
     dcolor = {
         'color': color,
         'meaning': {
-            kc: [k0 for k0, v0 in dcolor.items() if v0 == kc]
-            for kc in set(dcolor.keys())
+            kc: [k0 for k0, v0 in dcolor.items() if v0['color'] == kc]
+            for kc in lcol
         },
     }
 
