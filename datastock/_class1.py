@@ -21,6 +21,7 @@ from . import _class1_domain
 from . import _class1_binning
 from . import _class1_interpolate
 from . import _class1_uniformize
+from . import _class1_color_touch as _color_touch
 from . import _export_dataframe
 from . import _find_plateau
 
@@ -921,6 +922,32 @@ class DataStock1(DataStock0):
             store=store,
             store_keys=store_keys,
             inplace=inplace,
+        )
+
+    # ---------------------
+    # color touch array
+    # ---------------------
+
+    def get_color_touch(
+        self,
+        data=None,
+        dcolor=None,
+        # options
+        color_default=None,
+        vmin=None,
+        vmax=None,
+        log=None,
+    ):
+
+        return _color_touch.main(
+            coll=self,
+            data=data,
+            dcolor=dcolor,
+            # options
+            color_default=color_default,
+            vmin=vmin,
+            vmax=vmax,
+            log=log,
         )
 
     # ---------------------
