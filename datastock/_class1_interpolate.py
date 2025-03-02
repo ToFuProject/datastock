@@ -1627,7 +1627,12 @@ def _store(
         ldata = list(set(itt.chain.from_iterable([
             v0['ref'] for v0 in dout.values()
         ])))
-        coll2 = coll.extract(keys=ldata, vectors=True)
+
+        coll2 = coll.extract(
+            keys=ldata,
+            inc_vectors=True,
+            return_keys=False,
+        )
 
     # -------------
     # store_keys
@@ -1645,7 +1650,13 @@ def _store(
         excluded=lout,
     )
 
-    assert len(store_keys) == len(dout)
+    if len(store_keys) != len(dout):
+        msg = (
+            "Nb of store_keys != nb of keys in dout!\n"
+            f"\t- store_keys:\n{store_keys}\n "
+            f"\t- dout.keys():\n{sorted(dout.keys())}\n "
+        )
+        raise Exception(msg)
 
     # ---------
     # add data
