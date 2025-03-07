@@ -198,11 +198,9 @@ def _check(
     data_units=None,
     axis=None,
     # binning
-    bins0=None,
-    bins1=None,
+    bins=None,
     bin_data0=None,
     bin_data1=None,
-    bin_units0=None,
     # kind of binning
     integrate=None,
     statistic=None,
@@ -229,18 +227,45 @@ def _check(
         default=True,
     )
 
-    # ------------------
-    # data: str vs array
-    # -------------------
-
-    ddata = _check_data(
-        coll=coll,
-        data=data,
-        data_units=data_units,
-        store=store,
+    # store
+    store = _generic_check._check_var(
+        store, 'store',
+        types=bool,
+        default=False,
     )
 
-    ndim_data = list(ddata.values())[0]['data'].ndim
+    # -----------
+    # bins
+    # ------------
+
+    wb = coll._which_bins
+    lok_bins = list(coll.dobj.get(wb, {}).keys())
+    bins = _generic_check._check_var(
+        bins, 'bins',
+        types=str,
+        allowed=lok_bins,
+    )
+
+    # ------------------
+    # data to be binned
+    # -------------------
+
+    (
+        data, bin_data0, bin_data1, nd_bins, units0, units1,
+        axis, dvariable,
+    ) = _check_data(
+        coll=coll,
+        data=data,
+        bin_data0=bin_data0,
+        bin_data1=bin_data1,
+        bins=bins,
+        axis=axis,
+    )
+
+    if data is None:
+        ndim_data = None
+    else:
+        ndim_data = coll.ddata[data]['data'].ndim
 
     # -----------------
     # check statistic
@@ -254,26 +279,6 @@ def _check(
             statistic, 'statistic',
             types=str,
             default='sum',
-        )
-
-    # -----------
-    # bins
-    # ------------
-
-    dbins0 = _check_bins(
-        coll=coll,
-        lkdata=list(ddata.keys()),
-        bins=bins0,
-        dref_vector=dref_vector,
-        store=store,
-    )
-    if bins1 is not None:
-        dbins1 = _check_bins(
-            coll=coll,
-            lkdata=list(ddata.keys()),
-            bins=bins1,
-            dref_vector=dref_vector,
-            store=store,
         )
 
     # -----------
@@ -420,17 +425,119 @@ def _check(
 def _check_data(
     coll=None,
     data=None,
+    bin_data0=None,
+    bin_data1=None,
+    bins=None,
+    axis=None,
+):
+
+    # ---------------
+    # get bin features
+    # ---------------
+
+    wbins = coll._which_bins
+    nd_bins = int(coll.dobj[wbins][bins]['nd'][0])
+    units0 = coll.ddata[coll.dobj[wbins][bins]['edges'][0]]
+    if nd_bins == 2:
+        units1 = coll.ddata[coll.dobj[wbins][bins]['edges'][1]]
+    else:
+        units1 = None
+
+    # ---------------
+    # bin_data0
+    # ---------------
+
+    lok = list(coll.ddata.keys())
+    bin_data0 = _generic_check._check_var(
+        bin_data0, 'bin_data0',
+        types=str,
+        allowed=lok,
+    )
+
+    # check units
+    _check_units(
+        bin_data=bin_data0,
+        bin_data_name='bin_data0',
+        ii=0,
+        units_bins=units0,
+    )
+
+    bin_data_ref = coll.ddata[bin_data0]['ref']
+
+    # ---------------
+    # bin_data1
+    # ---------------
+
+    if nd_bin == 2:
+        lok = [
+            k0 for k0, v0 in coll.ddata.items()
+            if v0['ref'] == bin_data_ref
+        ]
+        bin_data1 = _generic_check._check_var(
+            bin_data0, 'bin_data1',
+            types=str,
+            allowed=lok,
+        )
+
+        # check units
+        _check_units(
+            bin_data=bin_data1,
+            bin_data_name='bin_data1',
+            ii=1,
+            units_bins=units1,
+        )
+
+    else:
+        bin_data1 = None
+
+    # ---------------
+    # data
+    # ---------------
+
+    if data is not None:
+
+        lok = [
+            k0 for k0, v0 in coll.ddata.items()
+            if tuple([rr for rr in v0['ref'] if rr in bin_data_ref]) == bin_data_ref
+        ]
+        data = _generic_check._check_var(
+            data, 'data',
+            types=str,
+            allowed=lok,
+        )
+
+    return data, bin_data0, bin_data1, nd_bins, units0, units1
+
+
+def _check_units(bin_data=None, bin_data_name=None, ii=None, units_bins=None):
+    units = coll.ddata[bin_data]['units']
+    c0 = units is not None and units == units1
+    if not c0:
+        msg = (
+            "Binning oddity:\n"
+            "\t- detected: unmatching 'units' between bins and bin_data\n"
+            f"\t- Bins: '{bins}' (edges[{ii}])\n"
+            f"\t- Bins units: '{units_bins}'\n"
+            f"\t- {bin_data_name}: '{bin_data}'\n"
+            f"\t- {bin_data_name} units: '{units}'\n"
+        )
+        warnings.warn(msg)
+    return
+
+
+# DEPRECATED
+def _check_data_old(
+    coll=None,
+    data=None,
     data_units=None,
     store=None,
 ):
-    # -----------
-    # store
 
-    store = _generic_check._check_var(
-        store, 'store',
-        types=bool,
-        default=False,
-    )
+    # ---------------
+    # trivial
+
+    if data is None:
+        return None, store
 
     # ---------------------
     # make sure it's a list
@@ -499,7 +606,7 @@ def _check_data(
             for ii in range(len(data))
         }
 
-    return ddata
+    return ddata, store
 
 
 # ################################################################
@@ -508,6 +615,7 @@ def _check_data(
 # ################################################################
 
 
+# DEPRECATED
 def _check_bins(
     coll=None,
     lkdata=None,

@@ -13,6 +13,7 @@ def add_bins(coll):
 
     # ---------------
     # check if needed
+    # ---------------
 
     wbins = coll._which_bins
     if coll.dobj.get(wbins) is not None:
@@ -59,6 +60,19 @@ def add_bins(coll):
 
 
 def binning(coll):
+
+    # ---------------
+    # check if needed
+    # ---------------
+
+    wbins = coll._which_bins
+    if coll.dobj.get(wbins) is None:
+        add_bins(coll)
+
+    # -------------------
+    # Binning
+    # -------------------
+
     bins = np.linspace(1, 5, 8)
     lk = [
         ('y', 'nx', bins, 0, False, False, 'y_bin0'),
@@ -109,6 +123,8 @@ def binning(coll):
                 f"\t- expected: {tuple(shape)}"
             )
             raise Exception(msg)
+
+    return
 
 
 # ###############################################################

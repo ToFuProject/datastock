@@ -105,15 +105,13 @@ class Bins(Previous):
 
     def binning(
         self,
+        # data to be binned
         data=None,
-        data_units=None,
-        axis=None,
-        # binning
-        bins0=None,
-        bins1=None,
         bin_data0=None,
         bin_data1=None,
-        bin_units0=None,
+        axis=None,
+        # bins
+        bins=None,
         # kind of binning
         integrate=None,
         statistic=None,
@@ -177,15 +175,13 @@ class Bins(Previous):
 
         return _bin_vs_bs.main(
             coll=self,
+            # data to be binned
             data=data,
-            data_units=data_units,
-            axis=axis,
-            # binning
-            bins0=bins0,
-            bins1=bins1,
             bin_data0=bin_data0,
             bin_data1=bin_data1,
-            bin_units0=bin_units0,
+            axis=axis,
+            # bins
+            bins=bins,
             # kind of binning
             integrate=integrate,
             statistic=statistic,
