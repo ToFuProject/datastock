@@ -307,10 +307,25 @@ class Test02_Manipulate():
         self.st.show_obj()
 
     # ------------------------
+    #   dcolor
+    # ------------------------
+
+    def test06_get_dcolor_touch(self):
+        xx = np.arange(50)
+        aa = np.exp(-(xx[:, None]-25)**2/10**2 - (xx[None, :]-25)**2/10**2)
+        ind = (aa>0.3) & (np.arange(50)[None, :] > 25)
+        dcolor = self.st.get_color_touch(
+            aa,
+            dcolor={'foo': {'ind': ind, 'color': 'r'}}
+        )
+        assert dcolor['color'].shape == aa.shape + (4,)
+        assert dcolor['meaning'][(1.0, 0.0, 0.0)] == ['foo']
+
+    # ------------------------
     #   Interpolate
     # ------------------------
 
-    def test06_get_ref_vector(self):
+    def test07_get_ref_vector(self):
         (
             hasref, hasvector,
             ref, key_vector,
@@ -325,13 +340,13 @@ class Test02_Manipulate():
         assert values.size == dind['ind'].size == 4
         assert dind['indr'].shape == (2, 4)
 
-    def test07_get_ref_vector_common(self):
+    def test08_get_ref_vector_common(self):
         hasref, ref, key, val, dout = self.st.get_ref_vector_common(
             keys=['t0', 'prof0', 'prof1', 't3'],
             dim='time',
         )
 
-    def test08_domain_ref(self):
+    def test09_domain_ref(self):
 
         domain = {
             'nx': [1.5, 2],
@@ -347,7 +362,7 @@ class Test02_Manipulate():
         lk = list(domain.keys())
         assert all([isinstance(dout[k0]['ind'], np.ndarray) for k0 in lk])
 
-    def test09_binning(self):
+    def test10_binning(self):
 
         bins = np.linspace(1, 5, 8)
         lk = [
@@ -399,7 +414,7 @@ class Test02_Manipulate():
                 )
                 raise Exception(msg)
 
-    def test10_interpolate(self):
+    def test11_interpolate(self):
 
         lk = ['y', 'y', 'prof0', 'prof0', 'prof0', '3d']
         lref = [None, 'nx', 't0', ['nt0', 'nx'], ['t0', 'x'], ['t0', 'x']]
@@ -443,7 +458,7 @@ class Test02_Manipulate():
                 msg = str(dout[kk]['data'].shape, shape, kk, rr)
                 raise Exception(msg)
 
-    def test11_interpolate_common_refs(self):
+    def test12_interpolate_common_refs(self):
         lk = ['3d', '3d', '3d']
         lref = ['t0', ['nt0', 'nx'], ['nx']]
         lrefc = ['nc', 'nc', 'nt0']
@@ -519,17 +534,17 @@ class Test02_Manipulate():
     #   Plotting
     # ------------------------
 
-    def test12_plot_as_array_1d(self):
+    def test13_plot_as_array_1d(self):
         dax = self.st.plot_as_array(key='t0')
         plt.close('all')
         del dax
 
-    def test13_plot_as_array_2d(self):
+    def test14_plot_as_array_2d(self):
         dax = self.st.plot_as_array(key='prof0')
         plt.close('all')
         del dax
 
-    def test14_plot_as_array_2d_log(self):
+    def test15_plot_as_array_2d_log(self):
         dax = self.st.plot_as_array(
             key='pec', keyX='ne', keyY='Te',
             dscale={'data': 'log'},
@@ -537,17 +552,17 @@ class Test02_Manipulate():
         plt.close('all')
         del dax
 
-    def test15_plot_as_array_3d(self):
+    def test16_plot_as_array_3d(self):
         dax = self.st.plot_as_array(key='3d', dvminmax={'keyX': {'min': 0}})
         plt.close('all')
         del dax
 
-    def test16_plot_as_array_3d_ZNonMonot(self):
+    def test17_plot_as_array_3d_ZNonMonot(self):
         dax = self.st.plot_as_array(key='3d', keyZ='y')
         plt.close('all')
         del dax
 
-    def test17_plot_as_array_4d(self):
+    def test18_plot_as_array_4d(self):
         dax = self.st.plot_as_array(key='4d', dscale={'keyU': 'linear'})
         plt.close('all')
         del dax
@@ -557,7 +572,7 @@ class Test02_Manipulate():
     #     plt.close('all')
     #     del dax
 
-    def test19_plot_as_profile1d(self):
+    def test20_plot_as_profile1d(self):
         dax = self.st.plot_as_profile1d(
             key='prof0',
             key_time='t0',
@@ -591,7 +606,7 @@ class Test02_Manipulate():
     #   File handling
     # ------------------------
 
-    def test21_copy_equal(self):
+    def test22_copy_equal(self):
         st2 = self.st.copy()
         assert st2 is not self.st
 
@@ -599,15 +614,15 @@ class Test02_Manipulate():
         if msg is not True:
             raise Exception(msg)
 
-    def test22_get_nbytes(self):
+    def test23_get_nbytes(self):
         nb, dnb = self.st.get_nbytes()
 
-    def test23_save_pfe(self, verb=False):
+    def test24_save_pfe(self, verb=False):
         pfe = os.path.join(_PATH_OUTPUT, 'testsave.npz')
         self.st.save(pfe=pfe, return_pfe=False)
         os.remove(pfe)
 
-    def test24_saveload(self, verb=False):
+    def test25_saveload(self, verb=False):
         pfe = self.st.save(path=_PATH_OUTPUT, verb=verb, return_pfe=True)
         st2 = load(pfe, verb=verb)
         # Just to check the loaded version works fine
@@ -616,7 +631,7 @@ class Test02_Manipulate():
             raise Exception(msg)
         os.remove(pfe)
 
-    def test25_saveload_coll(self, verb=False):
+    def test26_saveload_coll(self, verb=False):
         pfe = self.st.save(path=_PATH_OUTPUT, verb=verb, return_pfe=True)
         st = DataStock()
         st2 = load(pfe, coll=st, verb=verb)
