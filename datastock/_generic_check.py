@@ -555,6 +555,93 @@ def _obj_key(d0=None, short=None, key=None, ndigits=None):
 #                   Utilities for plotting
 # #############################################################################
 
+
+def _check_all_broadcastable(**kwdargs):
+
+    # -------------------
+    # Preliminary check
+    # -------------------
+
+    dout = {}
+    dfail = {}
+    for k0, v0 in kwdargs.items():
+        try:
+            dout[k0] = np.atleast_1d(v0)
+        except Exception as err:
+            dfail[k0] = f"Not convertible to np.ndarray! - {v0}"
+
+    # Raise Exception
+    if len(dfail) > 0:
+        lstr = [f"\t- {k0}: {v0}" for k0, v0 in dfail.items()]
+        msg = (
+            "The following kwdargs are non-conform:\n"
+            + "\n".join(lstr)
+        )
+        raise Exception(msg)
+
+    # -------------------
+    # check ndim
+    # -------------------
+
+    dndim = {k0: v0.ndim for k0, v0 in dout.items() if v0.shape != (1,)}
+    lndim = list(set(dndim.values()))
+
+    if len(lndim) == 0:
+        # all scalar
+        return {k0: v0[0] for k0, v0 in dout.items()}, None
+
+    elif len(lndim) == 1:
+        ndim = lndim[0]
+
+    else:
+        lstr = [f"-t {k0}: {v0}" for k0, v0 in dndim.items()]
+        msg = (
+            "Some keyword args have non-compatible dimensions:\n"
+            + "\n".join(lstr)
+        )
+        raise Exception(msg)
+
+    # -------------------
+    # check shapes
+    # -------------------
+
+    dfail = {}
+    shapef = np.ones((ndim,), dtype=int)
+    for k0, v0 in dout.items():
+
+        if v0.shape == (1,):
+            dout[k0] = v0[0]
+            continue
+
+        for ii in range(ndim):
+            if v0.shape[ii] == 1:
+                pass
+            elif shapef[ii] == 1:
+                shapef[ii] = v0.shape[ii]
+            elif v0.shape[ii] == shapef[ii]:
+                pass
+            else:
+                dfail[k0] = f"Non-compatible shape = {v0.shape} (ii = {ii})"
+                continue
+
+    # raise Exception if needed
+    if len(dfail) > 1:
+        lstr = [f"\t- {k0}: {v0}" for k0, v0 in dfail.items()]
+        msg = (
+            "The following keywords args have non-compatible shape:\n"
+            + "\n".join(lstr)
+            + f"Reference shape: {shapef}\n"
+        )
+        raise Exception(msg)
+
+    return dout, shapef
+
+
+# #############################################################################
+# #############################################################################
+#                   Utilities for plotting
+# #############################################################################
+
 # DEPRECATED
 # def _check_inplace(coll=None, keys=None):
     # """ Check key to data and inplace """
