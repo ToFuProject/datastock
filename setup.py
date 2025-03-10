@@ -120,6 +120,7 @@ setup(
         "numpy",
         "scipy",
         "matplotlib",
+        "PySide2",
         "astropy",
     ],
     python_requires=">=3.6",
