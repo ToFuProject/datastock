@@ -256,8 +256,9 @@ class Test01_Instanciate():
         err = False
         try:
             dout, shape = _check_all_broadcastable(a=(1, 2), b=(1, 2, 3))
-        except Exception as err:
+        except Exception:
             err = True
+
         assert err is True
 
 
