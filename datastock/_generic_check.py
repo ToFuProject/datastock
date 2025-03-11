@@ -624,13 +624,15 @@ def _check_all_broadcastable(**kwdargs):
                 dfail[k0] = f"Non-compatible shape = {v0.shape} (ii = {ii})"
                 continue
 
+    shapef = tuple(shapef)
+
     # raise Exception if needed
-    if len(dfail) > 1:
+    if len(dfail) > 0:
         lstr = [f"\t- {k0}: {v0}" for k0, v0 in dfail.items()]
         msg = (
             "The following keywords args have non-compatible shape:\n"
             + "\n".join(lstr)
-            + f"Reference shape: {shapef}\n"
+            + f"\nReference shape: {shapef}\n"
         )
         raise Exception(msg)
 
