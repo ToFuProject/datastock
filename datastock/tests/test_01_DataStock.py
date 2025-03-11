@@ -14,6 +14,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # datastock-specific
+from .._generic_check import _check_all_broadcastable
 from .._class import DataStock
 from .._saveload import load
 
@@ -227,6 +228,37 @@ class Test01_Instanciate():
 
     def test03_add_obj(self):
         _add_obj(st=self.st, nc=self.nc)
+
+    # ------------------------
+    #   Tools
+    # ------------------------
+
+    def test04_check_all_broadcastable(self):
+        # all scalar
+        dout, shape = _check_all_broadcastable(a=1, b=2)
+
+        # scalar + arrays
+        dout, shape = _check_all_broadcastable(a=1, b=(1, 2, 3))
+
+        # all arrays
+        dout, shape = _check_all_broadcastable(
+            a=(1, 2, 3),
+            b=(1, 2, 3),
+        )
+
+        # all arrays - 2d
+        dout, shape = _check_all_broadcastable(
+            a=np.r_[1, 2, 3][:, None],
+            b=np.r_[10, 20][None, :],
+        )
+
+        # check flag
+        err = False
+        try:
+            dout, shape = _check_all_broadcastable(a=(1, 2), b=(1, 2, 3))
+        except Exception as err:
+            err = True
+        assert err is True
 
 
 #######################################################
