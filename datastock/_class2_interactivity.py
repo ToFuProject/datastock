@@ -459,12 +459,18 @@ def _get_ix_for_refx_only_1or2d(
 
 
 def get_fupdate(handle=None, dtype=None, norm=None, bstr=None):
+
+    # Note: set_xdata() and set_ydata() do not accept scalar values
+    #       Deprecation warning since matplotlib 3.7
+    # see https://github.com/matplotlib/matplotlib/pull/22329
+    # see https://github.com/matplotlib/matplotlib/issues/28927
+
     if dtype == 'xdata':
         def func(val, handle=handle):
-            handle.set_xdata(val)
+            handle.set_xdata(np.atleast_1d(val))
     elif dtype == 'ydata':
         def func(val, handle=handle):
-            handle.set_ydata(val)
+            handle.set_ydata(np.atleast_1d(val))
     elif dtype in ['data']:   # Also works for imshow
         def func(val, handle=handle):
             handle.set_data(val)
