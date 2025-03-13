@@ -258,8 +258,16 @@ class Test01_Instanciate():
             dout, shape = _check_all_broadcastable(a=(1, 2), b=(1, 2, 3))
         except Exception:
             err = True
-
         assert err is True
+
+        # all arrays - mix
+        dout, shape = _check_all_broadcastable(
+            a=np.r_[1, 2, 3][:, None],
+            b=np.r_[10, 20][None, :],
+            c=3,
+            return_full_arrays=True,
+        )
+        assert all([v0.shape == (3, 2) for v0 in dout.values()])
 
 
 #######################################################
