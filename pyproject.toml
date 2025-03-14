@@ -1,6 +1,6 @@
 [project]
 name = "datastock"
-license = 'LICENSE'
+license = {file = "LICENSE"}
 dynamic = ["version"]
 description = "Generic handler for multiple heterogenous numpy arrays and subclasses"
 readme = "README.md"
