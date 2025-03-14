@@ -629,7 +629,7 @@ class DataStock2(DataStock1):
                         v0['handle'].parent(),
                     )
                 except Exception as err:
-                    error = err
+                    error = "1\n" + str(err)
             elif hasattr(v0['handle'], 'parent'):
                 try:
                     v0['handle'].manager.toolbar.__init__(
@@ -637,9 +637,12 @@ class DataStock2(DataStock1):
                         v0['handle'].parent(),
                     )
                 except Exception as err:
-                    error = True
+                    if "can't initilize an object twice" in str(err):
+                        pass
+                    else:
+                        error = "2\n" + str(err)
             else:
-                error = True
+                error = "3"
 
             if error is not False:
                 import platform
@@ -648,6 +651,7 @@ class DataStock2(DataStock1):
                 lstr0 = [f"\t- {k1}" for k1 in dir(v0['handle'])]
                 lstr1 = [f"\t- {k1}" for k1 in dir(v0['handle'].manager.toolbar)]
                 msg = (
+                    "Problem with connect()\n"
                     f"platform: {platform.platform()}\n"
                     f"python: {sys.version}\n"
                     f"backend: {plt.get_backend()}\n"
@@ -657,7 +661,7 @@ class DataStock2(DataStock1):
                     + "\n".join(lstr1)
                 )
                 if error is not True:
-                    msg += '\n' + str(err)
+                    msg += '\n' + str(error)
                 warnings.warn(msg)
 
             self._dobj['canvas'][k0]['cid'] = {
