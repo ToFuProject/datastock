@@ -1,4 +1,64 @@
+[project]
+name = "datastock"
+license = {file = "LICENSE"}
+dynamic = ["version"]
+description = "Generic handler for multiple heterogenous numpy arrays and subclasses"
+readme = "README.md"
+requires-python = ">=3.6"
+authors = [
+  {name = "Didier VEZINET", email = "didier.vezinet@gmail.com"},
+]
+maintainers = [
+  {name = "Didier VEZINET", email = "didier.vezinet@gmail.com"},
+]
+keywords = ["data", "analysis", "interactive", "heterogeneous arrays", "numpy", "Collection"]
+classifiers = [
+  # How mature is this project? Common values are
+  #   3 - Alpha
+  #   4 - Beta
+  #   5 - Production/Stable
+  "Development Status :: 5 - Production/Stable",
+
+  # Indicate who your project is intended for
+  "Intended Audience :: Science/Research",
+
+  # Specify the Python versions you support here.
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.6",
+  "Programming Language :: Python :: 3.7",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+]
+dependencies = [
+	"numpy",
+    	"scipy",
+    	"matplotlib",
+    	"astropy",
+]
+
+
 [build-system]
-requires = ["setuptools>=40.8.0",
-	    "wheel",
-	    ]
+requires = [
+	"setuptools>=40.8.0, <64",
+	"wheel",
+	"Cython>=0.26",
+	"numpy",
+]
+
+[dependency-groups]
+dev = [
+	"pytest",
+]
+
+[project.optional-dependencies]
+linting = [
+  'ruff'
+]
+formatting = [
+  'ruff'
+]
+
+[project.entry-points."datastock"]
+datastock = "scripts.main:main"
