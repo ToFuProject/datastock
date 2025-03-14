@@ -6,7 +6,6 @@ https://github.com/ToFuProject/datastock
 
 # Built-in
 import os
-import subprocess
 from codecs import open
 # ... setup tools
 from setuptools import setup, find_packages
@@ -16,7 +15,7 @@ from setuptools import setup, find_packages
 import _updateversion as up
 
 
-# == Getting version =====================================================
+# == Getting version ===========================================
 _HERE = os.path.abspath(os.path.dirname(__file__))
 
 version = up.updateversion()
@@ -26,7 +25,7 @@ print("Version for setup.py : ", version)
 print("")
 
 
-# =============================================================================
+# ==============================================================
 # Get the long description from the README file
 # Get the readme file whatever its extension (md vs rst)
 
@@ -45,10 +44,10 @@ else:
     long_description_content_type = "text/x-rst"
 
 
-# =============================================================================
+# =============================================================
 
 
-# =============================================================================
+# ==============================================================
 #  Compiling files
 
 setup(
@@ -167,7 +166,12 @@ setup(
     # Theye are generally preferable over scripts because they provide
     # cross-platform support and allow pip to create the appropriate form
     # of executable for the target platform.
-    # entry_points={},
+    entry_points={
+        'console_scripts': [
+            'datastock=scripts.main:main',
+        ],
+    },
+
     # include_dirs=[np.get_include()],
 
     py_modules=['_updateversion'],

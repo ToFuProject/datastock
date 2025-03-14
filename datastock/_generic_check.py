@@ -362,8 +362,6 @@ def _check_dict_valid_keys(
                     var[k0] = None
                     continue
 
-            vv = var.get(k0)
-
             # routine to call
             if any([ss in v0.keys() for ss in lkarray]):
                 var[k0] = _check_flat1darray(
@@ -610,7 +608,7 @@ def _check_all_broadcastable(
         ndim = lndim[0]
 
     else:
-        lstr = [f"-t {k0}: {v0}" for k0, v0 in dndim.items()]
+        lstr = [f"\t- {k0}: {v0}" for k0, v0 in dndim.items()]
         msg = (
             "Some keyword args have non-compatible dimensions:\n"
             + "\n".join(lstr)
@@ -674,48 +672,6 @@ def _check_all_broadcastable(
 # #############################################################################
 #                   Utilities for plotting
 # #############################################################################
-
-# DEPRECATED
-# def _check_inplace(coll=None, keys=None):
-    # """ Check key to data and inplace """
-
-    # # -----------------------------
-    # # keys of data to be extracted
-    # # ----------------------------
-
-    # if isinstance(keys, str):
-        # keys = [keys]
-    # keys = _check_var_iter(
-        # keys, 'keys',
-        # default=None,
-        # types=list,
-        # types_iter=str,
-        # allowed=list(coll.ddata.keys()),
-    # )
-
-    # # ----------------------
-    # # extract sub-collection
-    # # ----------------------
-
-    # lk0 = list(keys)
-    # for key in keys:
-
-        # # Include all data matching any single ref
-        # for rr in coll._ddata[key]['ref']:
-            # for k0, v0 in coll._ddata.items():
-                # if v0['ref'] == (rr,):
-                    # if k0 not in lk0:
-                        # lk0.append(k0)
-
-        # # include all data matching all refs
-        # for k0, v0 in coll._ddata.items():
-            # if v0['ref'] == coll._ddata[key]['ref']:
-                # if k0 not in lk0:
-                    # lk0.append(k0)
-
-    # coll2 = coll.extract(lk0)
-
-    # return keys, coll2
 
 
 def _check_dax(dax=None, main=None):
@@ -844,7 +800,7 @@ def _check_lim(lim):
     if len(dfail) > 0:
         lstr = [f"\t- lim[{ii}]: {vv}" for ii, vv in dfail.items()]
         msg = (
-            "The following non-conformities in lim have been identified:\n"*
+            "The following non-conformities in lim have been identified:\n"
             + "\n".join(lstr)
         )
         raise Exception(msg)
@@ -898,7 +854,6 @@ def _apply_lim(lim=None, data=None, logic=None):
         pass
 
     return ind
-
 
 
 def _apply_dlim(dlim=None, logic_intervals=None, logic=None, ddata=None):
@@ -960,6 +915,7 @@ def _apply_dlim(dlim=None, logic_intervals=None, logic=None, ddata=None):
             lstr = [f"\t- {k0}: {v0}" for k0, v0 in dfail.items()]
             msg = (
                 "The following keys have non-compatible shapes:\n"
+                + "\n".join(lstr)
             )
             raise Exception(msg)
 
@@ -1021,11 +977,6 @@ def _apply_dlim(dlim=None, logic_intervals=None, logic=None, ddata=None):
 
 def _check_cmap_vminvmax(data=None, cmap=None, vmin=None, vmax=None):
     # cmap
-    c0 = (
-        cmap is None
-        or vmin is None
-        or vmax is None
-    )
     if cmap is None or vmin is None or vmax is None:
         nanmax = np.nanmax(data)
         nanmin = np.nanmin(data)
