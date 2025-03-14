@@ -20,7 +20,7 @@ classifiers = [
   "Development Status :: 5 - Production/Stable",
 
   # Indicate who your project is intended for
-  "Intended Audience :: Science/Research"
+  "Intended Audience :: Science/Research",
 
   # Specify the Python versions you support here.
   "Programming Language :: Python :: 3",
