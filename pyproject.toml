@@ -1,4 +1,26 @@
-[build-system]
-requires = ["setuptools>=40.8.0",
-	    "wheel",
-	    ]
+[project]
+name = "datastock"
+version = "0.0.47"
+description = "Gereic handler for multiple heterogenous numpy arrays and subclasses"
+readme = "README.md"
+requires-python = ">=3.6"
+dependencies = [
+    "numpy",
+    "scipy",
+    "matplotlib",
+    "astropy",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.5",
+]
+
+
+[project.scripts]
+exp2tofu = "exp2tofu:main.cli"
+
+[tool.pytest.ini_options]
+pythonpath = [
+  "src"
+]
