@@ -637,7 +637,7 @@ class DataStock2(DataStock1):
                         v0['handle'].parent(),
                     )
                 except Exception as err:
-                    if "can't initilize an object twice" in str(err):
+                    if "can't initialize an object twice" in str(err):
                         pass
                     else:
                         error = "2\n" + str(err)
