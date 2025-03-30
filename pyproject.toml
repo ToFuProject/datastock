@@ -32,10 +32,10 @@ classifiers = [
   "Programming Language :: Python :: 3.11",
 ]
 dependencies = [
-	"numpy",
-    	"scipy",
-    	"matplotlib",
-    	"astropy",
+    "numpy",
+    "scipy",
+    "matplotlib",
+    "astropy",
 ]
 
 
