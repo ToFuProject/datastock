@@ -35,12 +35,6 @@ jobs:
         with:
           python-version-file: ${{ matrix.python-version }}
 
-    # Allow caching to speed up action
-    - name: Enable caching
-      uses: astral-sh/setup-uv@v5
-      with:
-        enable-cache: true
-
     # Install library
     - name: Install the project
         run: uv sync --all-extras --dev
