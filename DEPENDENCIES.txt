@@ -1,5 +1,5 @@
 numpy
 scipy
 matplotlib
-PyQt5
+PySide2
 astropy
