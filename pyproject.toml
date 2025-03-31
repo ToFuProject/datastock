@@ -1,25 +1,27 @@
 [build-system]
-requires = ["setuptools>=64", "setuptools_scm>=8"]
+requires = ["setuptools", "setuptools_scm"]
 build-backend = "setuptools.build_meta"
 
 
-[tool.setuptools]
-packages = ["datastock"]
+[tool.setuptools.packages.find]
+where = ["datastock"]
+include = ["datastock*"]
+namespaces = false
 
 
 [tool.setuptools_scm]
-# enables use of setuptools_scm
+version_file = "datastock/_version.py"
+
 
 [tool.setuptools.dynamic]
-version = {attr = "datastock.__version__"}  # any module attribute compatible with ast.literal_eval
 readme = {file = ["README.md"]}
 classifiers = {file = ["CLASSIFIERS.txt"]}
-# dependencies = {file = ["DEPENDENCIES.txt"]}
+dependencies = {file = ["DEPENDENCIES.txt"]}
 
 
 [project]
 name = "datastock"
-license = {file = "LICENSE"}
+license = 'MIT'
 dynamic = ["version", "readme", "classifiers"]
 description = "Generic handler for multiple heterogenous numpy arrays and subclasses"
 authors = [
@@ -31,13 +33,7 @@ maintainers = [
 keywords = [
     "data", "analysis", "interactive", "heterogeneous arrays", "numpy", "Collection",
 ]
-requires-python = ">=3.6"
-dependencies = [
-    "numpy",
-    "scipy",
-    "matplotlib",
-    "astropy",
-]
+requires-python = ">=3.8"
 
 
 [project.urls]
