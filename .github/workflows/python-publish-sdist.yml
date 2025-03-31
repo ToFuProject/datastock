@@ -19,23 +19,20 @@ on:
 
 jobs:
   deploy:
-
+    name: Publish sdist to Pypi
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: '3.8'
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install setuptools wheel twine build
-    - name: Build package
-      run: python -m build
-    - name: Publish package
-      uses: pypa/gh-action-pypi-publish@27b31702a0e7fc50959f5ad993c78deac1bdfc29
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: '3.11'
+    - run: uv build
+    # Check that basic features work and we didn't miss to include crucial files
+    - name: Smoke test (wheel)
+      run: uv run --isolated --no-project -p 3.11 --with dist/*.whl datastock/tests
+    - name: Smoke test (source distribution)
+      run: uv run --isolated --no-project -p 3.11 --with dist/*.tar.gz datastock/tests
+    - run: uv publish --trusted-publishing always
       with:
         user: __token__
         password: ${{ secrets.PYPI_API_TOKEN }}
