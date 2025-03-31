@@ -21,7 +21,7 @@ dependencies = {file = ["DEPENDENCIES.txt"]}
 
 [project]
 name = "datastock"
-license = {test = "MIT"}
+license = {text = "MIT"}
 dynamic = ["version", "readme", "classifiers"]
 description = "Generic handler for multiple heterogenous numpy arrays and subclasses"
 authors = [
