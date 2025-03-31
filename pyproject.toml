@@ -16,13 +16,12 @@ version_file = "datastock/_version.py"
 [tool.setuptools.dynamic]
 readme = {file = ["README.md"]}
 classifiers = {file = ["CLASSIFIERS.txt"]}
-dependencies = {file = ["DEPENDENCIES.txt"]}
 
 
 [project]
 name = "datastock"
 license = {text = "MIT"}
-dynamic = ["version", "readme", "classifiers", "dependencies"]
+dynamic = ["version", "readme", "classifiers"]
 description = "Generic handler for multiple heterogenous numpy arrays and subclasses"
 authors = [
     {name = "Didier VEZINET", email = "didier.vezinet@gmail.com"},
@@ -34,6 +33,14 @@ keywords = [
     "data", "analysis", "interactive", "heterogeneous arrays", "numpy", "Collection",
 ]
 requires-python = ">=3.8"
+dependencies = [
+    "numpy",
+    "scipy",
+    "matplotlib",
+    "PyQt5 ; platform_system != 'Windows'",
+    "PySide2; platform_system == 'Windows'",
+    "astropy",
+]
 
 
 [project.urls]

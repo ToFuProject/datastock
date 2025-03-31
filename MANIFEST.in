@@ -3,5 +3,4 @@
 include MANIFEST.in
 include LICENSE.txt
 include pyproject.toml
-include DEPENDENCIES.txt
 include CLASSIFIERS.txt
