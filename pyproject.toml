@@ -22,7 +22,7 @@ dependencies = {file = ["DEPENDENCIES.txt"]}
 [project]
 name = "datastock"
 license = {text = "MIT"}
-dynamic = ["version", "readme", "classifiers"]
+dynamic = ["version", "readme", "classifiers", "dependencies"]
 description = "Generic handler for multiple heterogenous numpy arrays and subclasses"
 authors = [
     {name = "Didier VEZINET", email = "didier.vezinet@gmail.com"},
