@@ -32,4 +32,4 @@ jobs:
         run: uv run --isolated --no-project -p 3.11 --with dist/*.whl datastock/tests/prepublish.py
       - name: import test (source distribution)
         run: uv run --isolated --no-project -p 3.11 --with dist/*.tar.gz datastock/tests/prepublish.py
-      - run: uv publish --trusted-publishing always -t ${{ secrets.PYPI_API_TOKEN }}
+      - run: uv publish -t ${{ secrets.PYPI_API_TOKEN }}
