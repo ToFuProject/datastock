@@ -41,15 +41,15 @@ Examples:
 Straightforward array visualization:
 ------------------------------------
 
-```
+``
 import datastock as ds
 
 # any 1d, 2d or 3d array
-aa = np.np.random.random((100, 100, 100))
+aa = np.random((100, 100, 100))
 
 # plot interactive figure using shortcut to method
 dax = ds.plot_as_array(aa)
-```
+``
 
 Now do **shift + left clic** on any axes, the rest of the interactive commands are automatically printed in your python console
 
@@ -75,7 +75,7 @@ Thanks to dref, the class knows the relationaships between all numpy arrays.
 In particular it knows which arrays share the same references / dimensions
 
 
-```
+```python
 import numpy as np
 import datastock as ds
 
@@ -96,24 +96,24 @@ lprof = [(1 + np.cos(t)[:, None]) * x[None, :] for t in lt]
 # Populate DataStock
 
 # instanciate 
-st = ds.DataStock()
+coll = ds.DataStock()
 
 # add references (i.e.: store size of each dimension under a unique key)
-st.add_ref(key='nc', size=nc)
-st.add_ref(key='nx', size=nx)
+coll.add_ref(key='nc', size=nc)
+coll.add_ref(key='nx', size=nx)
 for ii, nt in enumerate(lnt):
-    st.add_ref(key=f'nt{ii}', size=nt)
+    coll.add_ref(key=f'nt{ii}', size=nt)
 
 # add data dependening on these references
 # you can, optionally, specify units, physical dimensionality (ex: distance, time...), quantity (ex: radius, height, ...) and name (to your liking)
 
-st.add_data(key='x', data=x, dimension='distance', quant='radius', units='m', ref='nx')
+coll.add_data(key='x', data=x, dimension='distance', quant='radius', units='m', ref='nx')
 for ii, nt in enumerate(lnt):
-    st.add_data(key=f't{ii}', data=lt[ii], dimension='time', units='s', ref=f'nt{ii}')
-    st.add_data(key=f'prof{ii}', data=lprof[ii], dimension='velocity', units='m/s', ref=(f'nt{ii}', 'x'))
+    coll.add_data(key=f't{ii}', data=lt[ii], dimension='time', units='s', ref=f'nt{ii}')
+    coll.add_data(key=f'prof{ii}', data=lprof[ii], dimension='velocity', units='m/s', ref=(f'nt{ii}', 'x'))
 
 # print in the console the content of st
-st
+coll
 ```
 
 <p align="center">
@@ -124,22 +124,22 @@ You can see that DataStock stores the relationships between each array and each 
 Specifying explicitly the references is only necessary if there is an ambiguity (i.e.: several references have the same size, like nx and nt2 in our case)
 
 
-```
+``
 # plot any array interactively
-dax = st.plot_as_array('x')
-dax = st.plot_as_array('t0')
-dax = st.plot_as_array('prof0')
-dax = st.plot_as_array('prof0', keyX='t0', keyY='x', aspect='auto')
-```
+dax = coll.plot_as_array('x')
+dax = coll.plot_as_array('t0')
+dax = coll.plot_as_array('prof0')
+dax = coll.plot_as_array('prof0', keyX='t0', keyY='x', aspect='auto')
+``
 
 You can then decide to store any object category
 Let's create a 'campaign' category to store the characteristics of each measurements campaign
 and let's add a 'campaign' parameter to each profile data
 
-```
+``
 # add arbitrary object category as sub-dict of self.dobj
 for ii in range(nc):
-    st.add_obj(
+    coll.add_obj(
         which='campaign',
 	    key=f'c{ii}',
         start_date=f'{ii}.04.2022',
@@ -150,16 +150,16 @@ for ii in range(nc):
     )
 
 # create new 'campaign' parameter for data arrays
-st.add_param('campaign', which='data')
+coll.add_param('campaign', which='data')
 
 # tag each data with its campaign
 for ii in range(nc):
-    st.set_param(which='data', key=f't{ii}', param='campaign', value=f'c{ii}')	
-    st.set_param(which='data', key=f'prof{ii}', param='campaign', value=f'c{ii}')	
+    coll.set_param(which='data', key=f't{ii}', param='campaign', value=f'c{ii}')	
+    coll.set_param(which='data', key=f'prof{ii}', param='campaign', value=f'c{ii}')	
 
 # print in the console the content of st
-st
-```
+coll
+``
 
 <p align="center">
 <img align="middle" src="https://github.com/ToFuProject/datastock/blob/devel/README_figures/DataStock_Obj.png" width="600" alt="Direct 3d array visualization"/>
@@ -168,31 +168,31 @@ st
 DataStock also provides built-in object selection method to allow return all
 objects matching a criterion, as lits of int indices, bool indices or keys.
 
-```
-In [9]: st.select(which='campaign', index=2, returnas=int)
+``
+In [9]: coll.select(which='campaign', index=2, returnas=int)
 Out[9]: array([2])
 
 # list of 2 => return all matches inside the interval
-In [10]: st.select(which='campaign', index=[2, 4], returnas=int)
+In [10]: coll.select(which='campaign', index=[2, 4], returnas=int)
 Out[10]: array([2, 3, 4])
 
 # tuple of 2 => return all matches outside the interval
-In [11]: st.select(which='campaign', index=(2, 4), returnas=int)
+In [11]: coll.select(which='campaign', index=(2, 4), returnas=int)
 Out[11]: array([0, 1])
 
 # return as keys
-In [12]: st.select(which='campaign', index=(2, 4), returnas=str)
+In [12]: coll.select(which='campaign', index=(2, 4), returnas=str)
 Out[12]: array(['c0', 'c1'], dtype='<U2')
 
 # return as bool indices
-In [13]: st.select(which='campaign', index=(2, 4), returnas=bool)
+In [13]: coll.select(which='campaign', index=(2, 4), returnas=bool)
 Out[13]: array([ True,  True, False, False, False])
 
 # You can combine as many constraints as needed
-In [17]: st.select(which='campaign', index=[2, 4], operator='Barnaby', returnas=str)
+In [17]: coll.select(which='campaign', index=[2, 4], operator='Barnaby', returnas=str)
 Out[17]: array(['c3', 'c4'], dtype='<U2')
 
-```
+``
 
 You can also decide to sub-class DataStock to implement methods and visualizations specific to your needs
 
@@ -205,6 +205,6 @@ DataStock provides built-in methods like:
     - size is the total size of all data stored in the instance in bytes
     - dsize is a dict with the detail (size for each item in each sub-dict of the instance)
 * `save()`: will save the instance
-* `ds.load()`: will load a saved instance
+* `coll.load()`: will load a saved instance
 
 
