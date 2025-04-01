@@ -40,7 +40,7 @@ dependencies = [
     "numpy",
     "scipy",
     "matplotlib",
-    "PyQt5 ; platform_system != 'Windows'",
+    # "PySide2 ; platform_system != 'Windows'",
     "astropy",
 ]
 
