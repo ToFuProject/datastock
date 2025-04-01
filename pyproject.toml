@@ -17,14 +17,14 @@ version_file = "datastock/_version.py"
 
 
 [tool.setuptools.dynamic]
-readme = {file = ["README.md"]}
 classifiers = {file = ["CLASSIFIERS.txt"]}
 
 
 [project]
 name = "datastock"
+readme = "README.md"
 license = {text = "MIT"}
-dynamic = ["version", "readme", "classifiers"]
+dynamic = ["version", "classifiers"]
 description = "Generic handler for multiple heterogenous numpy arrays and subclasses"
 authors = [
     {name = "Didier VEZINET", email = "didier.vezinet@gmail.com"},
