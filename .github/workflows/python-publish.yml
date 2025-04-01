@@ -28,8 +28,8 @@ jobs:
           python-version: '3.11'
       - run: uv build
       # Check that basic features work and we didn't miss to include crucial files
-      - name: Smoke test (wheel)
-        run: uv run --isolated --no-project -p 3.11 --with dist/*.whl datastock/tests
-      - name: Smoke test (source distribution)
-        run: uv run --isolated --no-project -p 3.11 --with dist/*.tar.gz datastock/tests
+      - name: import test (wheel)
+        run: uv run --isolated --no-project -p 3.11 --with dist/*.whl datastock/tests/prepublish.py
+      - name: import test (source distribution)
+        run: uv run --isolated --no-project -p 3.11 --with dist/*.tar.gz datastock/tests/prepublish.py
       - run: uv publish --trusted-publishing always -t ${{ secrets.PYPI_API_TOKEN }}
