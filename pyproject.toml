@@ -1,56 +1,62 @@
+[build-system]
+requires = ["setuptools", "setuptools_scm"]
+build-backend = "setuptools.build_meta"
+
+
+[tool.setuptools.packages.find]
+where = ["datastock"]
+include = ["datastock*"]
+namespaces = false
+
+
+[tool.setuptools_scm]
+version_file = "datastock/_version.py"
+
+
+[tool.setuptools.dynamic]
+readme = {file = ["README.md"]}
+classifiers = {file = ["CLASSIFIERS.txt"]}
+
+
 [project]
 name = "datastock"
-license = {file = "LICENSE"}
-dynamic = ["version"]
+license = {text = "MIT"}
+dynamic = ["version", "readme", "classifiers"]
 description = "Generic handler for multiple heterogenous numpy arrays and subclasses"
-readme = "README.md"
-requires-python = ">=3.6"
 authors = [
-  {name = "Didier VEZINET", email = "didier.vezinet@gmail.com"},
+    {name = "Didier VEZINET", email = "didier.vezinet@gmail.com"},
 ]
 maintainers = [
-  {name = "Didier VEZINET", email = "didier.vezinet@gmail.com"},
+    {name = "Didier VEZINET", email = "didier.vezinet@gmail.com"},
 ]
-keywords = ["data", "analysis", "interactive", "heterogeneous arrays", "numpy", "Collection"]
-classifiers = [
-  # How mature is this project? Common values are
-  #   3 - Alpha
-  #   4 - Beta
-  #   5 - Production/Stable
-  "Development Status :: 5 - Production/Stable",
-
-  # Indicate who your project is intended for
-  "Intended Audience :: Science/Research",
-
-  # Specify the Python versions you support here.
-  "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.6",
-  "Programming Language :: Python :: 3.7",
-  "Programming Language :: Python :: 3.8",
-  "Programming Language :: Python :: 3.9",
-  "Programming Language :: Python :: 3.10",
-  "Programming Language :: Python :: 3.11",
+keywords = [
+    "data", "analysis", "interactive", "heterogeneous arrays", "numpy", "Collection",
 ]
+requires-python = ">=3.8"
 dependencies = [
-	"numpy",
-    	"scipy",
-    	"matplotlib",
-    	"astropy",
+    "numpy",
+    "scipy",
+    "matplotlib",
+    "PyQt5 ; platform_system != 'Windows'",
+    # "PySide2; platform_system == 'Windows'",
+    "astropy",
 ]
 
 
-[build-system]
-requires = [
-	"setuptools>=40.8.0, <64",
-	"wheel",
-	"Cython>=0.26",
-	"numpy",
-]
+[project.urls]
+Homepage = "https://github.com/ToFuProject/datastock"
+Issues = "https://github.com/ToFuProject/datastock/issues"
+
+
+[project.entry-points."datastock"]
+datastock = "scripts.main:main"
+
 
 [dependency-groups]
 dev = [
 	"pytest",
 ]
+
 
 [project.optional-dependencies]
 linting = [
@@ -59,6 +65,3 @@ linting = [
 formatting = [
   'ruff'
 ]
-
-[project.entry-points."datastock"]
-datastock = "scripts.main:main"
