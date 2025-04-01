@@ -3,10 +3,13 @@ requires = ["setuptools", "setuptools_scm"]
 build-backend = "setuptools.build_meta"
 
 
-[tool.setuptools.packages.find]
-where = ["datastock"]
-include = ["datastock*"]
-namespaces = false
+#[tool.setuptools.packages.find]
+#where = ["datastock"]
+#include = ["datastock*"]
+#namespaces = false
+
+[tool.setuptools]
+packages = ["datastock", "datastock.tests"]
 
 
 [tool.setuptools_scm]
