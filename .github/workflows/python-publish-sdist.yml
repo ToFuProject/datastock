@@ -26,10 +26,9 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           python-version: '3.11'
-      - run: uv build
+      - run: uv build --sdist
       # Check that basic features work and we didn't miss to include crucial files
-      - name: import test (wheel)
-        run: uv run --isolated --no-project -p 3.11 --with dist/*.whl datastock/tests/prepublish.py
-      - name: import test (source distribution)
+      - name: import test (sdist)
         run: uv run --isolated --no-project -p 3.11 --with dist/*.tar.gz datastock/tests/prepublish.py
-      - run: uv publish -t ${{ secrets.PYPI_API_TOKEN }}
+      - name: publish
+        run: uv publish -t ${{ secrets.PYPI_API_TOKEN }}
