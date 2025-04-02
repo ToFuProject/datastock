@@ -1,0 +1,39 @@
+# This workflow will upload a Python Package using Twine when a release is created
+# For more information see: https://help.github.com/en/actions/language-and-framework-guides/using-python-with-github-actions#publishing-to-package-registries
+
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
+name: Upload Python Package wheels
+
+on:
+  push:
+    tags:
+      - '*'
+    branches:
+      - main
+  release:
+    types: [created]
+
+jobs:
+  pypi:
+    name: Publish wheel to Pypi
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: uv build --wheel
+      # Check that basic features work and we didn't miss to include crucial files
+      - name: import test (wheel)
+        run: uv run --isolated --no-project -p ${{ matrix.python-version }} --with dist/*.whl datastock/tests/prepublish.py
+      - name: publish
+        run: uv publish -t ${{ secrets.PYPI_API_TOKEN }}
