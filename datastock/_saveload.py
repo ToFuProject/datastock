@@ -316,8 +316,8 @@ def load(
         else:
             if isinstance(dflat[k0], str) and 'str' in typ:
                 msg = (
-                    f"Not sure how to interpret dflat['{k0}'] - "
-                    "trying as a str (as-is): {dflat[k0]}\n"
+                    f"\nNot sure about dflat['{k0}'], "
+                    f"trying as-is str: '{dflat[k0]}'\n"
                 )
                 warnings.warn(msg)
                 dout[k0] = dflat[k0]
