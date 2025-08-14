@@ -314,13 +314,21 @@ def load(
         elif typ == 'type':
             dout[k0] = dflat[k0]
         else:
-            msg = (
-                f"Don't know how to deal with dflat['{k0}']:\n"
-                f"\t- typ: {typ}\n"
-                f"\t- type: {type(dflat[k0])}\n"
-                f"\t- value: {dflat[k0]}\n"
-            )
-            raise Exception(msg)
+            if isinstance(dflat[k0], str) and 'str' in typ:
+                msg = (
+                    f"Not sure how to interpret dflat['{k0}'] - "
+                    "trying as a str (as-is): {dflat[k0]}\n"
+                )
+                warnings.warn(msg)
+                dout[k0] = dflat[k0]
+            else:
+                msg = (
+                    f"Don't know how to deal with dflat['{k0}']:\n"
+                    f"\t- typ: {typ}\n"
+                    f"\t- type: {type(dflat[k0])}\n"
+                    f"\t- value: {dflat[k0]}\n"
+                )
+                raise Exception(msg)
 
     dout = _generic_utils.reshape_dict(dout, sep=sep)
 
