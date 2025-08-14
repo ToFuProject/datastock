@@ -172,7 +172,7 @@ class DataStock0(object):
         verb=True,
     ):
 
-        lsep = [';', '&', '?', '#', ',', '~', '.', '-', '_']
+        lsep = ['::', ';;', '&&', '??', '##', ',,', '~~', '..', '__']
         if sep is None:
             for ss in lsep:
                 c0 = (
