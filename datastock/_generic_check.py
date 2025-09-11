@@ -674,7 +674,7 @@ def _check_all_broadcastable(
 
     # raise Exception if needed
     if len(dfail) > 0:
-        lstr = [f"\t- {k0}: {v0}" for k0, v0 in dfail.items()]
+        lstr = [f"\t- '{k0}': {v0}" for k0, v0 in dfail.items()]
         msg = (
             "The following keywords args have non-compatible shape:\n"
             + "\n".join(lstr)
