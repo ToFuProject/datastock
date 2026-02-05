@@ -41,6 +41,7 @@ dependencies = [
     "scipy",
     "matplotlib",
     # "PySide2 ; platform_system != 'Windows'",
+    # see https://github.com/ToFuProject/datastock/pull/243
     "astropy>=6.1",
 ]
 
