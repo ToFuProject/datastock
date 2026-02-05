@@ -43,6 +43,7 @@ def get_ref_vector(
     quant=None,
     name=None,
     units=None,
+    dref_vector_name=None,
     # exclude from search
     key_exclude=None,
     ref_exclude=None,
@@ -188,6 +189,8 @@ def get_ref_vector(
                 f"\t- hasref: {hasref}\n"
                 f"\t- refok: {refok}\n"
             )
+            if dref_vector_name is not None:
+                msg += "\nFrom '{dref_vector_name}'\n"
             warnings.warn(msg)
             hasvect = False
     else:
@@ -440,6 +443,7 @@ def _get_ref_vector_find_identical(
     quant=None,
     name=None,
     units=None,
+    dref_vector_name=None,
     # for comparison
     val=None
 ):
@@ -456,6 +460,7 @@ def _get_ref_vector_find_identical(
             quant=quant,
             name=name,
             units=units,
+            dref_vector_name=dref_vector_name,
             values=None,
             indices=None,
         )[:4]
@@ -496,6 +501,7 @@ def get_ref_vector_common(
     quant=None,
     name=None,
     units=None,
+    dref_vector_name=None,
     # exclude from search
     key_exclude=None,
     ref_exclude=None,
@@ -564,6 +570,7 @@ def get_ref_vector_common(
             quant=quant,
             name=name,
             units=units,
+            dref_vector_name=dref_vector_name,
             # exclude from search
             key_exclude=key_exclude,
             ref_exclude=ref_exclude,
@@ -741,6 +748,7 @@ def get_ref_vector_common(
         quant=quant,
         name=name,
         units=units,
+        dref_vector_name=dref_vector_name,
         #
         dkeys=dkeys,
         key_vector=key_vector,
@@ -772,6 +780,7 @@ def _get_ref_vector_common_values(
     quant=None,
     name=None,
     units=None,
+    dref_vector_name=None,
     #
     dkeys=None,
     key_vector=None,
@@ -807,6 +816,7 @@ def _get_ref_vector_common_values(
                 quant=quant,
                 name=name,
                 units=units,
+                dref_vector_name=dref_vector_name,
                 # exclude from search
                 key_exclude=key_exclude,
                 ref_exclude=ref_exclude,
@@ -972,7 +982,11 @@ def _uniformize_check(
     for k0, v0 in dparam.items():
         lout = [
             k1 for k1 in v0['keys']
-            if coll.get_ref_vector(key0=k1, **{param: k0})[3] is None
+            if coll.get_ref_vector(
+                key0=k1,
+                dref_vector_name=f"param '{k0}'",
+                **{param: k0},
+            )[3] is None
         ]
         if len(lout) > 0:
             dfails[k0] = lout
