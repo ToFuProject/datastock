@@ -37,7 +37,7 @@ keywords = [
 ]
 requires-python = ">=3.8"
 dependencies = [
-    "numpy<1.25",  # for astropy compatibility vs deprecated np.product
+    "numpy",  # for astropy compatibility vs deprecated np.product
     "scipy",
     "matplotlib",
     # "PySide2 ; platform_system != 'Windows'",
