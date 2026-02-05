@@ -35,7 +35,9 @@ maintainers = [
 keywords = [
     "data", "analysis", "interactive", "heterogeneous arrays", "numpy", "Collection",
 ]
-requires-python = ">=3.10"   # due to astropy >= 6.1
+# due to astropy >= 6.1 and to end-of-life of 3.9
+# see https://devguide.python.org/versions/
+requires-python = ">=3.10"
 dependencies = [
     "numpy",  # for astropy compatibility vs deprecated np.product
     "scipy",
