@@ -35,13 +35,16 @@ maintainers = [
 keywords = [
     "data", "analysis", "interactive", "heterogeneous arrays", "numpy", "Collection",
 ]
-requires-python = ">=3.8"
+# due to astropy >= 6.1 and to end-of-life of 3.9
+# see https://devguide.python.org/versions/
+requires-python = ">=3.10"
 dependencies = [
-    "numpy<1.25",  # for astropy compatibility vs deprecated np.product
+    "numpy",  # for astropy compatibility vs deprecated np.product
     "scipy",
     "matplotlib",
     # "PySide2 ; platform_system != 'Windows'",
-    "astropy",
+    # see https://github.com/ToFuProject/datastock/pull/243
+    "astropy>=6.1",
 ]
 
 
