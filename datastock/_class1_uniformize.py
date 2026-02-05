@@ -142,8 +142,13 @@ def get_ref_vector(
 
     if hasref is not False:
 
+        lp = [
+            ('dim', dim),
+            ('quant', quant),
+            ('name', name),
+            ('units', units),
+        ]
 
-        lp = [('dim', dim), ('quant', quant), ('name', name), ('units', units)]
         lk_vect = [
             k0 for k0, v0 in ddata.items()
             if v0['monot'] == (True,)
@@ -182,15 +187,18 @@ def get_ref_vector(
                 hasref = True
 
         else:
+            lstr = [f"\t- {p0} = {p1}" for (p0, p1) in lp]
             msg = (
                 f"Multiple possible vectors found:\n{lk_vect}\n"
                 f"\t- key0: {key0}\n"
+                f"\t- key: {key}\n"
                 f"\t- ref: {ref}\n"
                 f"\t- hasref: {hasref}\n"
                 f"\t- refok: {refok}\n"
+                + "Provided:\n" + "\n".join(lstr) + "\n"
             )
             if dref_vector_name is not None:
-                msg += "\nFrom '{dref_vector_name}'\n"
+                msg += f"From '{dref_vector_name}'\n"
             warnings.warn(msg)
             hasvect = False
     else:
