@@ -618,6 +618,7 @@ class DataStock1(DataStock0):
         quant=None,
         name=None,
         units=None,
+        dref_vector_name=None,
         # exclude from search
         key_exclude=None,
         ref_exclude=None,
@@ -670,6 +671,7 @@ class DataStock1(DataStock0):
             quant=quant,
             name=name,
             units=units,
+            dref_vector_name=dref_vector_name,
             # exclude from search
             key_exclude=key_exclude,
             ref_exclude=ref_exclude,
@@ -690,6 +692,7 @@ class DataStock1(DataStock0):
         quant=None,
         name=None,
         units=None,
+        dref_vector_name=None,
         # strategy for choosing common ref vector
         strategy=None,
         strategy_bounds=None,
@@ -726,6 +729,7 @@ class DataStock1(DataStock0):
             quant=quant,
             name=name,
             units=units,
+            dref_vector_name=dref_vector_name,
             # strategy for choosing common ref vector
             strategy=strategy,
             strategy_bounds=strategy_bounds,
