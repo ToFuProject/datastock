@@ -41,7 +41,7 @@ dependencies = [
     "scipy",
     "matplotlib",
     # "PySide2 ; platform_system != 'Windows'",
-    "astropy",
+    "astropy>=6.1",
 ]
 
 
