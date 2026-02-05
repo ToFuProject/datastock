@@ -842,7 +842,6 @@ def _x01_grid(
     ix1=None,
 ):
 
-
     # ------------
     # trivial case
 
