@@ -100,7 +100,7 @@ def plot_as_array(
         inplace=inplace,
     )
     if key is None:
-        key = [kk for kk in key if kk not in lk][0]
+        key = [kk for kk in key if kk not in lk]
         lndim = [coll2.ddata[kk]['data'].ndim for kk in key]
         key = key[np.argmax(lndim)]
     ndim = coll2.ddata[key]['data'].ndim

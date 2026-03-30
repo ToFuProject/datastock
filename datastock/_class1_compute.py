@@ -735,7 +735,6 @@ def _extract_instance(
     # -----------------
     # select
     # -----------------
-
     ldata, lref = _extract_select(
         coll=coll,
         keys=keys,
@@ -754,7 +753,6 @@ def _extract_instance(
             coll2 = coll
         else:
             coll2 = coll.__class__()
-
 
     # ------------------------
     # Populate
