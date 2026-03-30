@@ -91,7 +91,7 @@ def plot_as_array(
 
     # check key, inplace flag and extract sub-collection
     lk = [kk for kk in [keyX, keyY, keyZ, keyU] if kk is not None]
-    coll2, key = coll.extract(
+    coll2, keys = coll.extract(
         [key] + lk,
         inc_monot=False,
         inc_vectors=False,
@@ -99,7 +99,10 @@ def plot_as_array(
         return_keys=True,
         inplace=inplace,
     )
-    key = [kk for kk in key if kk not in lk][0]
+    if key is None:
+        key = [kk for kk in key if kk not in lk][0]
+        lndim = [coll2.ddata[kk]['data'].ndim for kk in key]
+        key = key[np.argmax(lndim)]
     ndim = coll2.ddata[key]['data'].ndim
 
     # --------------
@@ -602,7 +605,6 @@ def _check(
             dvminmax2[k1]['min'] = nanmin - margin
         else:
             dvminmax2[k1]['min'] = dvminmax[kk]['min']
-
 
         if dvminmax is None or dvminmax.get(kk, {}).get('max') is None:
             dvminmax2[k1]['max'] = nanmax + margin
