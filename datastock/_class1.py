@@ -470,7 +470,6 @@ class DataStock1(DataStock0):
             return_keys: returns the value of keys
 
         """
-
         return _class1_compute._extract_instance(
             self,
             keys=keys,
